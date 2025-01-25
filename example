@@ -122,6 +122,7 @@ def main():
     except KeyboardInterrupt:
         print("Terminating")
     finally:
+        delete_ip_address(args.vm_name)
         vm.terminate()
         vm.wait()
         helper.terminate()
@@ -322,15 +323,28 @@ def qemu_command(args, vm_fd, mac_address, image, disk, cidata, serial):
 
 def lookup_ip_address(args, serial):
     """
-    Find the ip address in the serial log and print it.
+    Lookup the vm ip address in the serial log and write to
+    vm_home/ip-address.
     """
     prefix = f"{args.vm_name} address: "
     for line in tail(serial):
         if line.startswith(prefix):
             ip_address = line[len(prefix) :]
             print(f"Virtual machine IP address: {ip_address}")
+            write_ip_address(args.vm_name, ip_address)
             return
     print("Timeout looking up ip address")
+
+
+def write_ip_address(vm_name, ip_address):
+    path = vm_path(vm_name, "ip-address")
+    with open(path, "w") as f:
+        f.write(ip_address)
+
+
+def delete_ip_address(vm_name):
+    path = vm_path(vm_name, "ip-address")
+    silent_remove(path)
 
 
 def tail(path):
