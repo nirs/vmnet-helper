@@ -1,0 +1,6 @@
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Allow users in the staff group to use vmnet without a password.
+%staff  ALL = (root) NOPASSWD: /opt/vmnet-helper/bin/vmnet-helper
+Defaults:%staff closefrom_override

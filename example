@@ -1,0 +1,452 @@
+#!/usr/bin/env python3 -u
+
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+"""
+Run a vm using vfkit or qemu and vmnet-helper
+
+Requirements:
+
+    brew install python3 vfkit qemu cdrtools
+    python3 -m venv .venv
+    source .venv/bin/activate
+    pip install pyyaml
+
+"""
+
+import argparse
+import glob
+import hashlib
+import json
+import os
+import platform
+import socket
+import subprocess
+import uuid
+
+import yaml
+
+HOME = os.path.expanduser("~/.vmnet-helper")
+IMAGES = {
+    "arm64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-arm64.img",
+    "x86_64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-amd64.img",
+}
+
+# Apple recommends that the receive buffer is 4 times bigger than the send
+# buffer, but the send buffer is not used for buffering in datagram sockets, it
+# only limits the maximum datagram size. Based on Apple docs the vmnet maximum
+# packet size is 64k. Bigger receive buffer reduces ENOBUFS errors and increase
+# throughput. Testing shows that more than 2 MiB is not needed.
+SEND_BUFSIZE = 64 * 1024
+RECV_BUFSIZE = 2 * 1024 * 1024
+
+
+def main():
+    p = argparse.ArgumentParser(description="Run virtual machine using vmnet-helper")
+    p.add_argument("vm_name", help="VM name")
+    p.add_argument(
+        "--driver",
+        choices=["vfkit", "qemu"],
+        default="vfkit",
+        help="VM driver (vfkit, qemu)",
+    )
+    p.add_argument(
+        "--cpus",
+        type=cpus,
+        default=1,
+        help="Number of vpus (1)",
+    )
+    p.add_argument(
+        "--bridged", metavar="INTERFACE", help="Create brigded network using interface"
+    )
+    p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
+    args = p.parse_args()
+
+    # Create a socketpair for the child processes. The vm_sock will be used by
+    # the vm, and the host_sock will be used by the helper.
+    vm_sock, helper_sock = create_socketpair()
+
+    vm_home = vm_path(args.vm_name)
+    os.makedirs(vm_home, exist_ok=True)
+
+    helper_log = open(vm_path(args.vm_name, "vmnet-helper.log"), "w")
+    vm_log = open(vm_path(args.vm_name, f"{args.driver}.log"), "w")
+
+    # Start vmnet-helper first, since we need the MAC address for starting the VM.
+    helper, mac_address = start_helper(
+        args.vm_name,
+        helper_sock.fileno(),
+        bridged=args.bridged,
+        verbose=args.verbose,
+        log=helper_log,
+    )
+    try:
+        # Start the VM with the second socket and the MAC address.
+        serial = vm_path(args.vm_name, "serial.log")
+        vm = start_vm(
+            args.vm_name,
+            vm_sock.fileno(),
+            mac_address,
+            vm_log,
+            serial,
+            driver=args.driver,
+            cpus=args.cpus,
+        )
+
+        lookup_ip_address(args.vm_name, serial)
+
+        # Wait until the VM terminate. We can also exit and use pid files to
+        # terminate the processes.
+        print(f"Waiting until virtual machine stops")
+        vm.wait()
+    except KeyboardInterrupt:
+        print("Terminating")
+    finally:
+        vm.terminate()
+        vm.wait()
+        helper.terminate()
+        helper.wait()
+
+
+def cpus(s):
+    n = int(s)
+    if n < 1:
+        raise ValueError(f"Invalid number of cpus: '{s}'")
+    return n
+
+
+def create_image():
+    image_url = IMAGES[platform.machine()]
+    image_hash = hashlib.sha256(image_url.encode()).hexdigest()
+    path = cache_path("images", image_hash, "disk.img")
+    if not os.path.exists(path):
+        image_dir = os.path.dirname(path)
+        os.makedirs(image_dir, exist_ok=True)
+        tmp_path = path + ".tmp"
+        try:
+            download_image(image_url, tmp_path)
+            convert_image(tmp_path, path)
+            resize_image(path, "20g")
+        except:
+            silent_remove(path)
+            raise
+        finally:
+            silent_remove(tmp_path)
+    return path
+
+
+def download_image(image_url, path):
+    print(f"Downloading image '{image_url}'")
+    cmd = [
+        "curl",
+        "--fail",
+        "--no-progress-meter",
+        "--location",
+        "--output",
+        path,
+        image_url,
+    ]
+    subprocess.run(cmd, check=True)
+
+
+def convert_image(src, target):
+    print(f"Converting image to raw format '{target}'")
+    cmd = ["qemu-img", "convert", "-f", "qcow2", "-O", "raw", src, target]
+    subprocess.run(cmd, check=True)
+
+
+def resize_image(path, size):
+    print(f"Resizing image to {size}")
+    cmd = ["qemu-img", "resize", "-q", "-f", "raw", path, size]
+    subprocess.run(cmd, check=True)
+
+
+def silent_remove(path):
+    try:
+        os.remove(path)
+    except FileNotFoundError:
+        pass
+
+
+def create_socketpair():
+    pair = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM, 0)
+    for sock in pair:
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SEND_BUFSIZE)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, RECV_BUFSIZE)
+        os.set_inheritable(sock.fileno(), True)
+    return pair
+
+
+def start_helper(vm_name, helper_fd, bridged=None, verbose=False, log=None):
+    """
+    Starts vmnet-helper with helper_fd.
+    """
+    interface_id = interface_id_from(vm_name)
+    print(f"Starting vmnet-helper for '{vm_name}' with interface id '{interface_id}'")
+    cmd = [
+        "sudo",
+        "--non-interactive",
+        f"--close-from={helper_fd+1}",
+        "/opt/vmnet-helper/bin/vmnet-helper",
+        f"--fd={helper_fd}",
+        f"--interface-id={interface_id}",
+    ]
+    if bridged:
+        cmd.append("--operation-mode=bridged")
+        cmd.append(f"--shared-interface={bridged}")
+    if verbose:
+        cmd.append("--verbose")
+
+    helper = subprocess.Popen(
+        cmd,
+        stdout=subprocess.PIPE,
+        stderr=log,
+        pass_fds=[helper_fd],
+    )
+    try:
+        reply = helper.stdout.readline()  # type: ignore[attr-defined]
+        if not reply:
+            raise RuntimeError("No response from helper")
+
+        info = json.loads(reply)
+    except Exception:
+        helper.terminate()
+        helper.wait()
+        raise
+
+    return helper, info["vmnet_mac_address"]
+
+
+def interface_id_from(name):
+    """
+    Return unique UUID using the VM name. This UUID ensures that we get the
+    same MAC address when running the same VM again.
+    """
+    full_name = f"vmnet-helper-example-{name}"
+    md = hashlib.sha256(full_name.encode()).digest()
+    return str(uuid.UUID(bytes=md[:16], version=4))
+
+
+def start_vm(vm_name, vm_fd, mac_address, log, serial, driver="vfkit", cpus=1):
+    """
+    Starts a vfkit VM using the vm_fd and mac_address.
+    """
+    image = create_image()
+    disk = create_disk(vm_name, image)
+    cidata = create_cidata(vm_name, mac_address)
+    if driver == "vfkit":
+        cmd = vfkit_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial)
+    elif driver == "qemu":
+        cmd = qemu_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial)
+    else:
+        raise ValueError(f"Invalid driver '{driver}'")
+    print(f"Starting '{driver}' virtual machine '{vm_name}' with mac address '{mac_address}'")
+    silent_remove(serial)
+    vm = subprocess.Popen(cmd, stderr=log, pass_fds=[vm_fd])
+    return vm
+
+
+def vfkit_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial):
+    efi_store = vm_path(vm_name, "efi-variable-store")
+    return [
+        "vfkit",
+        "--memory=2048",
+        f"--cpus={cpus}",
+        f"--bootloader=efi,variable-store={efi_store},create",
+        f"--device=usb-mass-storage,path={cidata},readonly",
+        f"--device=virtio-blk,path={disk}",
+        f"--device=virtio-net,fd={vm_fd},mac={mac_address}",
+        f"--device=virtio-serial,logFilePath={serial}",
+        "--log-level=debug",
+    ]
+
+
+def qemu_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial):
+    return [
+        "qemu-system-aarch64",
+        "-name",
+        vm_name,
+        "-m",
+        "2048",
+        "-cpu",
+        "host",
+        "-machine",
+        "virt,accel=hvf",
+        "-smp",
+        f"{cpus},sockets=1,cores={cpus},threads=1",
+        "-drive",
+        "if=pflash,format=raw,readonly=on,file=/opt/homebrew/share/qemu/edk2-aarch64-code.fd",
+        "-drive",
+        f"file={disk},if=virtio,format=raw,discard=on",
+        "-drive",
+        f"file={cidata},id=cdrom0,if=none,format=raw,readonly=on",
+        "-device",
+        "virtio-scsi-pci,id=scsi0",
+        "-device",
+        "scsi-cd,bus=scsi0.0,drive=cdrom0",
+        "-netdev",
+        f"dgram,id=net1,local.type=fd,local.str={vm_fd}",
+        "-device",
+        f"virtio-net-pci,netdev=net1,mac={mac_address}",
+        "-monitor",
+        "none",
+        "-serial",
+        f"file:{serial}",
+        "-nographic",
+    ]
+
+
+def lookup_ip_address(vm_name, serial, timeout=10):
+    """
+    Find the ip address in the serial log and print it.
+    """
+    address_prefix = f"{vm_name} address: "
+    login_prefix = f"{vm_name} login: "
+
+    p = subprocess.Popen(
+        ["tail", "-F", serial],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+    )
+    try:
+        for line in iter(p.stdout.readline, ''):
+            line = line.strip().decode()
+            if line.startswith(address_prefix):
+                _, ip_address = line.split(":", 1)
+                print(f"Virtual machine IP address: {ip_address}")
+                break
+            if line.startswith(login_prefix):
+                print(f"Failed to look up virtual machine IP address")
+                break
+    finally:
+        p.kill()
+        p.wait()
+
+
+def create_disk(vm_name, image):
+    """
+    Create a disk from image using copy-on-write.
+    """
+    disk = vm_path(vm_name, "disk.img")
+    if not os.path.isfile(disk):
+        print(f"Creating disk '{disk}'")
+        subprocess.run(["cp", "-c", image, disk], check=True)
+    return disk
+
+
+def create_cidata(vm_name, mac_address):
+    """
+    Create cloud-init iso image.
+
+    We always create cidata.iso to run users scripts and update configuration
+    on every start.
+    """
+    vm_home = vm_path(vm_name)
+    cidata = os.path.join(vm_home, "cidata.iso")
+    create_user_data(vm_name)
+    create_meta_data(vm_name)
+    create_network_config(vm_name, mac_address)
+    cmd = [
+        "mkisofs",
+        "-output",
+        "cidata.iso",
+        "-volid",
+        "cidata",
+        "-joliet",
+        "-rock",
+        "user-data",
+        "meta-data",
+        "network-config",
+    ]
+    print(f"Creating cloud-init iso '{cidata}'")
+    subprocess.run(
+        cmd,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        cwd=vm_home,
+    )
+    return cidata
+
+
+def create_user_data(vm_name):
+    """
+    Create cloud-init user-data file.
+    """
+    path = vm_path(vm_name, "user-data")
+    data = {
+        "password": "ubuntu",
+        "chpasswd": {
+            "expire": False,
+        },
+        "ssh_authorized_keys": public_keys(),
+        "runcmd": [
+            "ip_address=$(ip -4 -j addr show dev vmnet0 | jq -r '.[0].addr_info[0].local')",
+            f"sudo echo {vm_name} address: $ip_address > /etc/issue",
+        ]
+    }
+    with open(path, "w") as f:
+        f.write("#cloud-config\n")
+        yaml.dump(data, f)
+
+
+def create_meta_data(vm_name):
+    """
+    Create cloud-init meta-data file.
+    """
+    path = vm_path(vm_name, "meta-data")
+    data = {
+        "instance-id": str(uuid.uuid4()),
+        "local-hostname": vm_name,
+    }
+    with open(path, "w") as f:
+        yaml.dump(data, f)
+
+
+def create_network_config(vm_name, mac_address):
+    """
+    Create cloud-init network-config file.
+    """
+    path = vm_path(vm_name, "network-config")
+    data = f"""\
+version: 2
+ethernets:
+  vmnet0:
+    match:
+      macaddress: '{mac_address}'
+    set-name: vmnet0
+    dhcp4: true
+    dhcp-identifier: mac
+"""
+    with open(path, "w") as f:
+        f.write(data)
+
+
+def public_keys():
+    """
+    Read public keys under ~/.ssh/
+    """
+    keys = []
+    for key in glob.glob(os.path.expanduser("~/.ssh/id_*.pub")):
+        with open(key) as f:
+            keys.append(f.readline().strip())
+    return keys
+
+
+def vm_path(*parts):
+    """
+    Build path for vm files.
+    """
+    return os.path.join(HOME, "vms", *parts)
+
+
+def cache_path(*parts):
+    """
+    Build path for cached files.
+    """
+    return os.path.join(HOME, "cache", *parts)
+
+
+if __name__ == "__main__":
+    main()

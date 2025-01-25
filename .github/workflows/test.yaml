@@ -1,0 +1,39 @@
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+---
+name: Test
+
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  build:
+    name: Build
+    strategy:
+      fail-fast: false
+      matrix:
+        platform:
+          # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for--private-repositories
+          - macos-13  # amd64
+          - macos-15  # arm64
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Install requirements
+        run: brew install meson diffoscope
+      - name: Build
+        run: |
+          meson setup build
+          meson compile -C build
+          ./archive.sh build
+      - name: Test reproducibility
+        run: |
+          meson setup repro
+          meson compile -C repro
+          ./archive.sh repro
+          diffoscope build/vmnet-helper-*.tar.gz repro/vmnet-helper-*.tar.gz

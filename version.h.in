@@ -1,0 +1,4 @@
+// SPDX-FileCopyrightText: The vmnet-helper authors
+// SPDX-License-Identifier: Apache-2.0
+
+#define GIT_VERSION "@VCS_TAG@"

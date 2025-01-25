@@ -1,0 +1,10 @@
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Project files.
+/build/
+/.venv/
+
+# Editor files
+/.zed/
+/pyrightconfig.json

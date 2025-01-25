@@ -1,0 +1,76 @@
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+---
+name: vfkit
+
+on:
+  pull_request:
+  push:
+    branches:
+    - main
+
+jobs:
+  example:
+    name: Example (vfkit)
+    # macos-15 (arm64) does not support nested virtualization yet.
+    runs-on: macos-13
+    steps:
+      - name: Host info
+        run: |
+          uname -a
+          sw_vers
+          ifconfig
+      - name: Install requirements
+        run: brew install meson qemu cdrtools coreutils
+      - name: Install vfkit
+        run: |
+          curl -LO https://github.com/crc-org/vfkit/releases/download/v0.6.0/vfkit
+          sudo install vfkit /usr/local/bin/
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Build vmnet-helper
+        run: |
+          meson setup build
+          meson compile -C build
+      - name: Install vmnet-helper
+        run: |
+          sudo meson install -C build
+          sudo install -m 0640 sudoers.d/vmnet-helper /etc/sudoers.d/
+      - name: Ensure bootpd is enabled
+        run: |
+          fw=/usr/libexec/ApplicationFirewall/socketfilterfw
+          sudo $fw --remove /usr/libexec/bootpd
+          sudo $fw --add /usr/libexec/bootpd
+          sudo $fw --unblock /usr/libexec/bootpd
+      - name: Ensure public key
+        run: |
+          ssh-keygen -q -N "" </dev/zero
+      - name: Start example VM
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install pyyaml
+          vm="$HOME/.vmnet-helper/vms/test"
+          ./example test -v &
+          if ! timeout 3m bash -c "until grep -q 'test login: ' $vm/serial.log 2>/dev/null; do sleep 3; done"; then
+              echo >&2 "Timeout waiting for login prompt"
+              exit 1
+          fi
+      - name: Logs
+        if: always()
+        run: |
+          tail -n 1000 ~/.vmnet-helper/vms/test/*.log /var/db/dhcpd_leases || true
+      - name: Prepare example VM
+        run: |
+          # TODO: get actual IP
+          vm_ip=192.168.105.2
+          ssh_cmd="ssh -o StrictHostKeyChecking=no ubuntu@$vm_ip"
+          $ssh_cmd sudo apt-get update -y
+          $ssh_cmd sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iperf3
+          $ssh_cmd sudo systemctl start iperf3.service
+      - name: Run iperf3
+        run: |
+          # TODO: get actual IP
+          vm_ip=192.168.105.2
+          iperf3-darwin -c $vm_ip
