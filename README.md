@@ -18,7 +18,7 @@ running the command.
 Download and extract the vmnet-helper release archive as root:
 
 ```console
-tag="v0.2.0"
+tag="$(curl -fsSL https://api.github.com/repos/nirs/vmnet-helper/releases/latest | jq -r .tag_name)"
 machine="$(uname -m)"
 archive="vmnet-helper-$tag-$machine.tar.gz"
 curl -LOf "https://github.com/nirs/vmnet-helper/releases/download/$tag/$archive"
