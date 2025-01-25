@@ -75,10 +75,8 @@ def main():
 
     # Start vmnet-helper first, since we need the MAC address for starting the VM.
     helper, mac_address = start_helper(
-        args.vm_name,
+        args,
         helper_sock.fileno(),
-        bridged=args.bridged,
-        verbose=args.verbose,
         log=helper_log,
     )
     try:
@@ -178,12 +176,14 @@ def create_socketpair():
     return pair
 
 
-def start_helper(vm_name, helper_fd, bridged=None, verbose=False, log=None):
+def start_helper(args, helper_fd, log=None):
     """
     Starts vmnet-helper with helper_fd.
     """
-    interface_id = interface_id_from(vm_name)
-    print(f"Starting vmnet-helper for '{vm_name}' with interface id '{interface_id}'")
+    interface_id = interface_id_from(args.vm_name)
+    print(
+        f"Starting vmnet-helper for '{args.vm_name}' with interface id '{interface_id}'"
+    )
     cmd = [
         "sudo",
         "--non-interactive",
@@ -192,10 +192,10 @@ def start_helper(vm_name, helper_fd, bridged=None, verbose=False, log=None):
         f"--fd={helper_fd}",
         f"--interface-id={interface_id}",
     ]
-    if bridged:
+    if args.bridged:
         cmd.append("--operation-mode=bridged")
-        cmd.append(f"--shared-interface={bridged}")
-    if verbose:
+        cmd.append(f"--shared-interface={args.bridged}")
+    if args.verbose:
         cmd.append("--verbose")
 
     helper = subprocess.Popen(
