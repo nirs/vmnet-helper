@@ -90,7 +90,7 @@ def main():
             serial,
         )
 
-        lookup_ip_address(args.vm_name, serial)
+        lookup_ip_address(args, serial)
 
         # Wait until the VM terminate. We can also exit and use pid files to
         # terminate the processes.
@@ -297,12 +297,12 @@ def qemu_command(args, vm_fd, mac_address, image, disk, cidata, serial):
     ]
 
 
-def lookup_ip_address(vm_name, serial, timeout=10):
+def lookup_ip_address(args, serial):
     """
     Find the ip address in the serial log and print it.
     """
-    address_prefix = f"{vm_name} address: "
-    login_prefix = f"{vm_name} login: "
+    address_prefix = f"{args.vm_name} address: "
+    login_prefix = f"{args.vm_name} login: "
 
     p = subprocess.Popen(
         ["tail", "-F", serial],
