@@ -98,7 +98,7 @@ def main():
 
         # Wait until the VM terminate. We can also exit and use pid files to
         # terminate the processes.
-        print(f"Waiting until virtual machine stops")
+        print("Waiting until virtual machine stops")
         vm.wait()
     except KeyboardInterrupt:
         print("Terminating")
@@ -323,7 +323,7 @@ def lookup_ip_address(vm_name, serial, timeout=10):
                 print(f"Virtual machine IP address: {ip_address}")
                 break
             if line.startswith(login_prefix):
-                print(f"Failed to look up virtual machine IP address")
+                print("Failed to look up virtual machine IP address")
                 break
     finally:
         p.kill()
