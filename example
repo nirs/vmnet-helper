@@ -29,8 +29,10 @@ import yaml
 
 HOME = os.path.expanduser("~/.vmnet-helper")
 IMAGES = {
-    "arm64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-arm64.img",
-    "x86_64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-amd64.img",
+    "ubuntu": {
+        "arm64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-arm64.img",
+        "x86_64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-amd64.img",
+    }
 }
 
 # Apple recommends that the receive buffer is 4 times bigger than the send
@@ -59,6 +61,12 @@ def main():
     )
     p.add_argument(
         "--bridged", metavar="INTERFACE", help="Create brigded network using interface"
+    )
+    p.add_argument(
+        "--distro",
+        choices=list(IMAGES.keys()),
+        default="ubuntu",
+        help="Linux distro (ubuntu)",
     )
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     args = p.parse_args()
@@ -112,8 +120,8 @@ def cpus(s):
     return n
 
 
-def create_image():
-    image_url = IMAGES[platform.machine()]
+def create_image(args):
+    image_url = IMAGES[args.distro][platform.machine()]
     image_hash = hashlib.sha256(image_url.encode()).hexdigest()
     path = cache_path("images", image_hash, "disk.img")
     if not os.path.exists(path):
@@ -230,7 +238,7 @@ def start_vm(args, vm_fd, mac_address, log, serial):
     """
     Starts a vfkit VM using the vm_fd and mac_address.
     """
-    image = create_image()
+    image = create_image(args)
     disk = create_disk(args, image)
     cidata = create_cidata(args, mac_address)
     if args.driver == "vfkit":
