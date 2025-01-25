@@ -231,7 +231,7 @@ def start_vm(args, vm_fd, mac_address, log, serial):
     Starts a vfkit VM using the vm_fd and mac_address.
     """
     image = create_image()
-    disk = create_disk(args.vm_name, image)
+    disk = create_disk(args, image)
     cidata = create_cidata(args, mac_address)
     if args.driver == "vfkit":
         cmd = vfkit_command(args, vm_fd, mac_address, image, disk, cidata, serial)
@@ -324,11 +324,11 @@ def lookup_ip_address(vm_name, serial, timeout=10):
         p.wait()
 
 
-def create_disk(vm_name, image):
+def create_disk(args, image):
     """
     Create a disk from image using copy-on-write.
     """
-    disk = vm_path(vm_name, "disk.img")
+    disk = vm_path(args.vm_name, "disk.img")
     if not os.path.isfile(disk):
         print(f"Creating disk '{disk}'")
         subprocess.run(["cp", "-c", image, disk], check=True)
