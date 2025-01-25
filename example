@@ -50,6 +50,14 @@ IMAGES = {
 SEND_BUFSIZE = 64 * 1024
 RECV_BUFSIZE = 2 * 1024 * 1024
 
+# The serial console device in the guest, used to communicate the guest ip
+# address.
+# TODO: find a way to detect this programatically isntead of hard coding.
+SERIAL_CONSOLE = {
+    "vfkit": "/dev/hvc0",
+    "qemu": "/dev/ttyAMA0",
+}
+
 
 def main():
     p = argparse.ArgumentParser(description="Run virtual machine using vmnet-helper")
@@ -316,27 +324,27 @@ def lookup_ip_address(args, serial):
     """
     Find the ip address in the serial log and print it.
     """
-    address_prefix = f"{args.vm_name} address: "
-    login_prefix = f"{args.vm_name} login: "
+    prefix = f"{args.vm_name} address: "
+    for line in tail(serial):
+        if line.startswith(prefix):
+            ip_address = line[len(prefix) :]
+            print(f"Virtual machine IP address: {ip_address}")
+            return
+    print("Timeout looking up ip address")
 
-    p = subprocess.Popen(
-        ["tail", "-F", serial],
+
+def tail(path):
+    tail = subprocess.Popen(
+        ["tail", "-F", path],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     try:
-        for line in iter(p.stdout.readline, ""):
-            line = line.strip().decode()
-            if line.startswith(address_prefix):
-                _, ip_address = line.split(":", 1)
-                print(f"Virtual machine IP address: {ip_address}")
-                break
-            if line.startswith(login_prefix):
-                print("Failed to look up virtual machine IP address")
-                break
+        for line in iter(tail.stdout.readline, b""):
+            yield line.strip().decode()
     finally:
-        p.kill()
-        p.wait()
+        tail.kill()
+        tail.wait()
 
 
 def create_disk(args, image):
@@ -389,16 +397,23 @@ def create_user_data(args):
     """
     Create cloud-init user-data file.
     """
+    serial_console = SERIAL_CONSOLE[args.driver]
     path = vm_path(args.vm_name, "user-data")
     data = {
-        "password": "ubuntu",
+        "password": "password",
         "chpasswd": {
             "expire": False,
         },
         "ssh_authorized_keys": public_keys(),
+        "packages": [
+            "jq",
+        ],
+        "package_update": False,
+        "package_upgrade": False,
         "runcmd": [
             "ip_address=$(ip -4 -j addr show dev vmnet0 | jq -r '.[0].addr_info[0].local')",
-            f"sudo echo {args.vm_name} address: $ip_address > /etc/issue",
+            f"echo > {serial_console}",
+            f"echo {args.vm_name} address: $ip_address > {serial_console}",
         ],
     }
     with open(path, "w") as f:
