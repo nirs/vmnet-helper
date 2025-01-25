@@ -27,12 +27,19 @@ import uuid
 
 import yaml
 
+
 HOME = os.path.expanduser("~/.vmnet-helper")
 IMAGES = {
     "ubuntu": {
         "arm64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-arm64.img",
         "x86_64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-amd64.img",
-    }
+    },
+    "alpine": {
+        "arm64": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/nocloud_alpine-3.21.2-aarch64-uefi-cloudinit-r0.qcow2",
+    },
+    "fedora": {
+        "arm64": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-41-1.4.aarch64.qcow2",
+    },
 }
 
 # Apple recommends that the receive buffer is 4 times bigger than the send
