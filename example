@@ -83,13 +83,11 @@ def main():
         # Start the VM with the second socket and the MAC address.
         serial = vm_path(args.vm_name, "serial.log")
         vm = start_vm(
-            args.vm_name,
+            args,
             vm_sock.fileno(),
             mac_address,
             vm_log,
             serial,
-            driver=args.driver,
-            cpus=args.cpus,
         )
 
         lookup_ip_address(args.vm_name, serial)
@@ -228,37 +226,33 @@ def interface_id_from(name):
     return str(uuid.UUID(bytes=md[:16], version=4))
 
 
-def start_vm(vm_name, vm_fd, mac_address, log, serial, driver="vfkit", cpus=1):
+def start_vm(args, vm_fd, mac_address, log, serial):
     """
     Starts a vfkit VM using the vm_fd and mac_address.
     """
     image = create_image()
-    disk = create_disk(vm_name, image)
-    cidata = create_cidata(vm_name, mac_address)
-    if driver == "vfkit":
-        cmd = vfkit_command(
-            vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial
-        )
-    elif driver == "qemu":
-        cmd = qemu_command(
-            vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial
-        )
+    disk = create_disk(args.vm_name, image)
+    cidata = create_cidata(args.vm_name, mac_address)
+    if args.driver == "vfkit":
+        cmd = vfkit_command(args, vm_fd, mac_address, image, disk, cidata, serial)
+    elif args.driver == "qemu":
+        cmd = qemu_command(args, vm_fd, mac_address, image, disk, cidata, serial)
     else:
-        raise ValueError(f"Invalid driver '{driver}'")
+        raise ValueError(f"Invalid driver '{args.driver}'")
     print(
-        f"Starting '{driver}' virtual machine '{vm_name}' with mac address '{mac_address}'"
+        f"Starting '{args.driver}' virtual machine '{args.vm_name}' with mac address '{mac_address}'"
     )
     silent_remove(serial)
     vm = subprocess.Popen(cmd, stderr=log, pass_fds=[vm_fd])
     return vm
 
 
-def vfkit_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial):
-    efi_store = vm_path(vm_name, "efi-variable-store")
+def vfkit_command(args, vm_fd, mac_address, image, disk, cidata, serial):
+    efi_store = vm_path(args.vm_name, "efi-variable-store")
     return [
         "vfkit",
         "--memory=2048",
-        f"--cpus={cpus}",
+        f"--cpus={args.cpus}",
         f"--bootloader=efi,variable-store={efi_store},create",
         f"--device=usb-mass-storage,path={cidata},readonly",
         f"--device=virtio-blk,path={disk}",
@@ -268,11 +262,11 @@ def vfkit_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial
     ]
 
 
-def qemu_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial):
+def qemu_command(args, vm_fd, mac_address, image, disk, cidata, serial):
     return [
         "qemu-system-aarch64",
         "-name",
-        vm_name,
+        args.vm_name,
         "-m",
         "2048",
         "-cpu",
@@ -280,7 +274,7 @@ def qemu_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial)
         "-machine",
         "virt,accel=hvf",
         "-smp",
-        f"{cpus},sockets=1,cores={cpus},threads=1",
+        f"{args.cpus},sockets=1,cores={args.cpus},threads=1",
         "-drive",
         "if=pflash,format=raw,readonly=on,file=/opt/homebrew/share/qemu/edk2-aarch64-code.fd",
         "-drive",
