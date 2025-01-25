@@ -236,12 +236,18 @@ def start_vm(vm_name, vm_fd, mac_address, log, serial, driver="vfkit", cpus=1):
     disk = create_disk(vm_name, image)
     cidata = create_cidata(vm_name, mac_address)
     if driver == "vfkit":
-        cmd = vfkit_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial)
+        cmd = vfkit_command(
+            vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial
+        )
     elif driver == "qemu":
-        cmd = qemu_command(vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial)
+        cmd = qemu_command(
+            vm_name, vm_fd, mac_address, cpus, image, disk, cidata, serial
+        )
     else:
         raise ValueError(f"Invalid driver '{driver}'")
-    print(f"Starting '{driver}' virtual machine '{vm_name}' with mac address '{mac_address}'")
+    print(
+        f"Starting '{driver}' virtual machine '{vm_name}' with mac address '{mac_address}'"
+    )
     silent_remove(serial)
     vm = subprocess.Popen(cmd, stderr=log, pass_fds=[vm_fd])
     return vm
@@ -310,7 +316,7 @@ def lookup_ip_address(vm_name, serial, timeout=10):
         stderr=subprocess.PIPE,
     )
     try:
-        for line in iter(p.stdout.readline, ''):
+        for line in iter(p.stdout.readline, ""):
             line = line.strip().decode()
             if line.startswith(address_prefix):
                 _, ip_address = line.split(":", 1)
@@ -384,7 +390,7 @@ def create_user_data(vm_name):
         "runcmd": [
             "ip_address=$(ip -4 -j addr show dev vmnet0 | jq -r '.[0].addr_info[0].local')",
             f"sudo echo {vm_name} address: $ip_address > /etc/issue",
-        ]
+        ],
     }
     with open(path, "w") as f:
         f.write("#cloud-config\n")
