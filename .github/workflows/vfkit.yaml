@@ -46,13 +46,15 @@ jobs:
       - name: Ensure public key
         run: |
           ssh-keygen -q -N "" </dev/zero
-      - name: Start example VM
+      - name: Create virtual env
         run: |
           python3 -m venv .venv
+          .venv/bin/pip install pyyaml
+      - name: Start example VM
+        run: |
           source .venv/bin/activate
-          pip install pyyaml
-          vm="$HOME/.vmnet-helper/vms/test"
           ./example test -v &
+          vm="$HOME/.vmnet-helper/vms/test"
           if ! timeout 3m bash -c "until test -f "$vm/ip-address"; do sleep 3; done"; then
               echo >&2 "Timeout waiting for $vm/ip-address"
               exit 1
