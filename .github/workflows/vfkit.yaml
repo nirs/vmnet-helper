@@ -62,7 +62,7 @@ jobs:
       - name: Logs
         if: always()
         run: |
-          tail -n 1000 ~/.vmnet-helper/vms/test/*.log /var/db/dhcpd_leases || true
+          head -n 500 ~/.vmnet-helper/vms/test/*.log /var/db/dhcpd_leases || true
       - name: Prepare example VM
         run: |
           vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
