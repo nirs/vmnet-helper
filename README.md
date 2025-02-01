@@ -46,18 +46,31 @@ without sudo by setting the setuid bit:
 sudo chmod +s /opt/vmnet-helper/bin/vmnet-helper
 ```
 
-## Starting the interface
+## Starting the interface by passing a file descriptor
 
-Start the vmnet executable with a unix datagram socket fd, and
-optionally with an interface-id. To pass the fd, you need to run the
-helper as child process. After creating the network interface, the
-helper writes a single line json response with the details of the
-network interface.
+> [!NOTE]
+> This is the most secure way, connecting the vmnet helper and the
+> virtual machine process using a socketpair.
+
+The program running vmnet-helper and the virtual machine process (vfkit,
+qemu) creates a datagram socketpair. One file descriptor must be passed
+to vmnet-helper child process using the `--fd` option, and the other to
+the virtual machine child process.
+
+After creating the network interface, the helper writes a single line
+JSON message describing the interface to stdout. The program running the
+helper can parse the JSON message and extract the mac address for the
+virtual machine.
 
 Example run using jq to pretty print the response:
 
 ```console
-% sudo /opt/vmnet-helper/bin/vmnet-helper -f 7 --interface-id 2835E074-9892-4A79-AFFB-7E41D2605678 2>/dev/null | jq
+% sudo --non-interactive \
+       --close-from 4 \
+       /opt/vmnet-helper/bin/vmnet-helper \
+       --fd 3 \
+       --interface-id 2835E074-9892-4A79-AFFB-7E41D2605678 \
+       2>/dev/null | jq
 {
   "vmnet_subnet_mask": "255.255.255.0",
   "vmnet_mtu": 1500,
@@ -71,12 +84,68 @@ Example run using jq to pretty print the response:
 ```
 
 > [!TIP]
-> vment documentation recommends to configure the virtual interface with
+> vment documentation instructs to configure the virtual interface with
 > the mac address specified by "vment_mac_address". Testing shows that
 > this is not required and any mac address works.
 
 The interface-id option is optional. It ensures that you get the same
 MAC address on the every run.
+
+## Starting the helper with a unix socket
+
+To use the helper from a shell script, or if the virtual machine
+driver does not support passing file descriptors, you can use a on-disk
+unix socket.
+
+Example run with a unix socket, redirecting the helper stdout to file:
+
+```console
+% sudo --non-interactive \
+       /opt/vmnet-helper/bin/vmnet-helper \
+       --socket /tmp/example/vm/vmnet.sock \
+       --interface-id 2835E074-9892-4A79-AFFB-7E41D2605678 \
+       >/tmp/example/vm/vmnet.json
+INFO  [main] running /opt/vmnet-helper/bin/vmnet-helper v0.2.0-4-ga1b610b on macOS 15.2.0
+INFO  [main] enabling bulk forwarding
+INFO  [main] started vmnet interface
+INFO  [main] running as uid: 501 gid: 20
+INFO  [main] waiting for client on "/tmp/example/vm/vmnet.sock"
+```
+
+The helper created a unix datagram socket and waits until a client
+connects and send the first packet.
+
+You can get the mac address for the vm from the vmnet.json:
+
+```console
+jq -r .vmnet_mac_address </tmp/example/vm/vmnet.json
+```
+
+### Connecting to the helper unix socket
+
+To connect to the helper from a client, you need to:
+
+1. Create a unix datagram socket
+1. Bind the socket to allow the helper to send packets to your socket
+1. Connect the socket the helper socket
+
+> [!TIP]
+> In Go the last 2 steps can be done using:
+> `net.DialUnix("unixgram", clientAddress, serverAddress)`
+
+When your client sends the first packet, the helper will start serving:
+
+```console
+INFO  [main] serving client "/tmp/example/vm/vfkit-1262-6e38.sock"
+INFO  [main] host formwarding started
+INFO  [main] vm forwarding started
+INFO  [main] waiting for termination
+```
+
+> [!NOTE]
+> Once connected, the helper will ignore packets sent by a new client.
+> If you want to recover from failures, restart the helper to create a
+> new unix socket and reconnect.
 
 ## Stopping the interface
 
