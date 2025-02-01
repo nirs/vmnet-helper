@@ -265,7 +265,7 @@ static void drop_privileges(void)
     }
     if (options.uid != 0) {
         if (setuid(options.uid) < 0) {
-            ERRORF("[main] Unable to change uid to %d: %s", options.uid, strerror(errno));
+            ERRORF("[main] unable to change uid to %d: %s", options.uid, strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
@@ -421,7 +421,7 @@ static void start_forwarding_from_host(void)
         exit(EXIT_FAILURE);
     }
 
-    INFO("[main] host formwarding started");
+    INFO("[main] started host formwarding");
 }
 
 static int read_from_vm(void)
@@ -514,7 +514,7 @@ static void start_forwarding_from_vm(void)
         forward_from_vm();
     });
 
-    INFO("[main] vm forwarding started");
+    INFO("[main] started vm forwarding");
 }
 
 static void wait_for_termination(void)
