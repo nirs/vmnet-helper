@@ -3,6 +3,7 @@
 
 #include <assert.h>
 #include <errno.h>
+#include <fcntl.h>
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
@@ -10,9 +11,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/event.h>
+#include <sys/socket.h>
+#include <sys/stat.h>
 #include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
+#include <sys/un.h>
 #include <time.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
@@ -47,6 +51,14 @@
 #define VM_RETRY_DELAY (50 * MICROSECOND)
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
+
+// Apple recommend receive buffer size to be 4 times the size of the send
+// buffer size, but send buffer size is not used to allocate a buffer in
+// datagram sockets, it only limits the maximum packet size. The receive buffer
+// size determine how many packets can be queued. Using bigger receive buffer
+// size reduces number of retries and improves throughput.
+static const int SNDBUF_SIZE = 64 * 1024;
+static const int RCVBUF_SIZE = 2 * 1024 * 1024;
 
 static const uintptr_t SHUTDOWN_EVENT = 1;
 
@@ -109,6 +121,10 @@ static size_t max_packet_size;
 static int kq = -1;
 static int status;
 static bool has_bulk_forwarding;
+
+// Ensures exclusive access to options.socket. This protects from the user
+// error of creating multiple helpers using the same socket.
+static char *socket_lockfile;
 
 static const char *host_strerror(vmnet_return_t v)
 {
@@ -270,6 +286,196 @@ static void drop_privileges(void)
         }
     }
     INFOF("[main] running as uid: %d gid: %d", geteuid(), getegid());
+}
+
+static void remove_socket_lockfile(void)
+{
+    if (socket_lockfile == NULL) {
+        return;
+    }
+
+    DEBUGF("[main] remove lockfile \"%s\"", socket_lockfile);
+
+    if (remove(socket_lockfile) < 0 && errno != ENOENT) {
+        WARNF("[main] remove(\"%s\": %s", socket_lockfile, strerror(errno));
+    }
+
+    free(socket_lockfile);
+    socket_lockfile = NULL;
+}
+
+static void create_socket_lockfile(void)
+{
+    if (asprintf(&socket_lockfile, "%s.lock", options.socket) < 0) {
+        ERRORF("[main] asprintf: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // We msut hold this lockfile for the rest of the process lifetime, so we
+    // explicicly "leak" the file descriptor to make it harder to close it by
+    // mistake.
+    if (open(socket_lockfile, O_RDONLY | O_CREAT | O_EXLOCK | O_NONBLOCK, 0600) < 0) {
+        ERRORF("[main] open(\"%s\"): %s", socket_lockfile, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    if (atexit(remove_socket_lockfile) < 0) {
+        ERRORF("[main] atexit: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    DEBUGF("[main] created lockfile \"%s\"", socket_lockfile);
+}
+
+static void remove_socket_silently(void)
+{
+    if (options.socket == NULL) {
+        return;
+    }
+
+    DEBUGF("[main] remove socket \"%s\"", options.socket);
+
+    if (remove(options.socket) < 0 && errno != ENOENT) {
+        WARNF("[main] remove(\"%s\"): %s", options.socket, strerror(errno));
+    }
+
+    options.socket = NULL;
+}
+
+static void create_socket(void)
+{
+    options.fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
+    if (options.fd < 0) {
+        ERRORF("[main] socket: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // Setting socket buffer size is a performance optimization - don't fail on
+    // errors.
+
+    if (setsockopt(options.fd, SOL_SOCKET, SO_SNDBUF, &SNDBUF_SIZE, sizeof(SNDBUF_SIZE)) < 0) {
+        WARNF("[main] setsockopt(SO_SNDBUF, %d): %s", SNDBUF_SIZE, strerror(errno));
+    }
+
+    if (setsockopt(options.fd, SOL_SOCKET, SO_RCVBUF, &RCVBUF_SIZE, sizeof(RCVBUF_SIZE)) < 0) {
+        WARNF("[main] setsockopt(SO_RCVBUF, %d): %s", RCVBUF_SIZE, strerror(errno));
+    }
+
+    if (remove(options.socket) < 0 && errno != ENOENT) {
+        ERRORF("[main] remove(\"%s\"): %s", options.socket, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    struct sockaddr_un address = {.sun_family=PF_LOCAL};
+    strncpy(address.sun_path, options.socket, sizeof(address.sun_path) - 1);
+
+    if (bind(options.fd, (struct sockaddr *)&address, sizeof(address)) < 0) {
+        ERRORF("[main] bind(\"%s\"): %s", options.socket, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // Racy, but fchmod() before bind() does not work on darwin.
+    if (chmod(options.socket, 0600) < 0) {
+        ERRORF("[main] fchmod: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    if (atexit(remove_socket_silently) < 0) {
+        ERRORF("[main] atexit: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    DEBUGF("[main] created socket \"%s\"", options.socket);
+}
+
+static void wait_for_client(void)
+{
+    INFOF("[main] waiting for client on \"%s\"", options.socket);
+
+    struct kevent add = {.ident=options.fd, .filter=EVFILT_READ, .flags=EV_ADD};
+    if (kevent(kq, &add, 1, NULL, 0, NULL) != 0) {
+        ERRORF("[main] kevent: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    struct kevent events[1];
+    while (1) {
+        int n = kevent(kq, NULL, 0, events, 1, NULL);
+        if (n < 0) {
+            ERRORF("[main] kevent: %s", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+        if (n > 0) {
+            if (events[0].filter == EVFILT_SIGNAL) {
+                INFOF("[main] received signal %s", strsignal(events[0].ident));
+                exit(EXIT_SUCCESS);
+            }
+            if (events[0].filter == EVFILT_READ) {
+                break;
+            }
+        }
+    }
+
+    struct kevent delete = {.ident=options.fd, .filter=EVFILT_READ, .flags=EV_DELETE};
+    if (kevent(kq, &delete, 1, NULL, 0, NULL) != 0) {
+        ERRORF("[main] kevent: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+}
+
+// Connecting the the client address allows sending packets to client using
+// sendmsg_x() or write(), and ensures that we never read packets from
+// other clients while we serve this one.
+static void connect_socket(void)
+{
+    unsigned char buf[64];
+    struct sockaddr_un client = {0};
+    socklen_t len = sizeof(client);
+
+    ssize_t n = recvfrom(options.fd, buf, sizeof(buf), MSG_PEEK,
+            (struct sockaddr *)&client, &len);
+    if (n < 0) {
+        ERRORF("[main] recvfrom: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    DEBUGF("[main] connecting to \"%s\"", client.sun_path);
+    if (connect(options.fd, (const struct sockaddr *)&client, sizeof(client)) < 0) {
+        ERRORF("[main] connect(\"%s\"): %s", client.sun_path, strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // vfkit and krunkit sendd an invalid "handshake" frame ("VFKT"), which
+    // fail later in vmnet_write() with INVALID_ARGUMENT.
+
+    if (n < 64) {
+        DEBUGF("[main] dropping invalid packet (%zd bytes)", n);
+        n = read(options.fd, buf, sizeof(buf));
+        if (n < 0) {
+            ERRORF("[main] read: %s", strerror(errno));
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    INFOF("[main] serving client \"%s\"", client.sun_path);
+}
+
+static void setup_socket(void)
+{
+    if (options.fd != -1) {
+        DEBUGF("[main] using fd %d", options.fd);
+        return;
+    }
+
+    create_socket_lockfile();
+    create_socket();
+    wait_for_client();
+    connect_socket();
+
+    // Once a client connected, we cannot serve any other client, so it would
+    // be nice to remove the socket now. This breaks krunkit since libkrun does
+    // not connect to the socket and use sendto().
+    // https://github.com/containers/libkrun/blob/57a5a6bfbe5d2333d88fd88fcedb9c1d1fec9cc2/src/devices/src/virtio/net/gvproxy.rs#L113
 }
 
 static void setup_host_buffers(void)
@@ -618,6 +824,7 @@ int main(int argc, char **argv)
     setup_kq();
     start_host_interface();
     drop_privileges();
+    setup_socket();
     setup_host_buffers();
     setup_vm_buffers();
     start_forwarding_from_host();

@@ -10,6 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/syslimits.h>
+#include <sys/types.h>
+#include <sys/un.h>
 #include <vmnet/vmnet.h>
 
 #include "log.h"
@@ -24,7 +26,7 @@ static void usage(int code)
 "\n"
 "Use vmnet interface without privileges\n"
 "\n"
-"    vmnet-helper (-f FD|--fd FD) [-i UUID|--interface-id UUID]\n"
+"    vmnet-helper (--fd FD|--socket SOCKET) [--interface-id UUID]\n"
 "                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
@@ -42,10 +44,11 @@ enum {
     OPT_VERSION,
 };
 
-static const char *short_options = ":f:i:vh";
+static const char *short_options = ":f:s:i:vh";
 
 static struct option long_options[] = {
     {"fd",                  required_argument,  0,  'f'},
+    {"socket",              required_argument,  0,  's'},
     {"interface-id",        required_argument,  0,  'i'},
     {"operation-mode",      required_argument,  0,  OPT_OPERATION_MODE},
     {"shared-interface",    required_argument,  0,  OPT_SHARED_INTERFACE},
@@ -74,6 +77,18 @@ static void parse_fd(const char *arg, int *fd)
         usage(1);
     }
     *fd = value;
+}
+
+static void parse_socket(const char *arg, const char **sock)
+{
+    struct sockaddr_un address;
+    size_t max_len = sizeof(address.sun_path) - 1;
+    size_t len = strlen(arg);
+    if (len > max_len) {
+        ERRORF("Socket \"%s\" too long (%zu > %zu)", arg, len, max_len);
+        usage(1);
+    }
+    *sock = arg;
 }
 
 static void parse_id(const char *arg, const char *name, unsigned int *id)
@@ -148,6 +163,9 @@ void parse_options(struct options *opts, int argc, char **argv)
         case 'f':
             parse_fd(optarg, &opts->fd);
             break;
+        case 's':
+            parse_socket(optarg, &opts->socket);
+            break;
         case 'i':
             parse_interface_id(optarg, opts->interface_id);
             break;
@@ -182,8 +200,13 @@ void parse_options(struct options *opts, int argc, char **argv)
         }
     }
 
-    if (opts->fd == -1) {
-        ERROR("Missing argument: fd is required");
+    if (opts->fd == -1 && opts->socket == NULL) {
+        ERROR("Missing argument: either \"fd\" or \"socket\" required");
+        usage(1);
+    }
+
+    if (opts->fd != -1 && opts->socket != NULL) {
+        ERROR("Conflicting arguments: \"fd\" and \"socket\" are mutually exclusive");
         usage(1);
     }
 
