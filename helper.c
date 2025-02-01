@@ -480,7 +480,7 @@ static int write_to_host(int count)
 
 static void forward_from_vm(void)
 {
-    INFO("[vm->host] started");
+    DEBUG("[vm->host] started");
 
     while (1) {
         int count = read_from_vm();
@@ -513,10 +513,14 @@ static void start_forwarding_from_vm(void)
     dispatch_async(vm.queue, ^{
         forward_from_vm();
     });
+
+    INFO("[main] vm forwarding started");
 }
 
-static void wait_for_shutdown(void)
+static void wait_for_termination(void)
 {
+    INFO("[main] waiting for termination");
+
     struct kevent events[1];
 
     while (1) {
@@ -618,7 +622,7 @@ int main(int argc, char **argv)
     setup_vm_buffers();
     start_forwarding_from_host();
     start_forwarding_from_vm();
-    wait_for_shutdown();
+    wait_for_termination();
     stop_host_interface();
 
     return (status == 0 || status & STATUS_STOPPED) ? EXIT_SUCCESS : EXIT_FAILURE;
