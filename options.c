@@ -25,7 +25,7 @@ static void usage(int code)
 "Use vmnet interface without privileges\n"
 "\n"
 "    vmnet-helper (-f FD|--fd FD) [-i UUID|--interface-id UUID]\n"
-"                 [--operation-mode shared|bridge|host] [--shared-interface NAME]\n"
+"                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
 "\n";
