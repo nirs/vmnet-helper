@@ -251,6 +251,9 @@ static void start_host_interface(void)
         xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
     }
 
+    xpc_dictionary_set_bool(desc, vmnet_enable_tso_key, options.enable_tso);
+    xpc_dictionary_set_bool(desc, vmnet_enable_checksum_offload_key, options.enable_checksum_offload);
+
     dispatch_semaphore_t completed = dispatch_semaphore_create(0);
 
     interface = vmnet_start_interface(
