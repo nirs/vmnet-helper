@@ -29,6 +29,7 @@ static void usage(int code)
 "    vmnet-helper (--fd FD|--socket SOCKET) [--interface-id UUID]\n"
 "                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
+"                 [--enable-tso] [--enable-checksum-offload]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
 "\n";
     fputs(msg, stderr);
@@ -41,24 +42,28 @@ enum {
     OPT_START_ADDRESS,
     OPT_END_ADDRESS,
     OPT_SUBNET_MASK,
+    OPT_ENABLE_TSO,
+    OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_VERSION,
 };
 
 static const char *short_options = ":f:s:i:vh";
 
 static struct option long_options[] = {
-    {"fd",                  required_argument,  0,  'f'},
-    {"socket",              required_argument,  0,  's'},
-    {"interface-id",        required_argument,  0,  'i'},
-    {"operation-mode",      required_argument,  0,  OPT_OPERATION_MODE},
-    {"shared-interface",    required_argument,  0,  OPT_SHARED_INTERFACE},
-    {"start-address",       required_argument,  0,  OPT_START_ADDRESS},
-    {"end-address",         required_argument,  0,  OPT_END_ADDRESS},
-    {"subnet-mask",         required_argument,  0,  OPT_SUBNET_MASK},
-    {"verbose",             no_argument,        0,  'v'},
-    {"version",             no_argument,        0,  OPT_VERSION},
-    {"help",                no_argument,        0,  'h'},
-    {0,                     0,                  0,  0},
+    {"fd",                      required_argument,  0,  'f'},
+    {"socket",                  required_argument,  0,  's'},
+    {"interface-id",            required_argument,  0,  'i'},
+    {"operation-mode",          required_argument,  0,  OPT_OPERATION_MODE},
+    {"shared-interface",        required_argument,  0,  OPT_SHARED_INTERFACE},
+    {"start-address",           required_argument,  0,  OPT_START_ADDRESS},
+    {"end-address",             required_argument,  0,  OPT_END_ADDRESS},
+    {"subnet-mask",             required_argument,  0,  OPT_SUBNET_MASK},
+    {"enable-tso",              no_argument,        0,  OPT_ENABLE_TSO},
+    {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
+    {"verbose",                 no_argument,        0,  'v'},
+    {"version",                 no_argument,        0,  OPT_VERSION},
+    {"help",                    no_argument,        0,  'h'},
+    {0,                         0,                  0,  0},
 };
 
 static void parse_fd(const char *arg, int *fd)
@@ -183,6 +188,12 @@ void parse_options(struct options *opts, int argc, char **argv)
             break;
         case OPT_SUBNET_MASK:
             parse_address(optarg, optname, &opts->subnet_mask);
+            break;
+        case OPT_ENABLE_TSO:
+            opts->enable_tso = true;
+            break;
+        case OPT_ENABLE_CHECKSUM_OFFLOAD:
+            opts->enable_checksum_offload = true;
             break;
         case 'v':
             verbose = true;
