@@ -54,11 +54,14 @@
 
 // Apple recommend receive buffer size to be 4 times the size of the send
 // buffer size, but send buffer size is not used to allocate a buffer in
-// datagram sockets, it only limits the maximum packet size. The receive buffer
-// size determine how many packets can be queued. Using bigger receive buffer
-// size reduces number of retries and improves throughput.
-static const int SNDBUF_SIZE = 64 * 1024;
-static const int RCVBUF_SIZE = 2 * 1024 * 1024;
+// datagram sockets, it only limits the maximum packet size.
+// Must be larger than TSO packets size (65550 bytes).
+static const int SNDBUF_SIZE = 65 * 1024;
+
+// The receive buffer size determine how many packets can be queued by the
+// peer. Using bigger receive buffer size make ENOBUFS error less likey for the
+// peer and improves throughput.
+static const int RCVBUF_SIZE = 4 * 1024 * 1024;
 
 static const uintptr_t SHUTDOWN_EVENT = 1;
 

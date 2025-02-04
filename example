@@ -44,13 +44,16 @@ IMAGES = {
     },
 }
 
-# Apple recommends that the receive buffer is 4 times bigger than the send
-# buffer, but the send buffer is not used for buffering in datagram sockets, it
-# only limits the maximum datagram size. Based on Apple docs the vmnet maximum
-# packet size is 64k. Bigger receive buffer reduces ENOBUFS errors and increase
-# throughput. Testing shows that more than 2 MiB is not needed.
-SEND_BUFSIZE = 64 * 1024
-RECV_BUFSIZE = 2 * 1024 * 1024
+# Apple recommend receive buffer size to be 4 times the size of the send
+# buffer size, but send buffer size is not used to allocate a buffer in
+# datagram sockets, it only limits the maximum packet size.
+# Must be larger than TSO packets size (65550 bytes).
+SEND_BUFSIZE = 65 * 1024
+
+# The receive buffer size determine how many packets can be queued by the
+# peer. Using bigger receive buffer size make ENOBUFS error less likey for the
+# peer and improves throughput.
+RECV_BUFSIZE = 4 * 1024 * 1024
 
 # The serial console device in the guest, used to communicate the guest ip
 # address.
