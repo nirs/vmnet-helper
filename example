@@ -90,9 +90,6 @@ def main():
     # the vm, and the host_sock will be used by the helper.
     vm_sock, helper_sock = create_socketpair()
 
-    vm_home = vm_path(args.vm_name)
-    os.makedirs(vm_home, exist_ok=True)
-
     # Start vmnet-helper first, since we need the MAC address for starting the VM.
     helper, mac_address = start_helper(args, helper_sock.fileno())
     try:
@@ -207,6 +204,7 @@ def start_helper(args, helper_fd):
     if args.verbose:
         cmd.append("--verbose")
 
+    os.makedirs(vm_path(args.vm_name), exist_ok=True)
     with open(vm_path(args.vm_name, "vmnet-helper.log"), "w") as log:
         helper = subprocess.Popen(
             cmd,
