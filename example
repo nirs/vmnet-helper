@@ -108,8 +108,8 @@ def main():
     finally:
         delete_ip_address(args.vm_name)
         vm.terminate()
-        vm.wait()
         helper.terminate()
+        vm.wait()
         helper.wait()
 
 
