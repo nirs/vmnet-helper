@@ -93,15 +93,10 @@ def main():
     vm_home = vm_path(args.vm_name)
     os.makedirs(vm_home, exist_ok=True)
 
-    helper_log = open(vm_path(args.vm_name, "vmnet-helper.log"), "w")
     vm_log = open(vm_path(args.vm_name, f"{args.driver}.log"), "w")
 
     # Start vmnet-helper first, since we need the MAC address for starting the VM.
-    helper, mac_address = start_helper(
-        args,
-        helper_sock.fileno(),
-        log=helper_log,
-    )
+    helper, mac_address = start_helper(args, helper_sock.fileno())
     try:
         # Start the VM with the second socket and the MAC address.
         serial = vm_path(args.vm_name, "serial.log")
@@ -198,7 +193,7 @@ def create_socketpair():
     return pair
 
 
-def start_helper(args, helper_fd, log=None):
+def start_helper(args, helper_fd):
     """
     Starts vmnet-helper with helper_fd.
     """
@@ -220,12 +215,13 @@ def start_helper(args, helper_fd, log=None):
     if args.verbose:
         cmd.append("--verbose")
 
-    helper = subprocess.Popen(
-        cmd,
-        stdout=subprocess.PIPE,
-        stderr=log,
-        pass_fds=[helper_fd],
-    )
+    with open(vm_path(args.vm_name, "vmnet-helper.log"), "w") as log:
+        helper = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=log,
+            pass_fds=[helper_fd],
+        )
     try:
         reply = helper.stdout.readline()  # type: ignore[attr-defined]
         if not reply:
