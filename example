@@ -93,20 +93,12 @@ def main():
     vm_home = vm_path(args.vm_name)
     os.makedirs(vm_home, exist_ok=True)
 
-    vm_log = open(vm_path(args.vm_name, f"{args.driver}.log"), "w")
-
     # Start vmnet-helper first, since we need the MAC address for starting the VM.
     helper, mac_address = start_helper(args, helper_sock.fileno())
     try:
         # Start the VM with the second socket and the MAC address.
         serial = vm_path(args.vm_name, "serial.log")
-        vm = start_vm(
-            args,
-            vm_sock.fileno(),
-            mac_address,
-            vm_log,
-            serial,
-        )
+        vm = start_vm(args, vm_sock.fileno(), mac_address, serial)
 
         lookup_ip_address(args, serial)
 
@@ -246,7 +238,7 @@ def interface_id_from(name):
     return str(uuid.UUID(bytes=md[:16], version=4))
 
 
-def start_vm(args, vm_fd, mac_address, log, serial):
+def start_vm(args, vm_fd, mac_address, serial):
     """
     Starts a vfkit VM using the vm_fd and mac_address.
     """
@@ -263,7 +255,8 @@ def start_vm(args, vm_fd, mac_address, log, serial):
         f"Starting '{args.driver}' virtual machine '{args.vm_name}' with mac address '{mac_address}'"
     )
     silent_remove(serial)
-    vm = subprocess.Popen(cmd, stderr=log, pass_fds=[vm_fd])
+    with open(vm_path(args.vm_name, f"{args.driver}.log"), "w") as log:
+        vm = subprocess.Popen(cmd, stderr=log, pass_fds=[vm_fd])
     return vm
 
 
