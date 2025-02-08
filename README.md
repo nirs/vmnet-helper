@@ -195,35 +195,47 @@ vmnet-helper is up to *10.4 times faster* compared to
 Virtualization framework, and up to *3.0 times faster* compared to
 [softnet](https://github.com/cirruslabs/softnet).
 
+With [krunkit](https://github.com/containers/krunkit) vm to vm
+performance is similar to [tart](https://tart.run/), using native
+bridged network.
+
 ### iMac M3
 
 Results from iMac M3 running macOS 15.2, testing only shared mode
 (192.168.105/24).
 
-| network      | mode   | vm     | host to vm     | cpu  | vm to vm      | cpu  |
-|--------------|--------|--------|----------------|------|---------------|------|
-| vmnet-helper | shared | vfkit  |   13.0 Gbits/s |  61% |  17.2 Gbits/s |  69% |
-| vmnet-helper | shared | qemu   |    3.0 Gbits/s |  23% |   2.9 Gbits/s |  31% |
-| softnet      | shared | tart   |    9.5 Gbits/s |  97% |   5.7 Gbits/s |  90% |
-| socket_vmnet | shared | vz     |    3.9 Gbits/s |  81% |   1.9 Gbits/s |  91% |
-| socket_vmnet | shared | qemu   |    3.8 Gbits/s |  41% |   2.5 Gbits/s |  78% |
+| network      | mode   | vm          | host to vm     | cpu  | vm to vm      | cpu  |
+|--------------|--------|-------------|----------------|------|---------------|------|
+| vmnet-helper | shared | vfkit       |   13.0 Gbits/s |  61% |  17.2 Gbits/s |  69% |
+| vmnet-helper | shared | qemu        |    3.0 Gbits/s |  23% |   2.9 Gbits/s |  31% |
+| softnet      | shared | tart        |    9.5 Gbits/s |  97% |   5.7 Gbits/s |  90% |
+| socket_vmnet | shared | vz          |    3.9 Gbits/s |  81% |   1.9 Gbits/s |  91% |
+| socket_vmnet | shared | qemu        |    3.8 Gbits/s |  41% |   2.5 Gbits/s |  78% |
 
 ### MacBook Pro M2 Max
 
 Results from MacBook Pro M2 Max running macOS 15.2, testing both shared
 and bridged modes.
 
-| network      | mode    | vm     | host to vm     | cpu  | vm to vm      | cpu  |
-|--------------|---------|--------|----------------|------|---------------|------|
-| vmnet-helper | shared  | vfkit  |   10.5 Gbits/s |  71% |  13.5 Gbits/s |  88% |
-| vmnet-helper | bridged | vfkit  |   13.0 Gbits/s |  88% |  12.9 Gbits/s |  86% |
-| vmnet-helper | shared  | qemu   |    2.7 Gbits/s |  20% |   2.4 Gbits/s |  35% |
-| softnet      | shared  | tart   |    5.5 Gbits/s |  98% |   5.4 Gbits/s | 100% |
-| vz           | bridged | tart   |    5.3 Gbits/s |    - |  35.9 Gbits/s |    - |
-| socket_vmnet | shared  | vz     |    2.5 Gbits/s |  95% |   1.3 Gbits/s | 130% |
-| socket_vmnet | shared  | qemu   |    2.8 Gbits/s |  41% |   1.4 Gbits/s | 104% |
+Using iperf3 `--length 1m` option.
 
-Note: using iperf3 `--length 1m` option
+| network      | mode    | vm         | host to vm     | cpu  | vm to vm      | cpu  |
+|--------------|---------|------------|----------------|------|---------------|------|
+| vmnet-helper | shared  | vfkit      |   10.5 Gbits/s |  71% |  13.5 Gbits/s |  88% |
+| vmnet-helper | bridged | vfkit      |   13.0 Gbits/s |  88% |  12.9 Gbits/s |  86% |
+| vmnet-helper | shared  | krunkit[1] |    1.4 Gbits/s |  33% |  29.9 Gbits/s |  63% |
+| vmnet-helper | bridged | krunkit[1] |    1.4 Gbits/s |  34% |  31.0 Gbits/s |  63% |
+| vmnet-helper | shared  | krunkit[2] |    9.8 Gbits/s |  70% |   9.4 Gbits/s |  84% |
+| vmnet-helper | bridged | krunkit[2] |    9.9 Gbits/s |  94% |   8.9 Gbits/s |  88% |
+| vmnet-helper | shared  | qemu       |    2.7 Gbits/s |  20% |   2.4 Gbits/s |  35% |
+| softnet      | shared  | tart       |    5.5 Gbits/s |  98% |   5.4 Gbits/s | 100% |
+| vz           | bridged | tart       |    5.3 Gbits/s |    - |  35.9 Gbits/s |    - |
+| socket_vmnet | shared  | vz         |    2.5 Gbits/s |  95% |   1.3 Gbits/s | 130% |
+| socket_vmnet | shared  | qemu       |    2.8 Gbits/s |  41% |   1.4 Gbits/s | 104% |
+
+Notes:
+- [1] krunkit built with libkrun upstream
+- [2] krunkit built with libkrun patched to disable offloading
 
 ## Performance testing
 
