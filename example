@@ -60,7 +60,22 @@ RECV_BUFSIZE = 4 * 1024 * 1024
 # TODO: find a way to detect this programmatically instead of hard coding.
 SERIAL_CONSOLE = {
     "vfkit": {"arm64": "hvc0", "x86_64": "hvc0"},
+    "krunkit": {"arm64": "hvc0", "x86_64": "hvc0"},
     "qemu": {"arm64": "ttyAMA0", "x86_64": "ttyS0"},
+}
+
+CONNECTION_AUTO = {
+    "vfkit": "fd",
+    "krunkit": "socket",
+    "qemu": "fd",
+}
+
+VMNET_OFFLOAD_AUTO = {
+    "vfkit": "off",
+    # libkrun enables offloading feautres by default, so we must enable vmnet
+    # offloading.  See https://github.com/containers/libkrun/issues/264
+    "krunkit": "on",
+    "qemu": "off",
 }
 
 
@@ -69,15 +84,21 @@ def main():
     p.add_argument("vm_name", help="VM name")
     p.add_argument(
         "--connection",
-        choices=["fd", "socket"],
-        default="fd",
-        help="How to connect the helper and vm (fd)",
+        choices=["auto", "fd", "socket"],
+        default="auto",
+        help="How to connect the helper and vm (auto)",
     )
     p.add_argument(
         "--driver",
-        choices=["vfkit", "qemu"],
+        choices=["vfkit", "krunkit", "qemu"],
         default="vfkit",
         help="VM driver (vfkit)",
+    )
+    p.add_argument(
+        "--krunkit-port",
+        type=int,
+        default=8081,
+        help="krunkit restful-uri port (8081)",
     )
     p.add_argument(
         "--cpus",
@@ -95,6 +116,12 @@ def main():
         "--bridged", metavar="INTERFACE", help="Create bridged network using interface"
     )
     p.add_argument(
+        "--vmnet-offload",
+        choices=["auto", "on", "off"],
+        default="auto",
+        help="Enable vment tso and checksum-offload options (auto)",
+    )
+    p.add_argument(
         "--distro",
         choices=list(IMAGES.keys()),
         default="ubuntu",
@@ -102,6 +129,12 @@ def main():
     )
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     args = p.parse_args()
+
+    if args.connection == "auto":
+        args.connection = CONNECTION_AUTO[args.driver]
+
+    if args.vmnet_offload == "auto":
+        args.vmnet_offload = VMNET_OFFLOAD_AUTO[args.driver]
 
     if args.connection == "fd":
         run_with_fd(args)
@@ -270,6 +303,9 @@ def start_helper(args, fd=None, socket=None):
     if args.verbose:
         cmd.append("--verbose")
 
+    if args.vmnet_offload == "on":
+        cmd.extend(["--enable-tso", "--enable-checksum-offload"])
+
     os.makedirs(vm_path(args.vm_name), exist_ok=True)
     with open(vm_path(args.vm_name, "vmnet-helper.log"), "w") as log:
         helper = subprocess.Popen(
@@ -314,6 +350,10 @@ def start_vm(args, mac_address, fd=None, socket=None):
         cmd = vfkit_command(
             args, mac_address, image, disk, cidata, serial, fd=fd, socket=socket
         )
+    elif args.driver == "krunkit":
+        cmd = krunkit_command(
+            args, mac_address, image, disk, cidata, serial, fd=fd, socket=socket
+        )
     elif args.driver == "qemu":
         cmd = qemu_command(
             args, mac_address, image, disk, cidata, serial, fd=fd, socket=socket
@@ -350,6 +390,28 @@ def vfkit_command(args, mac_address, image, disk, cidata, serial, fd=None, socke
     else:
         raise ValueError("fd or socket required")
     return cmd
+
+
+def krunkit_command(
+    args, mac_address, image, disk, cidata, serial, fd=None, socket=None
+):
+    if fd is not None:
+        raise ValueError("fd connection not supported for krunkit driver")
+    if socket is None:
+        raise ValueError("socket connection required")
+    return [
+        # krunkit from brew is not compatible with libkrun from brew. Using
+        # local build with latest libkrun.
+        "krunkit.local",
+        f"--memory={args.memory}",
+        f"--cpus={args.cpus}",
+        f"--restful-uri=tcp://localhost:{args.krunkit_port}",
+        f"--device=virtio-blk,path={disk},format=raw",
+        f"--device=virtio-blk,path={cidata},format=raw",
+        f"--device=virtio-net,unixSocketPath={socket},mac={mac_address}",
+        f"--device=virtio-serial,logFilePath={serial}",
+        f"--krun-log-level=3",
+    ]
 
 
 QEMU_CONFIG = {
