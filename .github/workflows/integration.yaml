@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-name: vfkit
+name: Integration
 
 on:
   pull_request:
@@ -12,9 +12,17 @@ on:
 
 jobs:
   example:
-    name: Example (vfkit)
+    name: Example
     # macos-15 (arm64) does not support nested virtualization yet.
     runs-on: macos-13
+    strategy:
+      fail-fast: false
+      matrix:
+        driver: [vfkit, qemu]
+        connection: [fd, socket]
+        exclude:
+          - driver: qemu
+            connection: socket
     steps:
       - name: Host info
         run: |
@@ -22,8 +30,14 @@ jobs:
           sw_vers
           ifconfig
       - name: Install requirements
-        run: brew install meson qemu cdrtools coreutils
+        run: brew install meson qemu cdrtools coreutils tree
+      - name: Inspect qemu
+        # Looking up both prefixes to make it eaier to port to arm64 in the future.
+        run: |
+          tree -h /usr/local/share/qemu || true
+          tree -h /opt/homebrew/share/qemu || true
       - name: Install vfkit
+        if: matrix.driver == 'vfkit'
         run: |
           curl -LO https://github.com/crc-org/vfkit/releases/download/v0.6.0/vfkit
           sudo install vfkit /usr/local/bin/
@@ -53,15 +67,16 @@ jobs:
       - name: Start example VM
         run: |
           source .venv/bin/activate
-          ./example test -v &
+          ./example test --driver ${{ matrix.driver }} --connection ${{ matrix.connection }} -v &
           vm="$HOME/.vmnet-helper/vms/test"
           if ! timeout 5m bash -c "until test -f "$vm/ip-address"; do sleep 3; done"; then
               echo >&2 "Timeout waiting for $vm/ip-address"
               exit 1
           fi
-      - name: Logs
+      - name: Inspect example VM
         if: always()
         run: |
+          tree -h ~/.vmnet-helper
           head -n 500 ~/.vmnet-helper/vms/test/*.log /var/db/dhcpd_leases || true
       - name: Prepare example VM
         run: |
