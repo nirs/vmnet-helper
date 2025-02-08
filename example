@@ -21,8 +21,10 @@ import hashlib
 import json
 import os
 import platform
+import selectors
 import socket
 import subprocess
+import time
 import uuid
 
 import yaml
@@ -307,13 +309,13 @@ def qemu_command(args, vm_fd, mac_address, image, disk, cidata, serial):
     ]
 
 
-def lookup_ip_address(args, serial):
+def lookup_ip_address(args, serial, timeout=300):
     """
     Lookup the vm ip address in the serial log and write to
     vm_home/ip-address.
     """
     prefix = f"{args.vm_name} address: "
-    for line in tail(serial):
+    for line in tail(serial, timeout):
         if line.startswith(prefix):
             ip_address = line[len(prefix) :]
             print(f"Virtual machine IP address: {ip_address}")
@@ -322,18 +324,43 @@ def lookup_ip_address(args, serial):
     print("Timeout looking up ip address")
 
 
-def tail(path):
+def tail(path, timeout):
     tail = subprocess.Popen(
         ["tail", "-F", path],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
     )
     try:
-        for line in iter(tail.stdout.readline, b""):
-            yield line.strip().decode()
+        partial = bytearray()
+        for data in stream(tail.stdout, timeout):
+            for line in data.splitlines(keepends=True):
+                if not line.endswith(b"\n"):
+                    partial += line
+                    break
+                if partial:
+                    line = bytes(partial) + line
+                    del partial[:]
+                yield line.rstrip().decode()
+        if partial:
+            yield partial.decode()
     finally:
         tail.kill()
         tail.wait()
+
+
+def stream(file, timeout):
+    deadline = time.monotonic() + timeout
+    with selectors.PollSelector() as sel:
+        sel.register(file, selectors.EVENT_READ)
+        while True:
+            remaining = deadline - time.monotonic()
+            if remaining < 0:
+                break
+            for key, _ in sel.select(remaining):
+                data = os.read(key.fd, 1024)
+                if not data:
+                    break
+                yield data
 
 
 def write_ip_address(vm_name, ip_address):
