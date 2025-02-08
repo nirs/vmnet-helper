@@ -54,7 +54,7 @@ RECV_BUFSIZE = 2 * 1024 * 1024
 
 # The serial console device in the guest, used to communicate the guest ip
 # address.
-# TODO: find a way to detect this programatically isntead of hard coding.
+# TODO: find a way to detect this programmatically instead of hard coding.
 SERIAL_CONSOLE = {
     "vfkit": "/dev/hvc0",
     "qemu": "/dev/ttyAMA0",
@@ -77,7 +77,7 @@ def main():
         help="Number of vpus (1)",
     )
     p.add_argument(
-        "--bridged", metavar="INTERFACE", help="Create brigded network using interface"
+        "--bridged", metavar="INTERFACE", help="Create bridged network using interface"
     )
     p.add_argument(
         "--distro",
