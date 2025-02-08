@@ -68,7 +68,7 @@ def main():
         "--driver",
         choices=["vfkit", "qemu"],
         default="vfkit",
-        help="VM driver (vfkit, qemu)",
+        help="VM driver (vfkit)",
     )
     p.add_argument(
         "--cpus",
