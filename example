@@ -318,7 +318,7 @@ def start_vm(args, mac_address, fd=None, socket=None):
     with open(vm_path(args.vm_name, f"{args.driver}.log"), "w") as log:
         pass_fds = [fd] if fd is not None else []
         vm = subprocess.Popen(cmd, stderr=log, pass_fds=pass_fds)
-    lookup_ip_address(args, serial)
+    wait_for_ip_address(vm, args, serial)
     return vm
 
 
@@ -391,18 +391,20 @@ def qemu_command(args, mac_address, image, disk, cidata, serial, fd=None, socket
     ]
 
 
-def lookup_ip_address(args, serial, timeout=300):
+def wait_for_ip_address(vm, args, serial, timeout=300):
     """
     Lookup the vm ip address in the serial log and write to
     vm_home/ip-address.
     """
     prefix = f"{args.vm_name} address: "
     for line in tail(serial, timeout):
+        check_vm(vm)
         if line.startswith(prefix):
             ip_address = line[len(prefix) :]
             print(f"Virtual machine IP address: {ip_address}")
             write_ip_address(args.vm_name, ip_address)
             return
+    check_vm(vm)
     print("Timeout looking up ip address")
 
 
@@ -443,6 +445,11 @@ def stream(file, timeout):
                 if not data:
                     break
                 yield data
+
+
+def check_vm(vm):
+    if vm.poll() is not None:
+        raise RuntimeError(f"Virtual machine terminated (exitcode {vm.poll()})")
 
 
 def write_ip_address(vm_name, ip_address):
