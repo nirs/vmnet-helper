@@ -385,8 +385,8 @@ def create_cidata(args, mac_address):
     """
     Create cloud-init iso image.
 
-    We always create cidata.iso to run users scripts and update configuration
-    on every start.
+    We create a new cidata.iso with new instance id for every run to update the
+    vm network configuration and report the vm ip address.
     """
     vm_home = vm_path(args.vm_name)
     cidata = os.path.join(vm_home, "cidata.iso")
