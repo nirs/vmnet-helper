@@ -65,6 +65,12 @@ def main():
     p = argparse.ArgumentParser(description="Run virtual machine using vmnet-helper")
     p.add_argument("vm_name", help="VM name")
     p.add_argument(
+        "--connection",
+        choices=["fd"],
+        default="fd",
+        help="How to connect the helper and vm (fd)",
+    )
+    p.add_argument(
         "--driver",
         choices=["vfkit", "qemu"],
         default="vfkit",
@@ -88,6 +94,16 @@ def main():
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
     args = p.parse_args()
 
+    if args.connection == "fd":
+        run_with_fd(args)
+
+
+def run_with_fd(args):
+    """
+    Use file descriptor passing to connect the vm and the helper.
+    """
+    vm = None
+
     # Create a socketpair for the child processes. The vm_sock will be used by
     # the vm, and the host_sock will be used by the helper.
     vm_sock, helper_sock = create_socketpair()
@@ -101,11 +117,19 @@ def main():
     except KeyboardInterrupt:
         print("Terminating")
     finally:
+        cleanup(args, vm, helper)
+
+
+def cleanup(args, vm, helper):
+    """
+    Stop child processes and clean up vm directory.
+    """
+    if vm:
         delete_ip_address(args.vm_name)
         vm.terminate()
-        helper.terminate()
         vm.wait()
-        helper.wait()
+    helper.terminate()
+    helper.wait()
 
 
 def cpus(s):
