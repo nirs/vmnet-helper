@@ -97,10 +97,6 @@ def main():
     try:
         # Start the VM with the second socket and the MAC address.
         vm = start_vm(args, vm_sock.fileno(), mac_address)
-
-        # Wait until the VM terminate. We can also exit and use pid files to
-        # terminate the processes.
-        print("Waiting until virtual machine stops")
         vm.wait()
     except KeyboardInterrupt:
         print("Terminating")
