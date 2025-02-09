@@ -400,14 +400,12 @@ def krunkit_command(
     if socket is None:
         raise ValueError("socket connection required")
     return [
-        # krunkit from brew is not compatible with libkrun from brew. Using
-        # local build with latest libkrun.
-        "krunkit.local",
+        "krunkit",
         f"--memory={args.memory}",
         f"--cpus={args.cpus}",
         f"--restful-uri=tcp://localhost:{args.krunkit_port}",
-        f"--device=virtio-blk,path={disk},format=raw",
-        f"--device=virtio-blk,path={cidata},format=raw",
+        f"--device=virtio-blk,path={disk}",
+        f"--device=virtio-blk,path={cidata}",
         f"--device=virtio-net,unixSocketPath={socket},mac={mac_address}",
         f"--device=virtio-serial,logFilePath={serial}",
         f"--krun-log-level=3",
