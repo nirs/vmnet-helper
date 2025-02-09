@@ -407,6 +407,7 @@ def qemu_command(args, mac_address, image, disk, cidata, serial, fd=None, socket
         "-serial",
         f"file:{serial}",
         "-nographic",
+        "-nodefaults",
     ]
 
 
