@@ -123,6 +123,11 @@ def main():
         help="vmnet shared interface, required for --operation-mode=bridged",
     )
     p.add_argument(
+        "--enable-isolation",
+        action="store_true",
+        help="Isolate the guest from other guests on the vmnet interface, requires --operation-mode=host",
+    )
+    p.add_argument(
         "--vmnet-offload",
         choices=["auto", "on", "off"],
         default="auto",
@@ -142,6 +147,9 @@ def main():
 
     if args.operation_mode == "bridged" and not args.shared_interface:
         p.error("--shared-interface required for --operation-mode=bridged")
+
+    if args.enable_isolation and args.operation_mode != "host":
+        p.error("--enable-isolation requires --operation-mode=host")
 
     if args.vmnet_offload == "auto":
         args.vmnet_offload = VMNET_OFFLOAD_AUTO[args.driver]
@@ -309,6 +317,9 @@ def start_helper(args, fd=None, socket=None):
 
     if args.shared_interface:
         cmd.append(f"--shared-interface={args.shared_interface}")
+
+    if args.enable_isolation:
+        cmd.append("--enable-isolation")
 
     if args.verbose:
         cmd.append("--verbose")

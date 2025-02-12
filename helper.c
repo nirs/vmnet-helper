@@ -246,13 +246,21 @@ static void start_host_interface(void)
     xpc_dictionary_set_uuid(desc, vmnet_interface_id_key, options.interface_id);
     xpc_dictionary_set_uint64(desc, vmnet_operation_mode_key, options.operation_mode);
 
-    if (options.operation_mode == VMNET_BRIDGED_MODE) {
+    switch (options.operation_mode) {
+    case VMNET_BRIDGED_MODE:
         xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);
-    } else if (options.operation_mode == VMNET_SHARED_MODE) {
+        break;
+    case VMNET_SHARED_MODE:
         xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
         xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
         xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
-    }
+        break;
+    case VMNET_HOST_MODE:
+        xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
+        break;
+    default:
+        assert(0);
+    };
 
     xpc_dictionary_set_bool(desc, vmnet_enable_tso_key, options.enable_tso);
     xpc_dictionary_set_bool(desc, vmnet_enable_checksum_offload_key, options.enable_checksum_offload);

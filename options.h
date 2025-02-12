@@ -16,6 +16,7 @@ struct options {
     const char *end_address;
     const char *subnet_mask;
     const char *shared_interface;
+    bool enable_isolation;
     bool enable_tso;
     bool enable_checksum_offload;
     uid_t uid;

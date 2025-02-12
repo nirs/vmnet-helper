@@ -29,7 +29,7 @@ static void usage(int code)
 "    vmnet-helper (--fd FD|--socket SOCKET) [--interface-id UUID]\n"
 "                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
-"                 [--enable-tso] [--enable-checksum-offload]\n"
+"                 [--enable-tso] [--enable-checksum-offload] [--enable-isolation]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
 "\n";
     fputs(msg, stderr);
@@ -44,6 +44,7 @@ enum {
     OPT_SUBNET_MASK,
     OPT_ENABLE_TSO,
     OPT_ENABLE_CHECKSUM_OFFLOAD,
+    OPT_ENABLE_ISOLATION,
     OPT_VERSION,
 };
 
@@ -60,6 +61,7 @@ static struct option long_options[] = {
     {"subnet-mask",             required_argument,  0,  OPT_SUBNET_MASK},
     {"enable-tso",              no_argument,        0,  OPT_ENABLE_TSO},
     {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
+    {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
     {"verbose",                 no_argument,        0,  'v'},
     {"version",                 no_argument,        0,  OPT_VERSION},
     {"help",                    no_argument,        0,  'h'},
@@ -195,6 +197,9 @@ void parse_options(struct options *opts, int argc, char **argv)
         case OPT_ENABLE_CHECKSUM_OFFLOAD:
             opts->enable_checksum_offload = true;
             break;
+        case OPT_ENABLE_ISOLATION:
+            opts->enable_isolation = true;
+            break;
         case 'v':
             verbose = true;
             break;
@@ -248,7 +253,12 @@ void parse_options(struct options *opts, int argc, char **argv)
     }
 
     if (opts->operation_mode == VMNET_BRIDGED_MODE && opts->shared_interface == NULL) {
-        ERROR("shared-interface is required for operation-mode=bridged");
+        ERROR("Missing argument: shared-interface is required for operation-mode=bridged");
+        exit(EXIT_FAILURE);
+    }
+
+    if (opts->enable_isolation && opts->operation_mode != VMNET_HOST_MODE) {
+        ERROR("Conflicting arguments: enable-isolation requires operation-mode=host");
         exit(EXIT_FAILURE);
     }
 }
