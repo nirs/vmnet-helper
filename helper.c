@@ -248,7 +248,7 @@ static void start_host_interface(void)
 
     if (options.operation_mode == VMNET_BRIDGED_MODE) {
         xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);
-    } else {
+    } else if (options.operation_mode == VMNET_SHARED_MODE) {
         xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
         xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
         xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
