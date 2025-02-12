@@ -113,7 +113,14 @@ def main():
         help="Memory size in MiB (1024)",
     )
     p.add_argument(
-        "--bridged", metavar="INTERFACE", help="Create bridged network using interface"
+        "--operation-mode",
+        choices=["shared", "bridged", "host"],
+        default="shared",
+        help="vmnet operation mode (shared)",
+    )
+    p.add_argument(
+        "--shared-interface",
+        help="vmnet shared interface, required for --operation-mode=bridged",
     )
     p.add_argument(
         "--vmnet-offload",
@@ -132,6 +139,9 @@ def main():
 
     if args.connection == "auto":
         args.connection = CONNECTION_AUTO[args.driver]
+
+    if args.operation_mode == "bridged" and not args.shared_interface:
+        p.error("--shared-interface required for --operation-mode=bridged")
 
     if args.vmnet_offload == "auto":
         args.vmnet_offload = VMNET_OFFLOAD_AUTO[args.driver]
@@ -295,10 +305,10 @@ def start_helper(args, fd=None, socket=None):
         raise ValueError("fd or socket required")
 
     cmd.append(f"--interface-id={interface_id}")
+    cmd.append(f"--operation-mode={args.operation_mode}")
 
-    if args.bridged:
-        cmd.append("--operation-mode=bridged")
-        cmd.append(f"--shared-interface={args.bridged}")
+    if args.shared_interface:
+        cmd.append(f"--shared-interface={args.shared_interface}")
 
     if args.verbose:
         cmd.append("--verbose")
