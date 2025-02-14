@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: The vmnethelper authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Quick benchmark for testing the bench tool.
+---
+shared-interface: en0
+time: 1

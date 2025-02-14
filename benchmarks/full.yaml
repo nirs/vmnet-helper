@@ -1,0 +1,31 @@
+# SPDX-FileCopyrightText: The vmnethelper authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Benchmark all builtin drivers with all operation modes.
+---
+# Drivers to test
+# drivers:
+#  - name: vfkit
+#  - name: krunkit
+#  - name: qemu
+
+# Operation modes to test
+# operation-modes: [shared, bridged, host]
+
+# Tests to run
+# tests: [host-to-vm, vm-to-host, vm-to-vm]
+
+# Shared interface when using "bridged" operation mode
+# shared-interface: null
+shared-interface: en0
+
+# Time in seconds to transmit
+# time: 10
+time: 30
+
+# length of buffer to read or write
+# length: "128k"
+
+# Output directory for iperf3 results in json format.
+# output: null
+output: out
