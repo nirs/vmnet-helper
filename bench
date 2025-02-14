@@ -1,0 +1,371 @@
+#!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+import argparse
+import glob
+import json
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+import matplotlib.pyplot as plt
+import yaml
+
+import vmnet
+
+SERVER = "server"
+CLIENT = "client"
+TESTS = ["host-to-vm", "vm-to-host", "vm-to-vm"]
+PORTS = {SERVER: 30000, CLIENT: 30001}
+
+
+def main():
+    p = argparse.ArgumentParser("bench")
+
+    sp = p.add_subparsers(title="commands", dest="command", required=True)
+
+    create = sp.add_parser("create", help="Create benchmark vms")
+    create.set_defaults(func=do_create)
+
+    run = sp.add_parser("run", help="Run benchmarks")
+    run.set_defaults(func=do_run)
+    run.add_argument("filename", help="Benchmark file")
+
+    plot = sp.add_parser("plot", help="Generate plots")
+    plot.set_defaults(func=do_plot)
+    plot.add_argument("filename", help="Plot file")
+
+    delete = sp.add_parser("delete", help="Delete benchmark vms")
+    delete.set_defaults(func=do_delete)
+
+    args = p.parse_args()
+    args.func(args)
+
+
+def do_create(args):
+    print(f"Creating benchmark vms")
+    server = VM(SERVER)
+    client = VM(CLIENT)
+    server.start()
+    try:
+        client.start()
+        try:
+            server.wait_for_ip_address()
+            client.wait_for_ip_address()
+            install_iperf3(server)
+            install_iperf3(client)
+            enable_iperf3_service(server)
+        finally:
+            client.stop()
+    finally:
+        server.stop()
+
+
+def install_iperf3(vm):
+    print(f"Installing iperf3 on {vm.name}")
+    vm.ssh("sudo", "apt-get", "update", "-y")
+    vm.ssh(
+        "sudo", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y", "iperf3"
+    )
+    vm.ssh("sync")
+
+
+def enable_iperf3_service(vm):
+    print(f"Enabling iperf3 service on {vm.name}")
+    vm.ssh("sudo", "systemctl", "enable", "iperf3.service")
+    vm.ssh("sync")
+
+
+def do_delete(args):
+    print(f"Deleting benchmark vms")
+    server_home = vmnet.vm_path(SERVER)
+    shutil.rmtree(server_home, ignore_errors=True)
+    client_home = vmnet.vm_path(CLIENT)
+    shutil.rmtree(client_home, ignore_errors=True)
+
+
+def do_run(args):
+    config = load_benchfile(args.filename)
+    if "output" in config:
+        path = os.path.join(config["output"], "bench", "vmnet-helper")
+        # Accept existing directory to make it easy to update results.
+        # Otherwise we need to run entire test again or merge files manually.
+        os.makedirs(path, exist_ok=True)
+    for mode in config["operation-modes"]:
+        for driver in config["drivers"]:
+            run(mode, driver, config)
+
+
+def do_plot(args):
+    config = load_plotfile(args.filename)
+
+    path = os.path.join(config["output"], "plot", config["name"])
+    os.makedirs(path, exist_ok=True)
+
+    for mode in config["operation-modes"]:
+        for test in config["tests"]:
+            plot(mode, test, config)
+
+
+def load_benchfile(filename):
+    with open(filename) as f:
+        config = yaml.safe_load(f)
+
+    if set(config.get("operation-modes", [])) - set(vmnet.OPERATION_MODES):
+        raise ValueError(f"Unknown operation-modes: {config['operation-modes']}")
+    if set(config.get("tests", [])) - set(TESTS):
+        raise ValueError(f"Unknown tests: {config['tests']}")
+
+    drivers_names = [d["name"] for d in config.get("drivers", [])]
+    if set(drivers_names) - set(vmnet.DRIVERS):
+        raise ValueError(f"Unknown operation-modes: {config['drivers']}")
+
+    # Set defaults to minimize the configuration for benchmarks.
+    config.setdefault("operation-modes", vmnet.OPERATION_MODES)
+    config.setdefault("tests", TESTS)
+    config.setdefault("drivers", [{"name": name} for name in vmnet.DRIVERS])
+
+    return config
+
+
+def load_plotfile(filename):
+    with open(filename) as f:
+        config = yaml.safe_load(f)
+
+    if "name" not in config:
+        raise ValueError("name required")
+    if "output" not in config:
+        raise ValueError("output required")
+
+    # Set defaults to minimize the configuration for plots.
+    config.setdefault("operation-modes", vmnet.OPERATION_MODES)
+    config.setdefault("tests", TESTS)
+
+    return config
+
+
+class VM:
+    def __init__(
+        self,
+        name,
+        driver={"name": "vfkit"},
+        operation_mode="shared",
+        shared_interface=None,
+    ):
+        self.name = name
+        self.driver = driver
+        self.operation_mode = operation_mode
+        self.shared_interface = shared_interface
+        self.proc = None
+        self.ip_address = None
+
+    def start(self):
+        print(f"Starting {self.name}")
+        cmd = [
+            "./example",
+            self.name,
+            f"--driver={self.driver['name']}",
+            f"--operation-mode={self.operation_mode}",
+        ]
+        if self.driver["name"] == "krunkit":
+            cmd.append(f"--krunkit-port={PORTS[self.name]}")
+        if self.operation_mode == "bridged" and self.shared_interface:
+            cmd.append(f"--shared-interface={self.shared_interface}")
+        if "command" in self.driver:
+            cmd.append(f"--driver-command={self.driver['command']}")
+        if "offload" in self.driver:
+            cmd.append(f"--vmnet-offload={self.driver['offload']}")
+
+        print(f"Starting process {cmd}")
+        self.proc = subprocess.Popen(cmd)
+
+    def wait_for_ip_address(self, timeout=60):
+        print(f"Waiting for {self.name} ip address")
+        deadline = time.monotonic() + timeout
+        path = vmnet.vm_path(self.name, "ip-address")
+        while True:
+            if os.path.exists(path):
+                with open(path) as f:
+                    self.ip_address = f.readline().strip()
+                break
+            if time.monotonic() > deadline:
+                raise RuntimeError(f"Timeout waiting for {self.name} ip address")
+            if self.proc.poll() is not None:
+                raise RuntimeError(
+                    f"{self.name} terminated (exitcode={self.proc.returncode})"
+                )
+            time.sleep(1)
+
+    def stop(self):
+        print(f"Stopping {self.name}")
+        self.proc.terminate()
+        self.proc.wait()
+
+    def ssh(self, *args, output=None):
+        cmd = [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "BatchMode=yes",
+            "-l",
+            "ubuntu",
+            self.ip_address,
+        ]
+        cmd.extend(args)
+        run_command(*cmd, output=output)
+
+
+def run(operation_mode, driver, config):
+    if "tag" in driver:
+        driver_tag = f"{driver['name']}:{driver['tag']}"
+    else:
+        driver_tag = driver["name"]
+
+    # Add the number of vms to make it easy to compare to socket_vment.
+    # vmnet-helper performance does not depend on the number of vms so we
+    # alwasy test with 2 vms.
+    config_name = f"{operation_mode}-{driver_tag}-2"
+
+    server = VM(
+        SERVER,
+        driver=driver,
+        operation_mode=operation_mode,
+        shared_interface=config.get("shared-interface"),
+    )
+    client = VM(
+        CLIENT,
+        driver=driver,
+        operation_mode=operation_mode,
+        shared_interface=config.get("shared-interface"),
+    )
+
+    print(f"Running configuration {config_name}")
+    server.start()
+    try:
+        # On M3 sometimes the client does not get an ip address when starting
+        # te server and client at the same time. Waiting until the server gets
+        # an ip address before starting the client avoids this.  TODO: Until we
+        # find a real fix, try to wait until the server helper is ready or a
+        # short sleep.
+        server.wait_for_ip_address()
+        client.start()
+        try:
+            client.wait_for_ip_address()
+            for test in config["tests"]:
+                run_test(config_name, test, server, client, config)
+        finally:
+            client.stop()
+    finally:
+        server.stop()
+
+
+def run_test(config_name, test, server, client, config):
+    if "output" in config:
+        config_dir = os.path.join(config["output"], "bench", "vmnet-helper", config_name)
+        os.makedirs(config_dir, exist_ok=True)
+        filename = os.path.join(config_dir, test + ".json")
+    else:
+        filename = None
+    print(f"Running test {config_name}/{test}")
+    if test == "host-to-vm":
+        cmd = iperf3_command(server.ip_address, config)
+        run_command(*cmd, output=filename)
+    elif test == "vm-to-host":
+        cmd = iperf3_command(server.ip_address, config, reverse=True)
+        run_command(*cmd, output=filename)
+    elif test == "vm-to-vm":
+        cmd = iperf3_command(server.ip_address, config, forceflush=True)
+        client.ssh(*cmd, output=filename)
+    else:
+        raise ValueError(f"Unknown test: {name}")
+
+
+def iperf3_command(server, config, reverse=False, forceflush=False):
+    cmd = ["iperf3", "-c", server]
+    if "time" in config:
+        cmd.extend(["--time", str(config["time"])])
+    if "length" in config:
+        cmd.extend(["--length", config["length"]])
+    if "output" in config:
+        cmd.append("--json")
+    if reverse:
+        cmd.append("--reverse")
+    if forceflush:
+        cmd.append("--forceflush")
+    return cmd
+
+
+def run_command(*cmd, output=None):
+    if output:
+        print(f"Running command {cmd} writing output to {output}")
+        with open(output, "w") as f:
+            subprocess.run(cmd, stdout=f, check=True)
+    else:
+        print(f"Running command {cmd}")
+        subprocess.run(cmd, check=True)
+
+
+def plot(mode, test, config):
+    names = []
+    bitrate = []
+
+    # For socket_vment we may have multiple files per test with different vm
+    # count. Example directory layout:
+    # out/
+    #   bench/
+    #     vmnet-helper/
+    #       shared-vfkit-2/
+    #         host-to-vm.json
+    #     socket_vmnet/
+    #       shared-vz-1/
+    #         host-to-vm.json
+    #       shared-vz-2/
+    #         host-to-vm.json
+    #       shared-vz-3/
+    #         host-to-vm.json
+    results = glob.glob(f"{config['output']}/bench/*/{mode}-*/{test}.json")
+
+    for filename in reversed(sorted(results)):
+        _, network, mode_driver_vms, _ = filename.rsplit(os.sep, 3)
+        _, driver, vms = mode_driver_vms.split("-")
+
+        # Filter network or drivers.
+        if "networks" in config and network not in config["networks"]:
+            continue
+        if "drivers" in config and driver not in config["drivers"]:
+            continue
+
+        with open(filename) as f:
+            data = json.load(f)
+        gbits_per_second = data["end"]["sum_received"]["bits_per_second"] / 1000**3
+
+        names.append(f"{network} {driver} #{vms}")
+        bitrate.append(gbits_per_second)
+
+    plt.style.use(["web.mplstyle"])
+    fig, ax = plt.subplots(layout="constrained")
+    ax.barh(names, bitrate, zorder=2)
+    for i in range(len(names)):
+        v = round(bitrate[i], 1)
+        label = f"{v:.1f}  "
+        plt.text(bitrate[i], i, label, va="center", ha="right", color="white", zorder=2)
+    ax.grid(visible=True, axis="x", zorder=0)
+    ax.set(
+        xlabel="Bitrate Gbits/s",
+        ylabel="Configurations",
+        title=f"{mode} network - {test}",
+    )
+    path = os.path.join(config["output"], "plot", config["name"], f"{mode}-{test}.png")
+    print(f"Plot {path}")
+    fig.savefig(path, bbox_inches="tight")
+
+
+if __name__ == "__main__":
+    main()
