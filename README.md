@@ -147,6 +147,65 @@ INFO  [main] waiting for termination
 > If you want to recover from failures, restart the helper to create a
 > new unix socket and reconnect.
 
+## Operation modes
+
+The vmnet helper supports all the operation modes provided by the vmnet
+framework, using the **--operation-mode** option.
+
+### --operation-mode=host
+
+Allows the vmnet interface to communicate with other vmnet interfaces
+that are in host mode and also with the native host.
+
+Options:
+
+- **--enable-isolation**: Enable isolation for this interface. Interface
+  isolation ensures that network communication between multiple vmnet
+  interface instances is not possible.
+
+### --operation-mode=shared
+
+Allows traffic originating from the vmnet interface to reach the
+Internet through a network address translator (NAT). The vmnet interface
+can also communicate with the native host. By default, the vmnet
+interface is able to communicate with other shared mode interfaces.
+
+Options:
+
+- **--start-address**: The starting IPv4 address to use for the interface.
+  This address is used as the gateway address. The subsequent address up
+  to and including **--end-address** are placed in the DHCP pool.
+  All other addresses are available for static assignment.  The address
+  must be in the private IP range (RFC 1918).  Must be specified along
+  with **--end-address** and **--subnet-mask** (default "192.168.105.1").
+
+- **--end-address**: The DHCP IPv4 range end address (string) to use for
+  the interface.  The address must be in the private IP range (RFC
+  1918).  Must be specified with **--start-address** and
+  **--subnet-mask** (default "192.168.105.254").
+
+- **--subnet-mask**: The IPv4 subnet mask to use on the interface.  Must
+  also specify **--start-address** and **--end-address** (default
+  "255.255.255.0").
+
+### --operation-mode=bridged
+
+Bridges the vmnet interface with a physical network interface. When
+using this mode you must specify the interface name using
+**--shared-interface**.
+
+Required options:
+- **--shared-interface**: The name of the interface to use.
+
+You can find the physical interfaces that can be used in bridged more
+using the **--list-shared-interfaces** option.
+
+```console
+% /opt/vmnet-helper/bin/vmnet-helper --list-shared-interfaces
+en10
+en0
+```
+
 ## Stopping the interface
 
 Terminate the vmnet-helper process gracefully. Send a SIGTERM or SIGINT
