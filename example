@@ -175,7 +175,7 @@ def run_with_fd(args):
     try:
         # Start the VM with the second socket and the MAC address.
         vm = start_vm(args, mac_address, fd=vm_sock.fileno())
-        vm.wait()
+        os.wait()
     except KeyboardInterrupt:
         print("Terminating")
     finally:
@@ -196,7 +196,7 @@ def run_with_socket(args):
     try:
         # Start the VM with the MAC address and socket.
         vm = start_vm(args, mac_address, socket=socket)
-        vm.wait()
+        os.wait()
     except KeyboardInterrupt:
         print("Terminating")
     finally:
