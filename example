@@ -82,6 +82,7 @@ VMNET_OFFLOAD_AUTO = {
 
 
 def main():
+    shared_interfaces = lookup_shared_interfaces()
     p = argparse.ArgumentParser(description="Run virtual machine using vmnet-helper")
     p.add_argument("vm_name", help="VM name")
     p.add_argument(
@@ -122,7 +123,9 @@ def main():
     )
     p.add_argument(
         "--shared-interface",
-        help="vmnet shared interface, required for --operation-mode=bridged",
+        choices=shared_interfaces,
+        default=shared_interfaces[0],
+        help=f"vmnet shared interface for --operation-mode=bridged ({shared_interfaces[0]})",
     )
     p.add_argument(
         "--enable-isolation",
@@ -163,6 +166,15 @@ def main():
         run_with_fd(args)
     elif args.connection == "socket":
         run_with_socket(args)
+
+
+def lookup_shared_interfaces():
+    cp = subprocess.run(
+        ["/opt/vmnet-helper/bin/vmnet-helper", "--list-shared-interfaces"],
+        stdout=subprocess.PIPE,
+        check=True,
+    )
+    return cp.stdout.decode().splitlines()
 
 
 def terminate(signo, frame):
