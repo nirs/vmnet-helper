@@ -1,0 +1,306 @@
+#!/usr/bin/env python3
+
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+import argparse
+import os
+import shutil
+import subprocess
+import sys
+import time
+
+import vmnet
+
+SERVER = "server"
+CLIENT = "client"
+TESTS = ["host-to-vm", "vm-to-host", "vm-to-vm"]
+PORTS = {SERVER: 30000, CLIENT: 30001}
+TIMEOUT = 10
+
+
+def main():
+    p = argparse.ArgumentParser("bench")
+
+    sp = p.add_subparsers(title="commands", dest="command", required=True)
+
+    create = sp.add_parser("create", help="Create benchmark vms")
+    create.set_defaults(func=do_create)
+
+    run = sp.add_parser("run", help="Run benchmarks")
+    run.set_defaults(func=do_run)
+    run.add_argument(
+        "--drivers",
+        metavar="NAMES",
+        default=vmnet.DRIVERS,
+        type=csv("driver", vmnet.DRIVERS),
+        help=f"Comma separated list of drivers ({','.join(vmnet.DRIVERS)})",
+    )
+    run.add_argument(
+        "--operation-modes",
+        metavar="NAMES",
+        default=vmnet.OPERATION_MODES,
+        type=csv("operation_mode", vmnet.OPERATION_MODES),
+        help=f"Comma separated list of operation modes ({','.join(vmnet.OPERATION_MODES)})",
+    )
+    # The example uses the first interface reported by vmnet, but it may not be
+    # active.
+    run.add_argument(
+        "--shared-interface",
+        metavar="NAMES",
+        help="Shared interface name for --operation-mode=bridged",
+    )
+    run.add_argument(
+        "--tests",
+        metavar="NAMES",
+        default=TESTS,
+        type=csv("test", TESTS),
+        help=f"Comma separated list of tests ({','.join(TESTS)})",
+    )
+    run.add_argument(
+        "--time",
+        metavar="SECONDS",
+        type=int,
+        default=TIMEOUT,
+        help=f"iperf3 time in seconds to transmit (default {TIMEOUT})",
+    )
+    run.add_argument(
+        "--length",
+        metavar="SIZE",
+        help=f"iperf3 buffer length",
+    )
+    run.add_argument(
+        "-o",
+        "--output",
+        help="Directory for storing iperf3 output in JSON format",
+    )
+
+    delete = sp.add_parser("delete", help="Delete benchmark vms")
+    delete.set_defaults(func=do_delete)
+
+    args = p.parse_args()
+    args.func(args)
+
+
+def do_create(args):
+    print(f"Creating benchmark vms")
+    server = VM(SERVER)
+    client = VM(CLIENT)
+    server.start()
+    try:
+        client.start()
+        try:
+            server.wait_for_ip_address()
+            client.wait_for_ip_address()
+            install_iperf3(server)
+            install_iperf3(client)
+            enable_iperf3_service(server)
+        finally:
+            client.stop()
+    finally:
+        server.stop()
+
+
+def install_iperf3(vm):
+    print(f"Installing iperf3 on {vm.name}")
+    vm.ssh("sudo", "apt-get", "update", "-y")
+    vm.ssh(
+        "sudo", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y", "iperf3"
+    )
+    vm.ssh("sync")
+
+
+def enable_iperf3_service(vm):
+    print(f"Enabling iperf3 service on {vm.name}")
+    vm.ssh("sudo", "systemctl", "enable", "iperf3.service")
+    vm.ssh("sync")
+
+
+def do_delete(args):
+    print(f"Deleting benchmark vms")
+    server_home = vmnet.vm_path(SERVER)
+    shutil.rmtree(server_home, ignore_errors=True)
+    client_home = vmnet.vm_path(CLIENT)
+    shutil.rmtree(client_home, ignore_errors=True)
+
+
+def do_run(args):
+    if args.output:
+        path = os.path.join(args.output, "vmnet-helper")
+        # Accept existing directory to make it easy to update results.
+        # Otherwise we need to run entire test again or merge files manually.
+        os.makedirs(path, exist_ok=True)
+    for mode in args.operation_modes:
+        for driver in args.drivers:
+            run(mode, driver, args)
+
+
+class VM:
+    def __init__(
+        self,
+        name,
+        driver="vfkit",
+        operation_mode="shared",
+        shared_interface=None,
+    ):
+        self.name = name
+        self.driver = driver
+        self.operation_mode = operation_mode
+        self.shared_interface = shared_interface
+        self.proc = None
+        self.ip_address = None
+
+    def start(self):
+        print(f"Starting {self.name}")
+        cmd = [
+            "./example",
+            self.name,
+            f"--driver={self.driver}",
+            f"--operation-mode={self.operation_mode}",
+        ]
+        if self.driver == "krunkit":
+            cmd.append(f"--krunkit-port={PORTS[self.name]}")
+        if self.operation_mode == "bridged" and self.shared_interface:
+            cmd.append(f"--shared-interface={self.shared_interface}")
+
+        self.proc = subprocess.Popen(cmd)
+
+    def wait_for_ip_address(self, timeout=60):
+        print(f"Waiting for {self.name} ip address")
+        deadline = time.monotonic() + timeout
+        path = vmnet.vm_path(self.name, "ip-address")
+        while True:
+            if os.path.exists(path):
+                with open(path) as f:
+                    self.ip_address = f.readline().strip()
+                break
+            if time.monotonic() > deadline:
+                raise RuntimeError(f"Timeout waiting for {self.name} ip address")
+            if self.proc.poll() is not None:
+                raise RuntimeError(
+                    f"{self.name} terminated (exitcode={self.proc.returncode})"
+                )
+            time.sleep(1)
+
+    def stop(self):
+        print(f"Stopping {self.name}")
+        self.proc.terminate()
+        self.proc.wait()
+
+    def ssh(self, *args, output=None):
+        cmd = [
+            "ssh",
+            "-o",
+            "StrictHostKeyChecking=no",
+            "-o",
+            "UserKnownHostsFile=/dev/null",
+            "-o",
+            "BatchMode=yes",
+            "-l",
+            "ubuntu",
+            self.ip_address,
+        ]
+        cmd.extend(args)
+        run_command(*cmd, output=output)
+
+
+def run(operation_mode, driver, args):
+    print(f"Running {operation_mode}-{driver}")
+    server = VM(
+        SERVER,
+        driver=driver,
+        operation_mode=operation_mode,
+        shared_interface=args.shared_interface,
+    )
+    client = VM(
+        CLIENT,
+        driver=driver,
+        operation_mode=operation_mode,
+        shared_interface=args.shared_interface,
+    )
+    server.start()
+    try:
+        # On M3 sometimes the client does not get an ip address when starting
+        # te server and client at the same time. Waiting until the server gets
+        # an ip address before starting the client avoids this.  TODO: Until we
+        # find a real fix, try to wait until the server helper is ready or a
+        # short sleep.
+        server.wait_for_ip_address()
+        client.start()
+        try:
+            client.wait_for_ip_address()
+
+            for name in args.tests:
+                test(name, server, client, args)
+        finally:
+            client.stop()
+    finally:
+        server.stop()
+
+
+def test(name, server, client, args):
+    # Add the number of vms to make it easy to compare to socket_vment.
+    # vmnet-helper performance does not depend on the number of vms so we
+    # alwasy test with 2 vms.
+    config = f"{server.operation_mode}-{server.driver}-2"
+    if args.output:
+        config_dir = os.path.join(args.output, "vmnet-helper", config)
+        os.makedirs(config_dir, exist_ok=True)
+        filename = os.path.join(config_dir, name + ".json")
+    else:
+        filename = None
+    print(f"Running {config}-{name}")
+    if name == "host-to-vm":
+        cmd = iperf3_command(server.ip_address, args)
+        run_command(*cmd, output=filename)
+    elif name == "vm-to-host":
+        cmd = iperf3_command(server.ip_address, args, reverse=True)
+        run_command(*cmd, output=filename)
+    elif name == "vm-to-vm":
+        cmd = iperf3_command(server.ip_address, args, forceflush=True)
+        client.ssh(*cmd, output=filename)
+    else:
+        raise ValueError(f"Unknown test: {name}")
+
+
+def iperf3_command(server, args, reverse=False, forceflush=False):
+    cmd = ["iperf3", "-c", server, "--time", str(args.time)]
+    if args.length:
+        cmd.extend(["--length", args.length])
+    if args.output:
+        cmd.append("--json")
+    if reverse:
+        cmd.append("--reverse")
+    if forceflush:
+        cmd.append("--forceflush")
+    return cmd
+
+
+def run_command(*cmd, output=None):
+    if output:
+        with open(output, "w") as f:
+            subprocess.run(cmd, stdout=f, check=True)
+    else:
+        subprocess.run(cmd, check=True)
+
+
+def csv(type_name, known_values):
+    """
+    Return a validator function for type_name, accepting one or more comma
+    separate values from known_values.
+    """
+
+    def validate(s):
+        values = s.split(",")
+        if set(values) - set(known_values):
+            raise ValueError
+        return values
+
+    # Use in argparse error message
+    validate.__name__ = type_name
+
+    return validate
+
+
+if __name__ == "__main__":
+    main()
