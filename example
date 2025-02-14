@@ -22,7 +22,9 @@ import json
 import os
 import platform
 import selectors
+import signal
 import socket
+import sys
 import subprocess
 import time
 import uuid
@@ -154,10 +156,17 @@ def main():
     if args.vmnet_offload == "auto":
         args.vmnet_offload = VMNET_OFFLOAD_AUTO[args.driver]
 
+    signal.signal(signal.SIGTERM, terminate)
+    signal.signal(signal.SIGINT, terminate)
+
     if args.connection == "fd":
         run_with_fd(args)
     elif args.connection == "socket":
         run_with_socket(args)
+
+
+def terminate(signo, frame):
+    sys.exit(1)
 
 
 def run_with_fd(args):
@@ -176,8 +185,6 @@ def run_with_fd(args):
         # Start the VM with the second socket and the MAC address.
         vm = start_vm(args, mac_address, fd=vm_sock.fileno())
         os.wait()
-    except KeyboardInterrupt:
-        print("Terminating")
     finally:
         cleanup(args, vm, helper)
 
@@ -197,8 +204,6 @@ def run_with_socket(args):
         # Start the VM with the MAC address and socket.
         vm = start_vm(args, mac_address, socket=socket)
         os.wait()
-    except KeyboardInterrupt:
-        print("Terminating")
     finally:
         cleanup(args, vm, helper)
 
