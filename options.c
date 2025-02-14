@@ -13,6 +13,7 @@
 #include <sys/types.h>
 #include <sys/un.h>
 #include <vmnet/vmnet.h>
+#include <xpc/xpc.h>
 
 #include "log.h"
 #include "options.h"
@@ -30,6 +31,7 @@ static void usage(int code)
 "                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
 "                 [--enable-tso] [--enable-checksum-offload] [--enable-isolation]\n"
+"                 [--list-shared-interfaces]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
 "\n";
     fputs(msg, stderr);
@@ -45,6 +47,7 @@ enum {
     OPT_ENABLE_TSO,
     OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
+    OPT_LIST_SHARED_INTERFACES,
     OPT_VERSION,
 };
 
@@ -62,6 +65,7 @@ static struct option long_options[] = {
     {"enable-tso",              no_argument,        0,  OPT_ENABLE_TSO},
     {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
+    {"list-shared-interfaces",  no_argument,        0,  OPT_LIST_SHARED_INTERFACES},
     {"verbose",                 no_argument,        0,  'v'},
     {"version",                 no_argument,        0,  OPT_VERSION},
     {"help",                    no_argument,        0,  'h'},
@@ -148,6 +152,21 @@ static void parse_address(const char *arg, const char *name, const char **p)
     *p = arg;
 }
 
+static void list_shared_interfaces(void)
+{
+    xpc_object_t list = vmnet_copy_shared_interface_list();
+    if (list == NULL) {
+        ERROR("Unable to list shared interfaces");
+        exit(EXIT_FAILURE);
+    }
+    size_t count = xpc_array_get_count(list);
+    for (size_t i = 0; i < count; i++) {
+        printf("%s\n", xpc_array_get_string(list, i));
+    }
+    xpc_release(list);
+    exit(0);
+}
+
 void parse_options(struct options *opts, int argc, char **argv)
 {
     const char *optname;
@@ -199,6 +218,9 @@ void parse_options(struct options *opts, int argc, char **argv)
             break;
         case OPT_ENABLE_ISOLATION:
             opts->enable_isolation = true;
+            break;
+        case OPT_LIST_SHARED_INTERFACES:
+            list_shared_interfaces();
             break;
         case 'v':
             verbose = true;
