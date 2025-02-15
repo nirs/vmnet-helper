@@ -298,72 +298,57 @@ Notes:
 
 ## Performance testing
 
-### host to vm
+### Running benchmarks
 
-Running iperf3-darwin client on the host, and iperf3 server in the
-virtual machine.
+Create vms for benchmarking:
 
-server vm:
-
-```console
-iperf3 -s
+```
+./bench create
 ```
 
-host:
+To run all benchmarks with all drivers and all operation modes and store
+iperf3 results in json format use:
 
-```console
-iperf3-darwin -c {server-vm-ip} -t 30
+```
+./bench run benchmarks/full.yaml
 ```
 
-### vm to vm
+See the [benchmarks](/benchmarks) directory for additional configurations.
 
-Running iperf3 client in client virtual machine, and iperf3 server on
-the server virtual machine.
+When done you can delete the vms using:
 
-server vm:
-
-```console
-iperf3 -s
+```
+./bench delete
 ```
 
-client vm:
+### Creating plots
 
-```console
-iperf3 -c {server-vm-ip} -t 30
+To create plots from benchmark results run:
+
+```
+./bench plot plots/vmnet-helper-drivers.yaml
 ```
 
-### vmnet-helper
-
-Created server and client vms for *vfkit* and *qemu* drivers.
-
-vfkit:
-
-```console
-./example server --driver vfkit &
-./example client --driver vfkit &
-```
-
-qemu:
-
-```console
-./example server --driver qemu &
-./example client --driver qemu &
-```
+See the [plots](/plots) directory for additional configurations.
 
 ### socket_vmnet
 
 Running socket_vmnet as launchd service, creating virtual machines with
-lima 1.0.3.
+lima 1.0.6.
 
 Tests run using socket_vmnet `test/perf.sh` script:
 
 ```console
 test/perf.sh create
-test/perf.sh host-to-vm
-test/perf.sh vm-to-vm
+test/perf.sh run
 ```
 
-Testing *qemu* by editing lima.yaml and adding `vmType: qemu`.
+To include socket_vment results in the plots copy the test results to
+the output directory:
+
+```
+cp ~/src/socket_vmnet/test/perf.out/socket_vment out/bench/
+```
 
 ### softnet
 
