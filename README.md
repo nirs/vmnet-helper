@@ -296,58 +296,33 @@ Notes:
 - [1] krunkit built with libkrun upstream
 - [2] krunkit built with libkrun patched to disable offloading
 
-## Performance testing
+## Running benchmarks
 
-### host to vm
+Create the benchmark vms:
 
-Running iperf3-darwin client on the host, and iperf3 server in the
-virtual machine.
-
-server vm:
-
-```console
-iperf3 -s
+```
+./bench create
 ```
 
-host:
+To run all benchmarks with all drivers and all operation modes and store
+iperf3 results in json format use:
 
-```console
-iperf3-darwin -c {server-vm-ip} -t 30
+```
+./bench run -o bench.out
 ```
 
-### vm to vm
+You also limit the drivers, operation modes and tests. In this example
+run the vm-to-vm benchmark with vfkit and krunkit, using shared and
+bridged operation modes:
 
-Running iperf3 client in client virtual machine, and iperf3 server on
-the server virtual machine.
-
-server vm:
-
-```console
-iperf3 -s
+```
+./bench run --drivers vfkit,krunkit --operation-modes shared,bridged --tests vm-to-vm
 ```
 
-client vm:
+When done you can delete the benchmark vms using:
 
-```console
-iperf3 -c {server-vm-ip} -t 30
 ```
-
-### vmnet-helper
-
-Created server and client vms for *vfkit* and *qemu* drivers.
-
-vfkit:
-
-```console
-./example server --driver vfkit &
-./example client --driver vfkit &
-```
-
-qemu:
-
-```console
-./example server --driver qemu &
-./example client --driver qemu &
+./bench delete
 ```
 
 ### socket_vmnet
