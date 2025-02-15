@@ -1,0 +1,12 @@
+axes.labelpad: 6
+axes.labelsize: 9
+axes.linewidth: 0.8
+axes.titlepad: 8
+axes.titlesize: 9
+figure.dpi: 120
+figure.figsize: 5, 3
+font.family: sans
+font.size: 8
+grid.alpha: 0.5
+grid.linewidth: 0.8
+lines.linewidth: 1
