@@ -131,12 +131,12 @@ class VM:
         if self.socket is None:
             raise ValueError("socket connection required")
         return [
-            "krunkit",
+            "krunkit.local",
             f"--memory={self.memory}",
             f"--cpus={self.cpus}",
             f"--restful-uri=tcp://localhost:{self.krunkit_port}",
-            f"--device=virtio-blk,path={self.disk}",
-            f"--device=virtio-blk,path={self.cidata}",
+            f"--device=virtio-blk,path={self.disk},format=raw",
+            f"--device=virtio-blk,path={self.cidata},format=raw",
             f"--device=virtio-net,unixSocketPath={self.socket},mac={self.mac_address}",
             f"--device=virtio-serial,logFilePath={self.serial}",
             "--krun-log-level=3",

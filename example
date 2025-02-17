@@ -32,7 +32,7 @@ VMNET_OFFLOAD_AUTO = {
     "vfkit": "off",
     # libkrun enables offloading feautres by default, so we must enable vmnet
     # offloading.  See https://github.com/containers/libkrun/issues/264
-    "krunkit": "on",
+    "krunkit": "off",
     "qemu": "off",
 }
 
