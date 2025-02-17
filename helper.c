@@ -506,6 +506,24 @@ static void setup_vm_buffers(void)
     init_endpoint(&vm, max_packet_size);
 }
 
+static inline size_t host_packets_size(int count)
+{
+    size_t size = 0;
+    for (int i = 0; i < count; i++) {
+        size += host.packets[i].vm_pkt_size;
+    }
+    return size;
+}
+
+static inline size_t vm_msgs_size(int count)
+{
+    size_t size = 0;
+    for (int i = 0; i < count; i++) {
+        size += vm.msgs[i].msg_len;
+    }
+    return size;
+}
+
 static int read_from_host(void)
 {
     int count = MAX_PACKET_COUNT;
@@ -565,7 +583,8 @@ static void write_to_vm(int count)
 
             sent += n;
             if (sent == count) {
-                DEBUGF("[host->vm] forwarded %d packets, %lld retries", count, retries);
+                DEBUGF("[host->vm] forwarded %d packets %zu bytes %lld retries",
+                        count, host_packets_size(count), retries);
                 return;
             }
         }
@@ -573,7 +592,7 @@ static void write_to_vm(int count)
 
     // Slow path.
 
-    int forwarded = 0;
+    size_t size = host_packets_size(sent);
     int dropped = 0;
 
     for (int i = sent; i < count; i++) {
@@ -599,7 +618,8 @@ static void write_to_vm(int count)
             continue;
         }
 
-        forwarded++;
+        sent++;
+        size += packet->vm_pkt_size;
         if (retries > 0) {
             DEBUGF("[host->vm] write completed after %lld retries", retries);
         }
@@ -608,7 +628,8 @@ static void write_to_vm(int count)
         assert((size_t)len == packet->vm_pkt_size);
     }
 
-    DEBUGF("[host->vm] forwarded %d packets, %d dropped", forwarded, dropped);
+    DEBUGF("[host->vm] forwarded %d packets %zu bytes %d dropped",
+            sent, size, dropped);
 }
 
 static void packets_available(xpc_object_t event)
@@ -720,7 +741,8 @@ static void forward_from_vm(void)
             break;
         }
 
-        DEBUGF("[vm->host] forwarded %d packets", count);
+        DEBUGF("[vm->host] forwarded %d packets %zu bytes",
+                count, vm_msgs_size(count));
     }
 
     INFO("[vm->host] stopped");
