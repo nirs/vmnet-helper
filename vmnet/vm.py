@@ -34,6 +34,7 @@ class VM:
         self.vm_name = args.vm_name
         self.verbose = args.verbose
         self.driver = args.driver
+        self.driver_command = args.driver_command
         self.krunkit_port = args.krunkit_port
         self.cpus = args.cpus
         self.memory = args.memory
@@ -106,7 +107,7 @@ class VM:
     def vfkit_command(self):
         efi_store = store.vm_path(self.vm_name, "efi-variable-store")
         cmd = [
-            "vfkit",
+            self.driver_command or "vfkit",
             f"--memory={self.memory}",
             f"--cpus={self.cpus}",
             f"--bootloader=efi,variable-store={efi_store},create",
@@ -131,7 +132,7 @@ class VM:
         if self.socket is None:
             raise ValueError("socket connection required")
         return [
-            "krunkit",
+            self.driver_command or "krunkit",
             f"--memory={self.memory}",
             f"--cpus={self.cpus}",
             f"--restful-uri=tcp://localhost:{self.krunkit_port}",
@@ -158,7 +159,7 @@ class VM:
         qemu = QEMU_CONFIG[platform.machine()]
         firmware = qemu_firmware(qemu["arch"])
         return [
-            f"qemu-system-{qemu['arch']}",
+            self.driver_command or f"qemu-system-{qemu['arch']}",
             "-name",
             self.vm_name,
             "-m",

@@ -87,6 +87,11 @@ def main():
         help=f"VM driver ({vmnet.DRIVERS[0]})",
     )
     p.add_argument(
+        "--driver-command",
+        metavar="COMMAND",
+        help=f"Use custom driver command",
+    )
+    p.add_argument(
         "--krunkit-port",
         metavar="PORT",
         type=int,
