@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: The vmnethelper authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Compare lima drivers with socket_vment
+# Compare socket_vmnet performance with different number of vms.
 ---
-name: socket_vmnet-scale
+name: socket_vmnet-vms-vz
+title: socket_vmnet vms - vz
 networks: [socket_vmnet]
-drivers: [vz, qemu]
+drivers: [vz]
 vms: [1, 2, 3]
 operation-modes: [shared, bridged]
 tests: [host-to-vm, vm-to-host, vm-to-vm]

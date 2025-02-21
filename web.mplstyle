@@ -6,7 +6,7 @@ axes.linewidth: 0.8
 axes.titlepad: 10
 axes.titlesize: 9
 figure.dpi: 120
-figure.figsize: 5, 2.5
+figure.figsize: 6, 3
 font.family: sans
 font.size: 8
 grid.alpha: 0.5

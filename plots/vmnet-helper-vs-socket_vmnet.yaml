@@ -1,9 +1,10 @@
 # SPDX-FileCopyrightText: The vmnethelper authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Compare lima drivers with socket_vment
+# Compare vmnet-helper with socket_vmnet
 ---
 name: vmnet-helper-vs-socket_vmnet
+title: vmnet-helper vs socket_vmnet
 networks: [socket_vmnet, vmnet-helper]
 drivers: [vfkit, vz, qemu]
 vms: [2]
