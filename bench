@@ -347,7 +347,13 @@ def plot(mode, test, config, args):
             data = json.load(f)
         gbits_per_second = data["end"]["sum_received"]["bits_per_second"] / 1000**3
 
-        names.append(f"{network} {driver} #{vms}")
+        # If we compare one network we don't need to include it in the label.
+        if len(config.get("networks", [])) == 1:
+            name = driver
+        else:
+            name = f"{network}-{driver}"
+
+        names.append(name)
         bitrate.append(gbits_per_second)
 
     plt.style.use(["web.mplstyle"])
