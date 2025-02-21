@@ -395,6 +395,20 @@ def plot(data, config, args):
             label=result["name"],
             zorder=2,
         )
+        for i, n in enumerate(y + offset):
+            if result["bitrates"][i] == 0:
+                continue
+            v = round(result["bitrates"][i], 1)
+            label = f"{v:.1f} "
+            plt.text(
+                result["bitrates"][i],
+                n,
+                label,
+                va="center",
+                ha="right",
+                color="white",
+                zorder=3,
+            )
         offset += bar_width
 
     ax.invert_yaxis()
