@@ -38,6 +38,7 @@ def main():
     plot = sp.add_parser("plot", help="Generate plots")
     plot.set_defaults(func=do_plot)
     plot.add_argument("filename", help="Plot file")
+    plot.add_argument("-o", "--output", required=True, help="Output directory")
 
     delete = sp.add_parser("delete", help="Delete benchmark vms")
     delete.set_defaults(func=do_delete)
@@ -103,12 +104,12 @@ def do_run(args):
 def do_plot(args):
     config = load_plotfile(args.filename)
 
-    path = os.path.join(config["output"], "plot", config["name"])
+    path = os.path.join(args.output, "plot", config["name"])
     os.makedirs(path, exist_ok=True)
 
     for mode in config["operation-modes"]:
         for test in config["tests"]:
-            plot(mode, test, config)
+            plot(mode, test, config, args)
 
 
 def load_benchfile(filename):
@@ -138,8 +139,6 @@ def load_plotfile(filename):
 
     if "name" not in config:
         raise ValueError("name required")
-    if "output" not in config:
-        raise ValueError("output required")
 
     # Set defaults to minimize the configuration for plots.
     config.setdefault("operation-modes", vmnet.OPERATION_MODES)
@@ -268,7 +267,9 @@ def run(operation_mode, driver, config):
 
 def run_test(config_name, test, server, client, config):
     if "output" in config:
-        config_dir = os.path.join(config["output"], "bench", "vmnet-helper", config_name)
+        config_dir = os.path.join(
+            config["output"], "bench", "vmnet-helper", config_name
+        )
         os.makedirs(config_dir, exist_ok=True)
         filename = os.path.join(config_dir, test + ".json")
     else:
@@ -312,7 +313,7 @@ def run_command(*cmd, output=None):
         subprocess.run(cmd, check=True)
 
 
-def plot(mode, test, config):
+def plot(mode, test, config, args):
     names = []
     bitrate = []
 
@@ -330,7 +331,7 @@ def plot(mode, test, config):
     #         host-to-vm.json
     #       shared-vz-3/
     #         host-to-vm.json
-    results = glob.glob(f"{config['output']}/bench/*/{mode}-*/{test}.json")
+    results = glob.glob(f"{args.output}/bench/*/{mode}-*/{test}.json")
 
     for filename in reversed(sorted(results)):
         _, network, mode_driver_vms, _ = filename.rsplit(os.sep, 3)
@@ -362,7 +363,7 @@ def plot(mode, test, config):
         ylabel="Configurations",
         title=f"{mode} network - {test}",
     )
-    path = os.path.join(config["output"], "plot", config["name"], f"{mode}-{test}.png")
+    path = os.path.join(args.output, "plot", config["name"], f"{mode}-{test}.png")
     print(f"Plot {path}")
     fig.savefig(path, bbox_inches="tight")
 
