@@ -3,9 +3,9 @@
 
 # Compare lima drivers with socket_vment
 ---
-name: vmnet-helper-drivers
+name: drivers
 networks: [vmnet-helper]
-drivers: [vfkit, qemu, krunkit, krunkit@nooffload]
+drivers: [vfkit, qemu, krunkit]
+vms: [2]
 operation-modes: [shared, bridged, host]
 tests: [host-to-vm, vm-to-host, vm-to-vm]
-output: performance/M2

@@ -3,9 +3,9 @@
 
 # Compare lima drivers with socket_vment
 ---
-name: socket_vmnet-scale
-networks: [socket_vmnet]
-drivers: [vz, qemu]
-vms: [1, 2, 3]
-operation-modes: [shared, bridged]
+name: offloading
+networks: [vmnet-helper]
+drivers: [vfkit, vfkit:offload, krunkit, krunkit:nooffload]
+vms: [2]
+operation-modes: [shared, bridged, host]
 tests: [host-to-vm, vm-to-host, vm-to-vm]
