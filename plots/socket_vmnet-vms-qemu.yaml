@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: The vmnethelper authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Compare socket_vmnet performance with different number of vms.
+---
+name: socket_vmnet-vms-qemu
+title: socket_vmnet vms - qemu
+networks: [socket_vmnet]
+drivers: [qemu]
+vms: [1, 2, 3]
+operation-modes: [shared, bridged]
+tests: [host-to-vm, vm-to-host, vm-to-vm]

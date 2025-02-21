@@ -13,6 +13,7 @@ import sys
 import time
 
 import matplotlib.pyplot as plt
+import numpy as np
 import yaml
 
 import vmnet
@@ -108,8 +109,20 @@ def do_plot(args):
     os.makedirs(path, exist_ok=True)
 
     for mode in config["operation-modes"]:
+        data = {"mode": mode, "tests": config["tests"], "results": []}
+
+        drivers = {}
         for test in config["tests"]:
-            plot(mode, test, config, args)
+            for name, bitrate in load_results(mode, test, config, args):
+                drivers.setdefault(name, []).append(bitrate)
+
+        for name, bitrates in drivers.items():
+            # We must have the same shape for all results.
+            while len(bitrates) < len(config["tests"]):
+                bitrates.append(0)
+            data["results"].append({"name": name, "bitrates": bitrates})
+
+        plot(data, config, args)
 
 
 def load_benchfile(filename):
@@ -313,9 +326,8 @@ def run_command(*cmd, output=None):
         subprocess.run(cmd, check=True)
 
 
-def plot(mode, test, config, args):
-    names = []
-    bitrate = []
+def load_results(mode, test, config, args):
+    results = []
 
     # For socket_vment we may have multiple files per test with different vm
     # count. Example directory layout:
@@ -331,9 +343,9 @@ def plot(mode, test, config, args):
     #         host-to-vm.json
     #       shared-vz-3/
     #         host-to-vm.json
-    results = glob.glob(f"{args.output}/bench/*/{mode}-*/{test}.json")
+    files = glob.glob(f"{args.output}/bench/*/{mode}-*/{test}.json")
 
-    for filename in reversed(sorted(results)):
+    for filename in sorted(files):
         _, network, mode_driver_vms, _ = filename.rsplit(os.sep, 3)
         _, driver, vms = mode_driver_vms.split("-")
         vms = int(vms)
@@ -361,23 +373,39 @@ def plot(mode, test, config, args):
         if len(config.get("vms", [])) != 1:
             name += f" #{vms}"
 
-        names.append(name)
-        bitrate.append(gbits_per_second)
+        results.append((name, gbits_per_second))
 
+    return results
+
+
+def plot(data, config, args):
     plt.style.use(["web.mplstyle"])
+
     fig, ax = plt.subplots(layout="constrained")
-    ax.barh(names, bitrate, zorder=2)
-    for i in range(len(names)):
-        v = round(bitrate[i], 1)
-        label = f"{v:.1f}  "
-        plt.text(bitrate[i], i, label, va="center", ha="right", color="white", zorder=2)
+
+    bar_width = 0.9 / len(data["results"])
+    offset = 0
+    y = np.arange(len(data["tests"]))
+
+    for result in data["results"]:
+        ax.barh(
+            y + offset,
+            result["bitrates"],
+            bar_width,
+            label=result["name"],
+            zorder=2,
+        )
+        offset += bar_width
+
+    ax.invert_yaxis()
+    fig.legend(loc="outside right center")
     ax.grid(visible=True, axis="x", zorder=0)
-    ax.set(
-        xlabel="Bitrate Gbits/s",
-        ylabel="Configurations",
-        title=f"{mode} network - {test}",
-    )
-    path = os.path.join(args.output, "plot", config["name"], f"{mode}-{test}.png")
+    ax.set_xlabel("Bitrate Gbits/s")
+    ax.set_ylabel("Tests")
+    ax.set_yticks(y + bar_width / 2 * (len(data["results"]) - 1), data["tests"])
+    ax.set_title(f"{config['title']} - {data['mode']} network")
+
+    path = os.path.join(args.output, "plot", config["name"], f"{data['mode']}.png")
     print(f"Plot {path}")
     fig.savefig(path, bbox_inches="tight")
 
