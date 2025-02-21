@@ -322,6 +322,8 @@ iperf3 results in json format use:
 ./bench run benchmarks/full.yaml
 ```
 
+The benchmark results are stored under `out/bench/vmnet-helper`.
+
 See the [benchmarks](/benchmarks) directory for additional configurations.
 
 When done you can delete the vms using:
@@ -335,8 +337,11 @@ When done you can delete the vms using:
 To create plots from benchmark results run:
 
 ```
-./bench plot plots/vmnet-helper-drivers.yaml
+./bench plot -o out plots/vmnet-helper-drivers.yaml
 ```
+
+The plots use the results stored under `out/bench` and created under
+`out/plot`.
 
 See the [plots](/plots) directory for additional configurations.
 
