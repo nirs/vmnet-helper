@@ -336,11 +336,14 @@ def plot(mode, test, config, args):
     for filename in reversed(sorted(results)):
         _, network, mode_driver_vms, _ = filename.rsplit(os.sep, 3)
         _, driver, vms = mode_driver_vms.split("-")
+        vms = int(vms)
 
         # Filter network or drivers.
         if "networks" in config and network not in config["networks"]:
             continue
         if "drivers" in config and driver not in config["drivers"]:
+            continue
+        if "vms" in config and vms not in config["vms"]:
             continue
 
         with open(filename) as f:
@@ -352,6 +355,11 @@ def plot(mode, test, config, args):
             name = driver
         else:
             name = f"{network}-{driver}"
+
+        # If compare the same number of vms, we don't need to include it in the
+        # label.
+        if len(config.get("vms", [])) != 1:
+            name += f" #{vms}"
 
         names.append(name)
         bitrate.append(gbits_per_second)
