@@ -221,11 +221,12 @@ them in your application logs or redirect them to a file.
 The example tool shows how to integrate vmnet-helper with *vfkit* or
 *qemu*.
 
-To install all requirements for creating virtual machine using *vfkit*
-and *qemu* run:
+To install the requirements for creating virtual machine using *vfkit*
+*krunkit*, and *qemu* run:
 
 ```console
-brew install python3 vfkit qemu cdrtools
+brew tap slp/krunkit
+brew install python3 vfkit krunkit qemu cdrtools
 python3 -m venv .venv
 source .venv/bin/activate
 pip install pyyaml
@@ -297,6 +298,14 @@ Notes:
 - [2] krunkit built with libkrun patched to disable offloading
 
 ## Performance testing
+
+To install the requirements for running benchmarks and generating plots
+run:
+
+```console
+source .venv/bin/activate
+pip install matplotlib
+```
 
 ### Running benchmarks
 
