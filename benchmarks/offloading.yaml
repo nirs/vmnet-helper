@@ -1,0 +1,16 @@
+# SPDX-FileCopyrightText: The vmnethelper authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Benchmark krunkit without offloading and vfkit with offloading.
+---
+drivers:
+  - name: krunkit
+    tag: nooffload
+    command: krunkit.local
+    offload: "off"
+  - name: vfkit
+    tag: offload
+    offload: "on"
+shared-interface: en0
+time: 30
+output: out
