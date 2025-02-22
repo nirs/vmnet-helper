@@ -250,52 +250,33 @@ To stop the virtual machine and the vmnet-helper press *Control+C*.
 
 ## Performance
 
-vmnet-helper is up to *10.4 times faster* compared to
-[socket_vmnet](https://github.com/lima-vm/socket_vmnet) using Apple
-Virtualization framework, and up to *3.0 times faster* compared to
-[softnet](https://github.com/cirruslabs/softnet).
+We benchmarked vmnet-helper with 3 VMs types (vfkit, krunkit, qemu) in
+all operation modes supported by the vmnet framework (shared, bridged,
+host), in 3 directions (host to vm, vm to host, vm to vm), on 2 machines
+(iMac M3, MacBook Pro M2 Max) running macOS 15.3.1.
 
-With [krunkit](https://github.com/containers/krunkit) vm to vm
-performance is similar to [tart](https://tart.run/), using native
-bridged network.
+See the [performance](/performance) directory for full test results.
 
-### iMac M3
+### Comparing to socket_vment
 
-Results from iMac M3 running macOS 15.2, testing only shared mode
-(192.168.105/24).
+Comparing to [socket_vmnet](https://github.com/lima-vm/socket_vmnet)
+with [lima](https://github.com/lima-vm/lima) using VZ and qemu vm types,
+vmnet-helper with [vfkit](https://github.com/crc-org/vfkit) is up to *10
+times faster*, and vmnet-helper with [qemu](https://www.qemu.org/) is up
+to *3 times faster*.
 
-| network      | mode   | vm          | host to vm     | cpu  | vm to vm      | cpu  |
-|--------------|--------|-------------|----------------|------|---------------|------|
-| vmnet-helper | shared | vfkit       |   13.0 Gbits/s |  61% |  17.2 Gbits/s |  69% |
-| vmnet-helper | shared | qemu        |    3.0 Gbits/s |  23% |   2.9 Gbits/s |  31% |
-| softnet      | shared | tart        |    9.5 Gbits/s |  97% |   5.7 Gbits/s |  90% |
-| socket_vmnet | shared | vz          |    3.9 Gbits/s |  81% |   1.9 Gbits/s |  91% |
-| socket_vmnet | shared | qemu        |    3.8 Gbits/s |  41% |   2.5 Gbits/s |  78% |
+![vmnet-helper vs socket_vmnet - bridged network](performance/M3/plot/vmnet-helper-vs-socket_vmnet/bridged.png)
 
-### MacBook Pro M2 Max
+### Comparing different VMs
 
-Results from MacBook Pro M2 Max running macOS 15.2, testing both shared
-and bridged modes.
+Performance depends on VM type and transfer direction.
+[vfkit](https://github.com/crc-org/vfkit) shows consistent performance
+in all tests.  [krunkit](https://github.com/containers/krunkit) is up to
+*3 times faster* than vfkit in vm to host test, but also up to *10 times
+slower* in host to vm test. [qemu](https://www.qemu.org/) is up to *5
+times slower* than vfkit.
 
-Using iperf3 `--length 1m` option.
-
-| network      | mode    | vm         | host to vm     | cpu  | vm to vm      | cpu  |
-|--------------|---------|------------|----------------|------|---------------|------|
-| vmnet-helper | shared  | vfkit      |   10.5 Gbits/s |  71% |  13.5 Gbits/s |  88% |
-| vmnet-helper | bridged | vfkit      |   13.0 Gbits/s |  88% |  12.9 Gbits/s |  86% |
-| vmnet-helper | shared  | krunkit[1] |    1.4 Gbits/s |  33% |  29.9 Gbits/s |  63% |
-| vmnet-helper | bridged | krunkit[1] |    1.4 Gbits/s |  34% |  31.0 Gbits/s |  63% |
-| vmnet-helper | shared  | krunkit[2] |    9.8 Gbits/s |  70% |   9.4 Gbits/s |  84% |
-| vmnet-helper | bridged | krunkit[2] |    9.9 Gbits/s |  94% |   8.9 Gbits/s |  88% |
-| vmnet-helper | shared  | qemu       |    2.7 Gbits/s |  20% |   2.4 Gbits/s |  35% |
-| softnet      | shared  | tart       |    5.5 Gbits/s |  98% |   5.4 Gbits/s | 100% |
-| vz           | bridged | tart       |    5.3 Gbits/s |    - |  35.9 Gbits/s |    - |
-| socket_vmnet | shared  | vz         |    2.5 Gbits/s |  95% |   1.3 Gbits/s | 130% |
-| socket_vmnet | shared  | qemu       |    2.8 Gbits/s |  41% |   1.4 Gbits/s | 104% |
-
-Notes:
-- [1] krunkit built with libkrun upstream
-- [2] krunkit built with libkrun patched to disable offloading
+![vmnet-helper drivers - bridged network](performance/M3/plot/drivers/bridged.png)
 
 ## Performance testing
 
@@ -337,7 +318,7 @@ When done you can delete the vms using:
 To create plots from benchmark results run:
 
 ```
-./bench plot -o out plots/vmnet-helper-drivers.yaml
+./bench plot -o out plots/drivers.yaml
 ```
 
 The plots use the results stored under `out/bench` and created under
@@ -363,21 +344,6 @@ the output directory:
 ```
 cp ~/src/socket_vmnet/test/perf.out/socket_vment out/bench/
 ```
-
-### softnet
-
-Created ubuntu server and client vm using:
-
-```console
-tart clone ghcr.io/cirruslabs/ubuntu:latest server
-tart set server --cpu 1 --memory 2048
-tart clone ghcr.io/cirruslabs/ubuntu:latest client
-tart set client --cpu 1 --memory 2048
-tart run --net-softnet --net-softnet-allow 0.0.0.0/0 server &
-tart run --net-softnet --net-softnet-allow 0.0.0.0/0 client &
-```
-
-The vms are using Ubuntu 22.04 LTS. Other vms are using Ubuntu 24.10.
 
 ## Similar tools
 
