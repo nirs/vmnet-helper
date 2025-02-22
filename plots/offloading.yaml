@@ -6,7 +6,7 @@
 name: offloading
 title: vmnet-helper offloading
 networks: [vmnet-helper]
-drivers: [vfkit, vfkit:offload, krunkit, krunkit:nooffload]
+drivers: [vfkit, krunkit, krunkit:nooffload]
 vms: [2]
 operation-modes: [shared, bridged, host]
 tests: [host-to-vm, vm-to-host, vm-to-vm]
