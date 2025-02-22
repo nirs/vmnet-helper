@@ -77,7 +77,12 @@ jobs:
         if: always()
         run: |
           tree -h ~/.vmnet-helper
-          head -n 500 ~/.vmnet-helper/vms/test/*.log /var/db/dhcpd_leases || true
+          vm="$HOME/.vmnet-helper/vms/test"
+          vm_files=$(find "$vm" -name "*.command" -or -name "*.log")
+          for f in $vm_files /var/db/dhcpd_leases; do
+            echo "==> $f <=="
+            head -n 500 "$f" || true
+          done
       - name: Prepare example VM
         run: |
           vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)

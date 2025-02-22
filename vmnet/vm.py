@@ -63,6 +63,7 @@ class VM:
         print(
             f"Starting '{self.driver}' virtual machine '{self.vm_name}' with mac address '{self.mac_address}'"
         )
+        self.write_command(cmd)
         store.silent_remove(self.serial)
         with open(store.vm_path(self.vm_name, f"{self.driver}.log"), "w") as log:
             pass_fds = [self.fd] if self.fd is not None else []
@@ -72,6 +73,15 @@ class VM:
         self.delete_ip_address()
         self.proc.terminate()
         self.proc.wait()
+
+    def write_command(self, cmd):
+        """
+        Write command to file to make it easy to debug and report bugs.
+        """
+        path = store.vm_path(self.vm_name, f"{self.driver}.command")
+        data = " \\\n    ".join(cmd) + "\n"
+        with open(path, "w") as f:
+            f.write(data)
 
     def wait_for_ip_address(self, timeout=300):
         """
