@@ -15,6 +15,16 @@ IMAGES = {
         },
         "x86_64": {
             "image": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-amd64.img",
+            "kernel": "https://cloud-images.ubuntu.com/releases/24.10/release/unpacked/ubuntu-24.10-server-cloudimg-amd64-vmlinuz-generic",
+            # Based on the default kernel cmdline when not using kernel and initrd:
+            # BOOT_IMAGE=/vmlinuz-6.11.0-14-generic root=LABEL=cloudimg-rootfs ro console=tty1 console=ttyS0
+            "kernel_parameters": [
+                "root=LABEL=cloudimg-rootfs",
+                "ro",
+                "console=tty1",
+                "console=ttyS0",
+            ],
+            "initrd": "https://cloud-images.ubuntu.com/releases/24.10/release/unpacked/ubuntu-24.10-server-cloudimg-amd64-initrd-generic",
         },
     },
     "alpine": {
