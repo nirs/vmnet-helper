@@ -168,7 +168,7 @@ class VM:
             raise ValueError("fd or socket required")
         qemu = QEMU_CONFIG[platform.machine()]
         firmware = qemu_firmware(qemu["arch"])
-        return [
+        cmd = [
             self.driver_command or f"qemu-system-{qemu['arch']}",
             "-name",
             self.vm_name,
@@ -202,6 +202,18 @@ class VM:
             "-nodefaults",
         ]
 
+        # Optinal arguments
+
+        if "kernel" in self.disk:
+            cmd.extend(["-kernel", self.disk["kernel"]])
+        if "kernel_parameters" in self.disk:
+            # https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
+            kernel_cmdline = " ".join(self.disk["kernel_parameters"])
+            cmd.extend(["-append", kernel_cmdline])
+        if "initrd" in self.disk:
+            cmd.extend(["-initrd", self.disk["initrd"]])
+
+        return cmd
 
 def qemu_firmware(arch):
     """
