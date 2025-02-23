@@ -35,25 +35,29 @@ def create_disk(vm_name, distro):
     Create a disk from image using copy-on-write.
     """
     image_info = IMAGES[distro][platform.machine()]
-    image = store.vm_path(vm_name, "disk.img")
-    if not os.path.isfile(image):
-        cached_image = create_image(image_info["image"])
-        print(f"Creating disk '{image}'")
-        subprocess.run(["cp", "-c", cached_image, image], check=True)
-    return {"image": image}
+    disk = {"image": store.vm_path(vm_name, "disk.img")}
+    if not os.path.isfile(disk["image"]):
+        image = create_image(image_info["image"], format="raw", size="20g")
+        print(f"Creating image '{disk['image']}'")
+        clone(image, disk['image'])
+    return disk
 
 
-def create_image(image_url):
-    image_hash = hashlib.sha256(image_url.encode()).hexdigest()
-    path = store.cache_path("images", image_hash, "disk.img")
+def create_image(url, format=None, size=None):
+    url_hash = hashlib.sha256(url.encode()).hexdigest()
+    path = store.cache_path("images", url_hash, "data")
     if not os.path.exists(path):
         image_dir = os.path.dirname(path)
         os.makedirs(image_dir, exist_ok=True)
         tmp_path = path + ".tmp"
         try:
-            download_image(image_url, tmp_path)
-            convert_image(tmp_path, path)
-            resize_image(path, "20g")
+            download_image(url, tmp_path)
+            if format:
+                convert_image(tmp_path, path, format)
+            else:
+                os.rename(tmp_path, path)
+            if size:
+                resize_image(path, size)
         except:
             store.silent_remove(path)
             raise
@@ -76,9 +80,9 @@ def download_image(image_url, path):
     subprocess.run(cmd, check=True)
 
 
-def convert_image(src, target):
-    print(f"Converting image to raw format '{target}'")
-    cmd = ["qemu-img", "convert", "-f", "qcow2", "-O", "raw", src, target]
+def convert_image(src, target, format):
+    print(f"Converting image to '{format}' format '{target}'")
+    cmd = ["qemu-img", "convert", "-f", "qcow2", "-O", format, src, target]
     subprocess.run(cmd, check=True)
 
 
@@ -86,3 +90,7 @@ def resize_image(path, size):
     print(f"Resizing image to {size}")
     cmd = ["qemu-img", "resize", "-q", "-f", "raw", path, size]
     subprocess.run(cmd, check=True)
+
+
+def clone(src, dst):
+    subprocess.run(["cp", "-c", src, dst], check=True)
