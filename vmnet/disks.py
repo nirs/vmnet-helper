@@ -10,14 +10,22 @@ from . import store
 
 IMAGES = {
     "ubuntu": {
-        "arm64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-arm64.img",
-        "x86_64": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-amd64.img",
+        "arm64": {
+            "image": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-arm64.img",
+        },
+        "x86_64": {
+            "image": "https://cloud-images.ubuntu.com/releases/24.10/release/ubuntu-24.10-server-cloudimg-amd64.img",
+        },
     },
     "alpine": {
-        "arm64": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/nocloud_alpine-3.21.2-aarch64-uefi-cloudinit-r0.qcow2",
+        "arm64": {
+            "image": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/nocloud_alpine-3.21.2-aarch64-uefi-cloudinit-r0.qcow2",
+        },
     },
     "fedora": {
-        "arm64": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-41-1.4.aarch64.qcow2",
+        "arm64": {
+            "image": "https://download.fedoraproject.org/pub/fedora/linux/releases/41/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-41-1.4.aarch64.qcow2",
+        },
     },
 }
 
@@ -26,16 +34,16 @@ def create_disk(vm_name, distro):
     """
     Create a disk from image using copy-on-write.
     """
-    disk = store.vm_path(vm_name, "disk.img")
-    if not os.path.isfile(disk):
-        image = create_image(distro)
-        print(f"Creating disk '{disk}'")
-        subprocess.run(["cp", "-c", image, disk], check=True)
-    return disk
+    image_info = IMAGES[distro][platform.machine()]
+    image = store.vm_path(vm_name, "disk.img")
+    if not os.path.isfile(image):
+        cached_image = create_image(image_info["image"])
+        print(f"Creating disk '{image}'")
+        subprocess.run(["cp", "-c", cached_image, image], check=True)
+    return {"image": image}
 
 
-def create_image(distro):
-    image_url = IMAGES[distro][platform.machine()]
+def create_image(image_url):
     image_hash = hashlib.sha256(image_url.encode()).hexdigest()
     path = store.cache_path("images", image_hash, "disk.img")
     if not os.path.exists(path):
