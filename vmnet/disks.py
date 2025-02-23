@@ -23,6 +23,8 @@ IMAGES = {
                 "ro",
                 "console=tty1",
                 "console=ttyS0",
+                # https://www.kernel.org/doc/html/latest/admin-guide/kernel-parameters.html
+                "apic=debug",
             ],
             "initrd": "https://cloud-images.ubuntu.com/releases/24.10/release/unpacked/ubuntu-24.10-server-cloudimg-amd64-initrd-generic",
         },
