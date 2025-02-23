@@ -177,7 +177,9 @@ class VM:
             "-cpu",
             "host",
             "-machine",
-            f"{qemu['machine']},accel=hvf",
+            # Disable acpi to avoid random kernel panic
+            # https://gitlab.com/qemu-project/qemu/-/issues/2832
+            f"{qemu['machine']},accel=hvf,acpi=off",
             "-smp",
             f"{self.cpus},sockets=1,cores={self.cpus},threads=1",
             "-drive",
