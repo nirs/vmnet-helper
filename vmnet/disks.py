@@ -39,7 +39,21 @@ def create_disk(vm_name, distro):
     if not os.path.isfile(disk["image"]):
         image = create_image(image_info["image"], format="raw", size="20g")
         print(f"Creating image '{disk['image']}'")
-        clone(image, disk['image'])
+        clone(image, disk["image"])
+    if "kernel" in image_info:
+        disk["kernel"] = store.vm_path(vm_name, "kernel")
+        if not os.path.isfile(disk["kernel"]):
+            kernel = create_image(image_info["kernel"])
+            print(f"Creating kernel '{disk['kernel']}'")
+            clone(kernel, disk["kernel"])
+    if "initrd" in image_info:
+        disk["initrd"] = store.vm_path(vm_name, "initrd")
+        if not os.path.isfile(disk["initrd"]):
+            initrd = create_image(image_info["initrd"])
+            print(f"Creating initrd '{disk['initrd']}'")
+            clone(initrd, disk["initrd"])
+    if "kernel_parameters" in image_info:
+        disk["kernel_parameters"] = image_info["kernel_parameters"]
     return disk
 
 
