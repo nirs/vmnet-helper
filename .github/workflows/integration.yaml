@@ -73,7 +73,7 @@ jobs:
               echo >&2 "Timeout waiting for $vm/ip-address"
               exit 1
           fi
-      - name: Inspect example VM
+      - name: Inspect VM host data
         if: always()
         run: |
           tree -h ~/.vmnet-helper
@@ -83,11 +83,16 @@ jobs:
             echo "==> $f <=="
             head -n 500 "$f" || true
           done
+      - name: Inspect VM guest data
+        run: |
+          vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
+          ssh_cmd="ssh -o StrictHostKeyChecking=no ubuntu@$vm_ip"
+          echo "uname: $($ssh_cmd uname -a)"
+          echo "cmdline: $($ssh_cmd cat /proc/cmdline)"
       - name: Prepare example VM
         run: |
           vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
           ssh_cmd="ssh -o StrictHostKeyChecking=no ubuntu@$vm_ip"
-          $ssh_cmd uname -a
           $ssh_cmd sudo apt-get update -y
           $ssh_cmd sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iperf3
           $ssh_cmd sudo systemctl start iperf3.service
