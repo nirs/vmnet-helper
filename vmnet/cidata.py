@@ -21,18 +21,18 @@ SERIAL_CONSOLE = {
 }
 
 
-def create_iso(vm_name, driver, mac_address):
+def create_iso(vm):
     """
     Create cloud-init iso image.
 
     We create a new cidata.iso with new instance id for every run to update the
     vm network configuration and report the vm ip address.
     """
-    vm_home = store.vm_path(vm_name)
+    vm_home = store.vm_path(vm.vm_name)
     cidata = os.path.join(vm_home, "cidata.iso")
-    create_user_data(vm_name, driver)
-    create_meta_data(vm_name)
-    create_network_config(vm_name, mac_address)
+    create_user_data(vm)
+    create_meta_data(vm)
+    create_network_config(vm)
     cmd = [
         "mkisofs",
         "-output",
@@ -56,12 +56,11 @@ def create_iso(vm_name, driver, mac_address):
     return cidata
 
 
-def create_user_data(vm_name, driver):
+def create_user_data(vm):
     """
     Create cloud-init user-data file.
     """
-    serial_console = f"/dev/{SERIAL_CONSOLE[driver][platform.machine()]}"
-    path = store.vm_path(vm_name, "user-data")
+    serial_console = f"/dev/{SERIAL_CONSOLE[vm.driver][platform.machine()]}"
     data = {
         "password": "password",
         "chpasswd": {
@@ -76,38 +75,38 @@ def create_user_data(vm_name, driver):
         "runcmd": [
             "ip_address=$(ip -4 -j addr show dev vmnet0 | jq -r '.[0].addr_info[0].local')",
             f"echo > {serial_console}",
-            f"echo {vm_name} address: $ip_address > {serial_console}",
+            f"echo {vm.vm_name} address: $ip_address > {serial_console}",
         ],
     }
+    path = store.vm_path(vm.vm_name, "user-data")
     with open(path, "w") as f:
         f.write("#cloud-config\n")
         yaml.dump(data, f, sort_keys=False)
 
 
-def create_meta_data(vm_name):
+def create_meta_data(vm):
     """
     Create cloud-init meta-data file.
     """
-    path = store.vm_path(vm_name, "meta-data")
     data = {
         "instance-id": str(uuid.uuid4()),
-        "local-hostname": vm_name,
+        "local-hostname": vm.vm_name,
     }
+    path = store.vm_path(vm.vm_name, "meta-data")
     with open(path, "w") as f:
         yaml.dump(data, f, sort_keys=False)
 
 
-def create_network_config(vm_name, mac_address):
+def create_network_config(vm):
     """
     Create cloud-init network-config file.
     """
-    path = store.vm_path(vm_name, "network-config")
     data = {
         "version": 2,
         "ethernets": {
             "vmnet0": {
                 "match": {
-                    "macaddress": mac_address,
+                    "macaddress": vm.mac_address,
                 },
                 "set-name": "vmnet0",
                 "dhcp4": True,
@@ -115,6 +114,7 @@ def create_network_config(vm_name, mac_address):
             },
         },
     }
+    path = store.vm_path(vm.vm_name, "network-config")
     with open(path, "w") as f:
         yaml.dump(data, f, sort_keys=False)
 

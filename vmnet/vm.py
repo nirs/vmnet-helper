@@ -51,7 +51,7 @@ class VM:
         Starts a VM driver with fd or socket.
         """
         self.disk = disks.create_disk(self.vm_name, self.distro)
-        self.cidata = cidata.create_iso(self.vm_name, self.driver, self.mac_address)
+        self.cidata = cidata.create_iso(self)
         if self.driver == "vfkit":
             cmd = self.vfkit_command()
         elif self.driver == "krunkit":
