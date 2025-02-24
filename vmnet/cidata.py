@@ -67,17 +67,19 @@ def create_user_data(vm):
             "expire": False,
         },
         "ssh_authorized_keys": public_keys(),
-        "packages": [
-            "jq",
-        ],
-        "package_update": False,
-        "package_upgrade": False,
         "runcmd": [
             "ip_address=$(ip -4 -j addr show dev vmnet0 | jq -r '.[0].addr_info[0].local')",
             f"echo > {serial_console}",
             f"echo {vm.vm_name} address: $ip_address > {serial_console}",
         ],
     }
+
+    # Skip jq install if posisble to minimize startup time in the CI.
+    if vm.distro != "ubuntu":
+        data["packages"] = ["jq"]
+        data["package_update"] = False
+        data["package_upgrade"] = False
+
     path = store.vm_path(vm.vm_name, "user-data")
     with open(path, "w") as f:
         f.write("#cloud-config\n")
