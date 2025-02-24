@@ -69,7 +69,7 @@ jobs:
           source .venv/bin/activate
           ./example test --driver ${{ matrix.driver }} --connection ${{ matrix.connection }} -v &
           vm="$HOME/.vmnet-helper/vms/test"
-          if ! timeout 5m bash -c "until test -f "$vm/ip-address"; do sleep 3; done"; then
+          if ! timeout 3m bash -c "until test -f "$vm/ip-address"; do sleep 3; done"; then
               echo >&2 "Timeout waiting for $vm/ip-address"
               exit 1
           fi
