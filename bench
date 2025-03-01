@@ -150,12 +150,18 @@ def load_plotfile(filename):
     with open(filename) as f:
         config = yaml.safe_load(f)
 
-    if "name" not in config:
-        raise ValueError("name required")
-
-    # Set defaults to minimize the configuration for plots.
-    config.setdefault("operation-modes", vmnet.OPERATION_MODES)
-    config.setdefault("tests", TESTS)
+    required = [
+        "name",
+        "title",
+        "networks",
+        "drivers",
+        "vms",
+        "operation-modes",
+        "tests",
+    ]
+    for name in required:
+        if name not in config:
+            raise ValueError(f"{name} required")
 
     return config
 
