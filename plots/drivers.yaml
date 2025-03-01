@@ -6,7 +6,7 @@
 name: drivers
 title: vmnet-helper
 networks: [vmnet-helper]
-drivers: [vfkit, qemu, krunkit]
+drivers: [vfkit, krunkit, qemu]
 vms: [2]
 operation-modes: [shared, bridged, host]
 tests: [host-to-vm, vm-to-host, vm-to-vm]

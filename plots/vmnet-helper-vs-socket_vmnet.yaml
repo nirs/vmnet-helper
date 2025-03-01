@@ -5,7 +5,7 @@
 ---
 name: vmnet-helper-vs-socket_vmnet
 title: vmnet-helper vs socket_vmnet
-networks: [socket_vmnet, vmnet-helper]
+networks: [vmnet-helper, socket_vmnet]
 drivers: [vfkit, vz, qemu]
 vms: [2]
 operation-modes: [shared, bridged]
