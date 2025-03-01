@@ -108,13 +108,18 @@ def do_plot(args):
     path = os.path.join(args.output, "plot", config["name"])
     os.makedirs(path, exist_ok=True)
 
+    results = list(load_results(config, args.output))
+
     for mode in config["operation-modes"]:
         data = {"mode": mode, "tests": config["tests"], "results": []}
-
         drivers = {}
         for test in config["tests"]:
-            for name, bitrate in load_results(mode, test, config, args):
-                drivers.setdefault(name, []).append(bitrate)
+            plot_results = [
+                r for r in results if r["mode"] == mode and r["test"] == test
+            ]
+            for r in plot_results:
+                name = result_name(r, config)
+                drivers.setdefault(name, []).append(r["bitrate"])
 
         for name, bitrates in drivers.items():
             # We must have the same shape for all results.
@@ -332,56 +337,80 @@ def run_command(*cmd, output=None):
         subprocess.run(cmd, check=True)
 
 
-def load_results(mode, test, config, args):
-    results = []
-
-    # For socket_vment we may have multiple files per test with different vm
-    # count. Example directory layout:
-    # out/
-    #   bench/
-    #     vmnet-helper/
-    #       shared-vfkit-2/
-    #         host-to-vm.json
-    #     socket_vmnet/
-    #       shared-vz-1/
-    #         host-to-vm.json
-    #       shared-vz-2/
-    #         host-to-vm.json
-    #       shared-vz-3/
-    #         host-to-vm.json
-    files = glob.glob(f"{args.output}/bench/*/{mode}-*/{test}.json")
-
-    for filename in sorted(files):
-        _, network, mode_driver_vms, _ = filename.rsplit(os.sep, 3)
-        _, driver, vms = mode_driver_vms.split("-")
-        vms = int(vms)
-
-        # Filter network or drivers.
-        if "networks" in config and network not in config["networks"]:
-            continue
-        if "drivers" in config and driver not in config["drivers"]:
-            continue
-        if "vms" in config and vms not in config["vms"]:
+def load_results(config, output):
+    """
+    Load on all benchmark results specified by config in output directory.
+    """
+    for result in iter_results(config):
+        filename = os.path.join(
+            output,
+            "bench",
+            result["network"],
+            f"{result['mode']}-{result['driver']}-{result['vms']}",
+            result["test"] + ".json",
+        )
+        if not os.path.exists(filename):
+            # Misssing result are expected:
+            # - benchmark not run
+            # - differnet driver names for different networks (e.g. vfkit for
+            #   vment-helper, vz for socket_vmnet).
             continue
 
         with open(filename) as f:
             data = json.load(f)
-        gbits_per_second = data["end"]["sum_received"]["bits_per_second"] / 1000**3
+        result["bitrate"] = data["end"]["sum_received"]["bits_per_second"] / 1000**3
 
-        # If we compare one network we don't need to include it in the label.
-        if len(config.get("networks", [])) == 1:
-            name = driver
-        else:
-            name = f"{network}-{driver}"
+        yield result
 
-        # If compare the same number of vms, we don't need to include it in the
-        # label.
-        if len(config.get("vms", [])) != 1:
-            name += f" #{vms}"
 
-        results.append((name, gbits_per_second))
+def iter_results(config):
+    """
+    Iterate on all result properties specified by config.
+    """
+    for network in config["networks"]:
+        for mode in config["operation-modes"]:
+            for driver in config["drivers"]:
+                for vms in config["vms"]:
+                    for test in config["tests"]:
+                        yield {
+                            "network": network,
+                            "mode": mode,
+                            "driver": driver,
+                            "vms": vms,
+                            "test": test,
+                        }
 
-    return results
+
+def load_result(outdir, result):
+    """
+    Load single benchmark result, adding "bitrate" to the reuslt dict.
+    """
+    # {out}/bench/{network}/{mode}-{driver}-{vms}/{test}.json
+    filename = os.path.join(
+        outdir,
+        "bench",
+        result["network"],
+        f"{result['mode']}-{result['driver']}-{result['vms']}",
+        result["test"] + ".json",
+    )
+    with open(filename) as f:
+        data = json.load(f)
+    result["bitrate"] = data["end"]["sum_received"]["bits_per_second"] / 1000**3
+
+
+def result_name(result, config):
+    """
+    Return a short name for the current config.
+    """
+    # If we compare one network we don't need to include it.
+    if len(config["networks"]) == 1:
+        name = result["driver"]
+    else:
+        name = f"{result['network']} {result['driver']}"
+    # If compare the same number of vms, we don't need to include it.
+    if len(config["vms"]) != 1:
+        name += f" #{result['vms']}"
+    return name
 
 
 def plot(data, config, args):
