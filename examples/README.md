@@ -4,6 +4,7 @@ This directory contains examples for using vmnet-helper and
 vmnet-client:
 
 - [qemu.sh](#qemu.sh)
+- [vfkit.sh](#qemu.sh)
 
 > [!TIP]
 > Log in as `ubuntu` with password `password`
@@ -21,6 +22,20 @@ To start the example VM run:
 
 The example downloads an Ubuntu server cloud image, creates a cloud-init
 iso image for configuring the VM, and starts QEMU vm.
+
+## vfkit.sh
+
+This example shows how to start vfkit VM connected to vment network
+interface using the vmnet-client wrapper.
+
+To start the example VM run:
+
+```bash
+./vfkit.sh
+```
+
+The example downloads an Ubuntu server cloud image, creates a cloud-init
+iso image for configuring the VM, and starts vfkit vm.
 
 ## Helper scripts
 
