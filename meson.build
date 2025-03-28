@@ -35,6 +35,15 @@ vmnet_helper = executable(
   ],
 )
 
+vmnet_client = executable(
+  'vmnet-client',
+  'client.c',
+  install: true,
+  dependencies: [
+    version_h_dep,
+  ],
+)
+
 install_subdir('sudoers.d', install_dir: 'share/doc/vmnet-helper')
 
 test('basic', vmnet_helper)
