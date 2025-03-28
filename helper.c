@@ -22,6 +22,7 @@
 #include <uuid/uuid.h>
 #include <vmnet/vmnet.h>
 
+#include "config.h"
 #include "log.h"
 #include "options.h"
 #include "socket_x.h"
@@ -51,20 +52,6 @@
 #define VM_RETRY_DELAY (50 * MICROSECOND)
 
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
-
-// Apple recommends sizing the receive buffer at 4 times the size of the send
-// buffer, and other projects typically use a 1 MiB send buffer and a 4 MiB
-// receive buffer. However the send buffer size is not used to allocate a buffer
-// in datagram sockets, it only limits the maximum packet size. We use 65 KiB
-// buffer to allow the largest possible packet size (65550 bytes) when using the
-// vmnet_enable_tso option.
-static const int SNDBUF_SIZE = 65 * 1024;
-
-// The receive buffer size determines how many packets can be queued by the
-// peer. Testing shows good performance with a 2 MiB receive buffer. We use a 4
-// MiB buffer to make ENOBUFS errors less likely for the peer and allowing to
-// queue more packets when using the vmnet_enable_tso option.
-static const int RCVBUF_SIZE = 4 * 1024 * 1024;
 
 static const uintptr_t SHUTDOWN_EVENT = 1;
 
