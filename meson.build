@@ -13,6 +13,10 @@ project(
   ],
 )
 
+config = configuration_data()
+config.set('PREFIX', get_option('prefix'))
+configure_file(input: 'config.h.in', output: 'config.h', configuration: config)
+
 version_h = vcs_tag(
   command: ['git', 'describe', '--tags'],
   input: 'version.h.in',
@@ -31,6 +35,15 @@ vmnet_helper = executable(
   install: true,
   dependencies: [
     vmnet_framework,
+    version_h_dep,
+  ],
+)
+
+vmnet_client = executable(
+  'vmnet-client',
+  'client.c',
+  install: true,
+  dependencies: [
     version_h_dep,
   ],
 )
