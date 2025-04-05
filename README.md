@@ -84,8 +84,8 @@ Example run using jq to pretty print the response:
 ```
 
 > [!TIP]
-> vment documentation instructs to configure the virtual interface with
-> the mac address specified by "vment_mac_address". Testing shows that
+> vmnet documentation instructs to configure the virtual interface with
+> the mac address specified by "vmnet_mac_address". Testing shows that
 > this is not required and any mac address works.
 
 The interface-id option is optional. It ensures that you get the same
@@ -257,7 +257,7 @@ host), in 3 directions (host to vm, vm to host, vm to vm), on 2 machines
 
 See the [performance](/performance) directory for full test results.
 
-### Comparing to socket_vment
+### Comparing to socket_vmnet
 
 Comparing to [socket_vmnet](https://github.com/lima-vm/socket_vmnet)
 with [lima](https://github.com/lima-vm/lima) using VZ and qemu vm types,
@@ -338,22 +338,22 @@ test/perf.sh create
 test/perf.sh run
 ```
 
-To include socket_vment results in the plots copy the test results to
+To include socket_vmnet results in the plots copy the test results to
 the output directory:
 
 ```
-cp ~/src/socket_vmnet/test/perf.out/socket_vment out/bench/
+cp ~/src/socket_vmnet/test/perf.out/socket_vmnet out/bench/
 ```
 
 ## Similar tools
 
 ### socket_vmnet
 
-[socket_vment](https://github.com/lima-vm/socket_vmnet) has the same
-purpose and features, providing access to vment capabilities without the
+[socket_vmnet](https://github.com/lima-vm/socket_vmnet) has the same
+purpose and features, providing access to vmnet capabilities without the
 special `com.apple.vm.networking` entitlement.
 
-The main difference between vmnet-helper and socket_vment is using a
+The main difference between vmnet-helper and socket_vmnet is using a
 helper process and vmnet interface per vm, instead of single daemon
 process and vmnet interface for vms using the same networking mode
 (host, bridged). Using a separate process is simpler to manage, more
@@ -369,12 +369,12 @@ Detailed list of differences:
 - Much better performance when using Apple Virtualization framework (see
   [performance](#performance) section).
 - Eliminating the scaling issues caused by flooding packets to vms by
-  using one vmnet interface per VM, and delegating fo to vment for
-  forwarding packets to the right mac address. For more info see
+  using one vmnet interface per VM, and delegating to vmnet for forwarding
+  packets to the right mac address. For more info see
   https://github.com/lima-vm/socket_vmnet/issues/58.
 - Eliminating copying packets from length prefixed qemu packets on unix
-  stream socket to vz datagram socket by copying directly from vment to
-  vz file handle unix datagrem socket.
+  stream socket to vz datagram socket by copying directly from vmnet to
+  vz file handle unix datagram socket.
 - Using sendmsg_x() and recvmsg_x() for reading and writing multiple
   packets per one syscall doubles throughput in vm to vm use case and
   lower cpu usage.
@@ -394,14 +394,14 @@ Detailed list of differences:
 ### softnet
 
 [softnet](https://github.com/cirruslabs/softnet) seems to provide the
-same vment network features, using the same proces model - one helper
+same vmnet network features, using the same process model - one helper
 process and vmnet interface per virtual machine.
 
 softnet support network isolation and tweaking DHCP server lease
 timeout, which are not in scope for vmnet-helper.
 
 sofntnet is released under AGPL license which may be harder to adopt in
-your orgnization.
+your organization.
 
 ## License
 
