@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # vmnet-helper sudoers rule
 
-To install the default vment-helper sudoers rule run:
+To install the default vmnet-helper sudoers rule run:
 
 ```sh
 sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/

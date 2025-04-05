@@ -528,7 +528,7 @@ static int read_from_host(void)
 {
     int count = MAX_PACKET_COUNT;
 
-    // Reset packets and iovs - must be done before reading from vment.
+    // Reset packets and iovs - must be done before reading from vmnet.
     for (int i = 0; i < count; i++) {
         host.packets[i].vm_pkt_size = max_packet_size;
         host.packets[i].vm_flags = 0;
