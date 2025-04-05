@@ -93,9 +93,8 @@ MAC address on the every run.
 
 ## Starting the helper with a unix socket
 
-To use the helper from a shell script, or if the virtual machine
-driver does not support passing file descriptors, you can use a on-disk
-unix socket.
+To start the helper from a shell, or if the virtual machine driver does not
+support passing a file descriptor, you can use a bound unix socket.
 
 Example run with a unix socket, redirecting the helper stdout to file:
 
@@ -146,6 +145,27 @@ INFO  [main] waiting for termination
 > Once connected, the helper will ignore packets sent by a new client.
 > If you want to recover from failures, restart the helper to create a
 > new unix socket and reconnect.
+
+### Using vmnet-client
+
+To use the helper from a shell script without using a bound unix socket, you
+can use *vmnet-client*. The client creates a socketpair, and starts the helper
+with one socket, and the command provided by the user with the other socket.
+
+Example run with *vfkit*:
+
+```console
+/opt/vmnet-helper/bin/vmnet-client \
+    vfkit \
+    --bootloader=efi,variable-store=efi-variable-store,create \
+    "--device=virtio-blk,path=disk.img" \
+    "--device=virtio-net,fd=4,mac=92:c9:52:b7:6c:08" \
+```
+
+> [!IMPORTANT]
+> The command run by *vmnet-client* must use file descriptor 4.
+
+See the [examples](examples/) for more examples for using *vmnet-client*.
 
 ## Operation modes
 
