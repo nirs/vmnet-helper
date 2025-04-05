@@ -251,9 +251,9 @@ def run(operation_mode, driver, config):
     else:
         driver_tag = driver["name"]
 
-    # Add the number of vms to make it easy to compare to socket_vment.
+    # Add the number of vms to make it easy to compare to socket_vmnet.
     # vmnet-helper performance does not depend on the number of vms so we
-    # alwasy test with 2 vms.
+    # always test with 2 vms.
     config_name = f"{operation_mode}-{driver_tag}-2"
 
     server = VM(
@@ -350,10 +350,10 @@ def load_results(config, output):
             result["test"] + ".json",
         )
         if not os.path.exists(filename):
-            # Misssing result are expected:
+            # Missing results are expected:
             # - benchmark not run
-            # - differnet driver names for different networks (e.g. vfkit for
-            #   vment-helper, vz for socket_vmnet).
+            # - different driver names for different networks (e.g. vfkit for
+            #   vmnet-helper, vz for socket_vmnet).
             continue
 
         with open(filename) as f:
@@ -383,7 +383,7 @@ def iter_results(config):
 
 def load_result(outdir, result):
     """
-    Load single benchmark result, adding "bitrate" to the reuslt dict.
+    Load single benchmark result, adding "bitrate" to the result dict.
     """
     # {out}/bench/{network}/{mode}-{driver}-{vms}/{test}.json
     filename = os.path.join(
