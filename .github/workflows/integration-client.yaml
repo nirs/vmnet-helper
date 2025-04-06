@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 ---
-name: Integration
+name: Integration (client)
 
 on:
   pull_request:
@@ -19,10 +19,6 @@ jobs:
       fail-fast: false
       matrix:
         driver: [vfkit, qemu]
-        connection: [fd, socket]
-        exclude:
-          - driver: qemu
-            connection: socket
     steps:
       - name: Host info
         run: |
@@ -60,47 +56,46 @@ jobs:
       - name: Ensure public key
         run: |
           ssh-keygen -q -N "" </dev/zero
-      - name: Create virtual env
-        run: |
-          python3 -m venv .venv
-          .venv/bin/pip install pyyaml
       - name: Start example VM
+        working-directory: examples
         run: |
-          source .venv/bin/activate
-          ./example test --driver ${{ matrix.driver }} --connection ${{ matrix.connection }} -v &
-          vm="$HOME/.vmnet-helper/vms/test"
-          if ! timeout 3m bash -c "until test -f "$vm/ip-address"; do sleep 3; done"; then
-              echo >&2 "Timeout waiting for $vm/ip-address"
+          ./${{ matrix.driver }}.sh &
+          if ! timeout 3m bash -c "until test -f ip-address; do sleep 3; done"; then
+              echo >&2 "Timeout waiting for ip-address"
               exit 1
           fi
       - name: Inspect VM host data
         if: always()
+        working-directory: examples
         run: |
-          tree -h ~/.vmnet-helper
-          vm="$HOME/.vmnet-helper/vms/test"
-          vm_files=$(find "$vm" -name "*.command" -or -name "*.log")
-          for f in $vm_files $vm/ip-address $vm/user-data $vm/meta-data $vm/network-config /var/db/dhcpd_leases; do
+          tree -h .
+          vm_files=$(find . -name "*.log")
+          for f in $vm_files ip-address user-data meta-data network-config /var/db/dhcpd_leases; do
             echo "==> $f <=="
             head -n 500 "$f" || true
           done
       - name: Inspect VM guest data
+        working-directory: examples
         run: |
-          vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
+          vm_ip=$(cat ip-address)
           ssh_cmd="ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR -l ubuntu $vm_ip"
           echo "uname: $($ssh_cmd uname -a)"
           echo "cmdline: $($ssh_cmd cat /proc/cmdline)"
       - name: Prepare example VM
+        working-directory: examples
         run: |
-          vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
+          vm_ip=$(cat ip-address)
           ssh_cmd="ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR -l ubuntu $vm_ip"
           $ssh_cmd sudo apt-get update -y
           $ssh_cmd sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iperf3
           $ssh_cmd sudo systemctl start iperf3.service
       - name: Run iperf3 (host to vm)
+        working-directory: examples
         run: |
-          vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
+          vm_ip=$(cat ip-address)
           iperf3-darwin -c $vm_ip
       - name: Run iperf3 (vm to host)
+        working-directory: examples
         run: |
-          vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
+          vm_ip=$(cat ip-address)
           iperf3-darwin -c $vm_ip --reverse
