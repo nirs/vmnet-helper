@@ -6,8 +6,20 @@
 # Download disk image for the examples.
 
 DISK_IMAGE="${1:?Usage: disk.sh FILENAME}"
-IMAGE_ARCH="arm64"
 TMP_IMAGE="$DISK_IMAGE.tmp"
+MACHINE=$(uname -m)
+
+case "$MACHINE" in
+x86_64)
+    IMAGE_ARCH="amd64"
+    ;;
+arm64)
+    IMAGE_ARCH="arm64"
+    ;;
+*)
+    echo "Unsupported machine: $MACHINE"
+    exit 1
+esac
 
 trap 'rm -f "$DISK_IMAGE.tmp"' EXIT
 
