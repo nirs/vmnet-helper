@@ -23,6 +23,12 @@ To start the example virtual machine run:
 The example downloads an Ubuntu server cloud image, creates a cloud-init
 iso image, and starts a *QEMU* virtual machine with both images.
 
+To connect to the vm run:
+
+```
+ssh -l ubuntu $(cat ip-address)
+```
+
 ## vfkit.sh
 
 This example shows how to start a *vfkit* virtual machine connected to a vmnet
@@ -37,6 +43,11 @@ To start the example virtual machine run:
 The example downloads an Ubuntu server cloud image, creates a cloud-init
 iso image, and starts a *vfkit* virtual machine with both images.
 
+To connect to the vm run:
+
+```
+ssh -l ubuntu $(cat ip-address)
+```
 
 ## Helper scripts
 
