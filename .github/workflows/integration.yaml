@@ -79,7 +79,7 @@ jobs:
           tree -h ~/.vmnet-helper
           vm="$HOME/.vmnet-helper/vms/test"
           vm_files=$(find "$vm" -name "*.command" -or -name "*.log")
-          for f in $vm_files /var/db/dhcpd_leases; do
+          for f in $vm_files $vm/ip-address $vm/user-data $vm/meta-data $vm/network-config /var/db/dhcpd_leases; do
             echo "==> $f <=="
             head -n 500 "$f" || true
           done
