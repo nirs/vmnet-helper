@@ -39,12 +39,16 @@ vmnet_helper = executable(
   ],
 )
 
+jansson_proj = subproject('jansson')
+jansson_dep = jansson_proj.get_variable('jansson_dep')
+
 vmnet_client = executable(
   'vmnet-client',
   'client.c',
   install: true,
   dependencies: [
     version_h_dep,
+    jansson_dep,
   ],
 )
 

@@ -1,0 +1,13 @@
+[wrap-file]
+directory = jansson-2.14
+source_url = https://github.com/akheron/jansson/releases/download/v2.14/jansson-2.14.tar.bz2
+source_filename = jansson-2.14.tar.bz2
+source_hash = fba956f27c6ae56ce6dfd52fbf9d20254aad42821f74fa52f83957625294afb9
+patch_filename = jansson_2.14-3_patch.zip
+patch_url = https://wrapdb.mesonbuild.com/v2/jansson_2.14-3/get_patch
+patch_hash = 8c7cdfb9a6bb575b2052fe571d65c3eb1c9eac3a99398303549b045d7a5307cb
+source_fallback_url = https://github.com/mesonbuild/wrapdb/releases/download/jansson_2.14-3/jansson-2.14.tar.bz2
+wrapdb_version = 2.14-3
+
+[provide]
+jansson = jansson_dep

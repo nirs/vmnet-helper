@@ -8,6 +8,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
+#include <jansson.h>
 
 #include "config.h"
 
@@ -61,6 +62,62 @@ static void create_socketpair(void)
     set_socket_buffers(COMMAND_FD);
 }
 
+static void exec_helper(int stdout_fd)
+{
+    // Replace child standard output with the pipe.
+    if (dup2(stdout_fd, STDOUT_FILENO) < 0) {
+        perror("dup2");
+        _exit(EXIT_FAILURE);
+    }
+
+    // We depend on sudoers configuration to allow vment-helper to run
+    // without a password and enable the closefrom_override option for this
+    // user. See sudoers.d/README.md for more info.
+    char *helper_argv[] = {
+        "sudo",
+        "--non-interactive",
+        // Allow the helper to inherit file descriptor 3.
+        "--close-from=4",
+        PREFIX "/bin/vmnet-helper",
+        "--fd=3",
+        NULL,
+    };
+
+    if (execvp(helper_argv[0], helper_argv) < 0) {
+        perror("execvp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void exec_command(char **argv, int stdout_fd)
+{
+    // Read the first json message from helper stdout.
+    json_error_t error;
+    json_auto_t *root = json_loadfd(stdout_fd, JSON_DISABLE_EOF_CHECK, &error);
+    if (root == NULL) {
+        fprintf(stderr, "failed to read helper json output: %s\n", error.text);
+        exit(EXIT_FAILURE);
+    }
+
+    // The command should not inherit helper stdout fd.
+    close(stdout_fd);
+
+    const char *mac_address;
+    if (json_unpack(root, "{s:s}", "vmnet_mac_address", &mac_address) < 0) {
+        fprintf(stderr, "failed to parse mac address\n");
+        exit(EXIT_FAILURE);
+    }
+
+    printf("Using MAC address: \"%s\"\n", mac_address);
+
+    // TODO: inject command fd and mac address into the command arguments.
+
+    if (execvp(argv[0], argv) < 0) {
+        perror("execvp");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) {
@@ -70,6 +127,13 @@ int main(int argc, char **argv)
 
     create_socketpair();
 
+    // Open a pipe to read from helper stdandard output.
+    int fds[2];
+    if (pipe(fds) < 0) {
+        perror("pipe");
+        exit(EXIT_FAILURE);
+    }
+
     pid_t helper_pid = fork();
     if (helper_pid < 0) {
         perror("fork");
@@ -77,29 +141,12 @@ int main(int argc, char **argv)
     }
 
     if (helper_pid == 0) {
-        // Child: start vment-helper.
-        // We depend on sudoers configuration to allow vment-helper to run
-        // without a password and enable the closefrom_override option for this
-        // user. See sudoers.d/README.md for more info.
-        char *helper_argv[] = {
-            "sudo",
-            "--non-interactive",
-            // Allow the helper to inherit file descriptor 3.
-            "--close-from=4",
-            PREFIX "/bin/vmnet-helper",
-            "--fd=3",
-            NULL,
-        };
-        if (execvp(helper_argv[0], helper_argv) < 0) {
-            perror("execvp");
-            exit(EXIT_FAILURE);
-        }
+        // Child.
+        close(fds[0]);
+        exec_helper(fds[1]);
     } else {
-        // Parent: start the commmnad.
-        char **command_argv = argv + 1;
-        if (execvp(command_argv[0], command_argv) < 0) {
-            perror("execvp");
-            exit(EXIT_FAILURE);
-        }
+        // Parent.
+        close(fds[1]);
+        exec_command(argv + 1, fds[0]);
     }
 }
