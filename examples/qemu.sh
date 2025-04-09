@@ -8,29 +8,62 @@
 MAC_ADDRESS="92:c9:52:b7:6c:08"
 DISK_IMAGE="disk.img"
 CIDATA_ISO="cidata.iso"
+MACHINE=$(uname -m)
+
+case "$MACHINE" in
+x86_64)
+    SERIAL_CONSOLE="ttyS0"
+    QEMU_EXECUTABLE="qemu-system-x86_64"
+    QEMU_MACHINE="q35"
+    QEMU_FIRMWARE="/usr/local/share/qemu/edk2-x86_64-code.fd"
+    ;;
+arm64)
+    SERIAL_CONSOLE="ttyAMA0"
+    QEMU_EXECUTABLE="qemu-system-aarch64"
+    QEMU_MACHINE="virt"
+    QEMU_FIRMWARE="/opt/homebrew/share/qemu/edk2-aarch64-code.fd"
+    ;;
+*)
+    echo "Unsupported machine: $MACHINE"
+    exit 1
+esac
 
 if [ ! -f "$DISK_IMAGE" ]; then
     ./download.sh "$DISK_IMAGE"
 fi
 
-if [ ! -f "$CIDATA_ISO" ]; then
-    ./create-iso.sh "$MAC_ADDRESS" "$CIDATA_ISO"
-fi
+# We create new iso for every run to enforce users scripts to run during
+# startup and report the IP address. This is used by the integration tests.
+./create-iso.sh "$MAC_ADDRESS" "$CIDATA_ISO" "$SERIAL_CONSOLE"
+
+# Delete data from previous run.
+rm -f serial.log ip-address
 
 # Start qemu and vmnet-helper connected via unix datagram sockets.
 /opt/vmnet-helper/bin/vmnet-client \
-    qemu-system-aarch64 \
+    $QEMU_EXECUTABLE \
     -m 1024 \
     -cpu host \
-    -machine virt,accel=hvf \
+    -machine "$QEMU_MACHINE,accel=hvf" \
     -smp 1 \
-    -drive if=pflash,format=raw,readonly=on,file=/opt/homebrew/share/qemu/edk2-aarch64-code.fd \
+    -drive "if=pflash,format=raw,readonly=on,file=$QEMU_FIRMWARE" \
     -drive "file=$DISK_IMAGE,if=virtio,format=raw" \
     -netdev dgram,id=net1,local.type=fd,local.str=4 \
     -device "virtio-net-pci,netdev=net1,mac=$MAC_ADDRESS" \
     -drive "file=$CIDATA_ISO,id=cdrom0,if=none,format=raw,readonly=on" \
     -device virtio-scsi-pci,id=scsi0 \
     -device scsi-cd,bus=scsi0.0,drive=cdrom0 \
-    -serial stdio \
+    -serial file:serial.log \
     -nographic \
-    -nodefaults \
+    -nodefaults &
+
+if ! timeout 3m bash -c "until grep -q 'example address: ' serial.log >/dev/null; do sleep 3; done"; then
+  echo >&2 "Timeout waiting for vm IP address"
+  exit 1
+fi
+
+# Write IP address to file for the tests.
+grep 'example address: ' serial.log | cut -w -f 3 | tr -d '\r\n' > ip-address
+
+# Interrupt to terminate vfkit and vmnet-helper.
+wait
