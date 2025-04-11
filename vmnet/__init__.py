@@ -3,6 +3,7 @@
 
 from .disks import IMAGES
 from .helper import (
+    CLIENT,
     Helper,
     OPERATION_MODES,
     shared_interfaces,
@@ -13,3 +14,4 @@ from .vm import (
     VM,
     DRIVERS,
 )
+from .mac import random_mac_address
