@@ -116,7 +116,7 @@ class VM:
         with open(path, "w") as f:
             f.write(data)
 
-    def wait_for_ip_address(self, timeout=180):
+    def wait_for_ip_address(self, timeout=60):
         """
         Lookup the vm ip address in the serial log and write to
         vm_home/ip-address.
