@@ -10,6 +10,9 @@ import uuid
 
 from . import store
 
+PREFIX = "/opt/vmnet-helper"
+HELPER = os.path.join(PREFIX, "bin/vmnet-helper")
+CLIENT = os.path.join(PREFIX, "bin/vmnet-client")
 OPERATION_MODES = ["shared", "bridged", "host"]
 
 # Apple recommends sizing the receive buffer at 4 times the size of the send
@@ -57,7 +60,7 @@ class Helper:
                 "sudo",
                 "--non-interactive",
                 f"--close-from={self.fd+1}",
-                "/opt/vmnet-helper/bin/vmnet-helper",
+                HELPER,
                 f"--fd={self.fd}",
             ]
             pass_fds = [self.fd]
@@ -65,7 +68,7 @@ class Helper:
             cmd = [
                 "sudo",
                 "--non-interactive",
-                "/opt/vmnet-helper/bin/vmnet-helper",
+                HELPER,
                 f"--socket={self.socket}",
             ]
             pass_fds = []
