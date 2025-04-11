@@ -4,6 +4,7 @@
 import os
 import platform
 import selectors
+import signal
 import subprocess
 import time
 
@@ -26,11 +27,12 @@ QEMU_CONFIG = {
 
 
 class VM:
-    def __init__(self, args, mac_address, fd=None, socket=None):
+    def __init__(self, args, mac_address, fd=None, socket=None, client=None):
         # Configuration
         self.mac_address = mac_address
         self.fd = fd
         self.socket = socket
+        self.client = client
         self.vm_name = args.vm_name
         self.verbose = args.verbose
         self.driver = args.driver
@@ -66,16 +68,44 @@ class VM:
         print(
             f"Starting '{self.driver}' virtual machine '{self.vm_name}' with mac address '{self.mac_address}'"
         )
-        self.write_command(cmd)
         store.silent_remove(self.serial)
-        with open(store.vm_path(self.vm_name, f"{self.driver}.log"), "w") as log:
-            pass_fds = [self.fd] if self.fd is not None else []
-            self.proc = subprocess.Popen(cmd, stderr=log, pass_fds=pass_fds)
+        self._start_process(cmd)
+
+    def _start_process(self, cmd):
+        pass_fds = []
+        process_group = None
+        stdout = None
+        logfile = store.vm_path(self.vm_name, f"{self.driver}.log")
+        with open(logfile, "w") as log:
+            if self.client:
+                # We start the vm via the client as a process group leader. The
+                # helper process started by the client will run in the same
+                # process group. This makes it easy to terminate both processes
+                # when stopping the vm.
+                cmd.insert(0, self.client)
+                stdout = log
+                process_group = 0
+            elif self.fd is not None:
+                pass_fds = [self.fd]
+            self.write_command(cmd)
+            self.proc = subprocess.Popen(
+                cmd,
+                stdout=stdout,
+                stderr=log,
+                pass_fds=pass_fds,
+                process_group=process_group,
+            )
 
     def stop(self):
         self.delete_ip_address()
-        self.proc.terminate()
-        self.proc.wait()
+        if self.client:
+            # Terminate the vm and helper by terminating the process group.
+            os.killpg(self.proc.pid, signal.SIGTERM)
+            os.wait()
+        else:
+            # Terminate the vm process.
+            self.proc.terminate()
+            self.proc.wait()
 
     def write_command(self, cmd):
         """
