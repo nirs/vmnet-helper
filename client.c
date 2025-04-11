@@ -61,6 +61,34 @@ static void create_socketpair(void)
     set_socket_buffers(COMMAND_FD);
 }
 
+static void exec_helper(void)
+{
+    // We depend on sudoers configuration to allow vment-helper to run
+    // without a password and enable the closefrom_override option for this
+    // user. See sudoers.d/README.md for more info.
+    char *helper_argv[] = {
+        "sudo",
+        "--non-interactive",
+        // Allow the helper to inherit file descriptor 3.
+        "--close-from=4",
+        PREFIX "/bin/vmnet-helper",
+        "--fd=3",
+        NULL,
+    };
+    if (execvp(helper_argv[0], helper_argv) < 0) {
+        perror("execvp");
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void exec_command(char **argv)
+{
+    if (execvp(argv[0], argv) < 0) {
+        perror("execvp");
+        exit(EXIT_FAILURE);
+    }
+}
+
 int main(int argc, char **argv)
 {
     if (argc < 2) {
@@ -78,28 +106,9 @@ int main(int argc, char **argv)
 
     if (helper_pid == 0) {
         // Child: start vment-helper.
-        // We depend on sudoers configuration to allow vment-helper to run
-        // without a password and enable the closefrom_override option for this
-        // user. See sudoers.d/README.md for more info.
-        char *helper_argv[] = {
-            "sudo",
-            "--non-interactive",
-            // Allow the helper to inherit file descriptor 3.
-            "--close-from=4",
-            PREFIX "/bin/vmnet-helper",
-            "--fd=3",
-            NULL,
-        };
-        if (execvp(helper_argv[0], helper_argv) < 0) {
-            perror("execvp");
-            exit(EXIT_FAILURE);
-        }
+        exec_helper();
     } else {
         // Parent: start the commmnad.
-        char **command_argv = argv + 1;
-        if (execvp(command_argv[0], command_argv) < 0) {
-            perror("execvp");
-            exit(EXIT_FAILURE);
-        }
+        exec_command(argv + 1);
     }
 }
