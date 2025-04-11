@@ -38,7 +38,7 @@ def main():
     p.add_argument("vm_name", help="VM name")
     p.add_argument(
         "--connection",
-        choices=["auto", "fd", "socket"],
+        choices=["auto", "fd", "socket", "client"],
         default="auto",
         help="How to connect the helper and vm (auto)",
     )
@@ -139,6 +139,8 @@ def main():
         run_with_fd(args)
     elif args.connection == "socket":
         run_with_socket(args)
+    elif args.connection == "client":
+        run_with_client(args)
 
 
 def run_with_fd(args):
@@ -189,6 +191,19 @@ def run_with_socket(args):
             vm.stop()
     finally:
         helper.stop()
+
+
+def run_with_client(args):
+    """
+    Use vmnet-client to run a vm with fd.
+    """
+    vm = vmnet.VM(args, vmnet.random_mac_address(), fd=4, client=vmnet.CLIENT)
+    vm.start()
+    try:
+        vm.wait_for_ip_address()
+        os.wait()
+    finally:
+        vm.stop()
 
 
 def cpus(s):
