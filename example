@@ -104,6 +104,13 @@ def main():
         default=1024,
         help="Memory size in MiB (1024)",
     )
+    p.add_argument(
+        "--timeout",
+        metavar="SECONDS",
+        type=int,
+        default=60,
+        help="Time to wait for VM IP address (60 seconds)",
+    )
 
     distros = list(vmnet.IMAGES.keys())
     p.add_argument(
@@ -160,7 +167,7 @@ def run_with_fd(args):
         vm = vmnet.VM(args, helper.interface["vmnet_mac_address"], fd=vm_sock.fileno())
         vm.start()
         try:
-            vm.wait_for_ip_address()
+            vm.wait_for_ip_address(timeout=args.timeout)
             os.wait()
         finally:
             vm.stop()
@@ -185,7 +192,7 @@ def run_with_socket(args):
         vm = vmnet.VM(args, helper.interface["vmnet_mac_address"], socket=socket)
         vm.start()
         try:
-            vm.wait_for_ip_address()
+            vm.wait_for_ip_address(timeout=args.timeout)
             os.wait()
         finally:
             vm.stop()
@@ -200,7 +207,7 @@ def run_with_client(args):
     vm = vmnet.VM(args, vmnet.random_mac_address(), fd=4, client=vmnet.CLIENT)
     vm.start()
     try:
-        vm.wait_for_ip_address()
+        vm.wait_for_ip_address(timeout=args.timeout)
         os.wait()
     finally:
         vm.stop()
