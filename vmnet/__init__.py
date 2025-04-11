@@ -3,6 +3,7 @@
 
 from .disks import IMAGES
 from .helper import (
+    CLIENT,
     Helper,
     OPERATION_MODES,
     shared_interfaces,
