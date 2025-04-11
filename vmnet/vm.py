@@ -50,6 +50,9 @@ class VM:
         """
         Starts a VM driver with fd or socket.
         """
+        vm_home = store.vm_path(self.vm_name)
+        os.makedirs(vm_home, exist_ok=True)
+
         self.disk = disks.create_disk(self)
         self.cidata = cidata.create_iso(self)
         if self.driver == "vfkit":
