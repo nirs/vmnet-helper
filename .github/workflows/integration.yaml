@@ -38,9 +38,7 @@ jobs:
           tree -h /opt/homebrew/share/qemu || true
       - name: Install vfkit
         if: matrix.driver == 'vfkit'
-        run: |
-          curl -LO https://github.com/crc-org/vfkit/releases/download/v0.6.0/vfkit
-          sudo install vfkit /usr/local/bin/
+        run: brew install vfkit
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Build vmnet-helper
