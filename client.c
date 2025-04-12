@@ -10,11 +10,14 @@
 #include <unistd.h>
 
 #include "config.h"
+#include "log.h"
 
 // To keep it simple we always use the same file descriptor for the helper and
 // command. Inheriting additional file descriptors is not supported.
 const int HELPER_FD = 3;
 const int COMMAND_FD = 4;
+
+bool verbose = false;
 
 static void set_socket_buffers(int fd)
 {
@@ -22,10 +25,10 @@ static void set_socket_buffers(int fd)
     // errors.
 
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &SNDBUF_SIZE, sizeof(SNDBUF_SIZE)) < 0) {
-        perror("setsockopt");
+        ERRORF("setsockopt: %s", strerror(errno));
     }
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &RCVBUF_SIZE, sizeof(RCVBUF_SIZE)) < 0) {
-        perror("setsockopt");
+        ERRORF("setsockopt: %s", strerror(errno));
     }
 }
 
@@ -38,7 +41,7 @@ static void create_socketpair(void)
 
     int fds[2];
     if (socketpair(PF_LOCAL, SOCK_DGRAM, 0, fds) < 0) {
-        perror("socketpair");
+        ERRORF("socketpair: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -48,12 +51,12 @@ static void create_socketpair(void)
     // fds[0]. If the descriptors are already in place dup2 does nothing.
 
     if (dup2(fds[1], COMMAND_FD) < 0) {
-        perror("dup2");
+        ERRORF("dup2: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     if (dup2(fds[0], HELPER_FD) < 0) {
-        perror("dup2");
+        ERRORF("dup2: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -72,7 +75,7 @@ int main(int argc, char **argv)
 
     pid_t helper_pid = fork();
     if (helper_pid < 0) {
-        perror("fork");
+        ERRORF("fork: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -91,14 +94,14 @@ int main(int argc, char **argv)
             NULL,
         };
         if (execvp(helper_argv[0], helper_argv) < 0) {
-            perror("execvp");
+            ERRORF("execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
     } else {
         // Parent: start the commmnad.
         char **command_argv = argv + 1;
         if (execvp(command_argv[0], command_argv) < 0) {
-            perror("execvp");
+            ERRORF("execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
