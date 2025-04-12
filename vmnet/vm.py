@@ -29,6 +29,7 @@ QEMU_CONFIG = {
 class VM:
     def __init__(self, args, mac_address, fd=None, socket=None, client=None):
         # Configuration
+        self.args = args
         self.mac_address = mac_address
         self.fd = fd
         self.socket = socket
@@ -82,7 +83,7 @@ class VM:
                 # helper process started by the client will run in the same
                 # process group. This makes it easy to terminate both processes
                 # when stopping the vm.
-                cmd.insert(0, self.client)
+                cmd = self.client_command(cmd)
                 stdout = log
                 process_group = 0
             elif self.fd is not None:
@@ -246,6 +247,18 @@ class VM:
         if "initrd" in self.disk:
             cmd.extend(["-initrd", self.disk["initrd"]])
 
+        return cmd
+
+    def client_command(self, vm_command):
+        cmd = [self.client, f"--operation-mode={self.args.operation_mode}"]
+        if self.args.operation_mode == "bridged":
+            cmd.append(f"--shared-interface={self.args.shared_interface}")
+        elif self.args.operation_mode == "host" and self.args.enable_isolation:
+            cmd.append("--enable-isolation")
+        if self.args.verbose:
+            cmd.append("--verbose")
+        cmd.append("--")
+        cmd.extend(vm_command)
         return cmd
 
 def qemu_firmware(arch):
