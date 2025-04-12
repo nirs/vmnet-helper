@@ -139,6 +139,12 @@ def main():
     if args.vmnet_offload == "auto":
         args.vmnet_offload = VMNET_OFFLOAD_AUTO[args.driver]
 
+    if args.connection == "client":
+        if args.driver == "krunkit":
+            p.error("--driver=krunkit not supported with --connection=client")
+        if args.vmnet_offload == "on":
+            p.error("--vment-offload not supported with --connection=client")
+
     signal.signal(signal.SIGTERM, terminate)
     signal.signal(signal.SIGINT, terminate)
 
