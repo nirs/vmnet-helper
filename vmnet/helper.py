@@ -21,13 +21,13 @@ OPERATION_MODES = ["shared", "bridged", "host"]
 # in datagram sockets, it only limits the maximum packet size. We use 65 KiB
 # buffer to allow the largest possible packet size (65550 bytes) when using the
 # vmnet_enable_tso option.
-SEND_BUFSIZE = 65 * 1024
+SEND_BUFFER_SIZE = 65 * 1024
 
 # The receive buffer size determines how many packets can be queued by the peer.
 # Testing shows good performance with a 2 MiB receive buffer. We use a 4 MiB
 # buffer to make ENOBUFS errors less likely for the peer and allowing to queue
 # more packets when using the vmnet_enable_tso option.
-RECV_BUFSIZE = 4 * 1024 * 1024
+RECV_BUFFER_SIZE = 4 * 1024 * 1024
 
 
 class Helper:
@@ -128,8 +128,8 @@ def interface_id_from(name):
 def socketpair():
     pair = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM, 0)
     for sock in pair:
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SEND_BUFSIZE)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, RECV_BUFSIZE)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SEND_BUFFER_SIZE)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, RECV_BUFFER_SIZE)
         os.set_inheritable(sock.fileno(), True)
     return pair
 
