@@ -25,7 +25,7 @@ const int COMMAND_FD = 4;
 
 bool verbose = false;
 
-// vmnet-helper arguments. Parsed arguemnts are appended to this list.
+// vmnet-helper arguments. Parsed arguments are appended to this list.
 // We depend on sudoers configuration to allow vment-helper to run
 // without a password and enable the closefrom_override option for this
 // user. See sudoers.d/README.md for more info.
@@ -138,7 +138,7 @@ static void validate_address(const char *arg, const char *name)
 }
 
 // Parse and validate helper arguments in argv and append to helper_argv, and
-// initialize command_argv to point ot first command argument.
+// initialize command_argv to point to first command argument.
 static void parse_options(int argc, char **argv)
 {
     const char *optname;
