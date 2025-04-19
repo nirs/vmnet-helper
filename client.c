@@ -233,11 +233,14 @@ static void set_socket_buffers(int fd)
     // Setting socket buffer size is a performance optimization so we don't fail on
     // errors.
 
-    if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &SNDBUF_SIZE, sizeof(SNDBUF_SIZE)) < 0) {
-        ERRORF("setsockopt: %s", strerror(errno));
+    const int sndbuf_size = SEND_BUFFER_SIZE;
+    if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size)) < 0) {
+        WARNF("setsockopt: %s", strerror(errno));
     }
-    if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &RCVBUF_SIZE, sizeof(RCVBUF_SIZE)) < 0) {
-        ERRORF("setsockopt: %s", strerror(errno));
+
+    const int rcvbuf_size = RECV_BUFFER_SIZE;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) < 0) {
+        WARNF("setsockopt: %s", strerror(errno));
     }
 }
 

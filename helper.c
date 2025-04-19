@@ -346,6 +346,22 @@ static void remove_socket_silently(void)
     options.socket = NULL;
 }
 
+static void set_socket_buffers(int fd)
+{
+    // Setting socket buffer size is a performance optimization so we don't fail on
+    // errors.
+
+    const int sndbuf_size = SEND_BUFFER_SIZE;
+    if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size)) < 0) {
+        WARNF("[main] setsockopt: %s", strerror(errno));
+    }
+
+    const int rcvbuf_size = RECV_BUFFER_SIZE;
+    if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) < 0) {
+        WARNF("[main] setsockopt: %s", strerror(errno));
+    }
+}
+
 static void create_socket(void)
 {
     options.fd = socket(PF_LOCAL, SOCK_DGRAM, 0);
@@ -354,16 +370,7 @@ static void create_socket(void)
         exit(EXIT_FAILURE);
     }
 
-    // Setting socket buffer size is a performance optimization - don't fail on
-    // errors.
-
-    if (setsockopt(options.fd, SOL_SOCKET, SO_SNDBUF, &SNDBUF_SIZE, sizeof(SNDBUF_SIZE)) < 0) {
-        WARNF("[main] setsockopt(SO_SNDBUF, %d): %s", SNDBUF_SIZE, strerror(errno));
-    }
-
-    if (setsockopt(options.fd, SOL_SOCKET, SO_RCVBUF, &RCVBUF_SIZE, sizeof(RCVBUF_SIZE)) < 0) {
-        WARNF("[main] setsockopt(SO_RCVBUF, %d): %s", RCVBUF_SIZE, strerror(errno));
-    }
+    set_socket_buffers(options.fd);
 
     if (remove(options.socket) < 0 && errno != ENOENT) {
         ERRORF("[main] remove(\"%s\"): %s", options.socket, strerror(errno));
