@@ -273,7 +273,7 @@ def run(operation_mode, driver, config):
     server.start()
     try:
         # On M3 sometimes the client does not get an ip address when starting
-        # te server and client at the same time. Waiting until the server gets
+        # the server and client at the same time. Waiting until the server gets
         # an ip address before starting the client avoids this.  TODO: Until we
         # find a real fix, try to wait until the server helper is ready or a
         # short sleep.

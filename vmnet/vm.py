@@ -191,7 +191,7 @@ class VM:
         if self.fd is not None:
             netdev = f"dgram,id=net1,local.type=fd,local.str={self.fd}"
         elif self.socket is not None:
-            # qemu support unix datagram socket, but it rquires local and remote sockets:
+            # qemu support unix datagram socket, but it requires local and remote sockets:
             #   -netdev dgram,id=str,local.type=unix,local.path=path[,remote.type=unix,remote.path=path]
             # The remote parameters look optional but they are required.  Trying to
             # use the helper socket with local.path and remote.path does not work.
@@ -236,7 +236,7 @@ class VM:
             "-nodefaults",
         ]
 
-        # Optinal arguments
+        # Optional arguments
 
         if "kernel" in self.disk:
             cmd.extend(["-kernel", self.disk["kernel"]])
