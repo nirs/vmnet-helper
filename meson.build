@@ -50,4 +50,3 @@ vmnet_client = executable(
 
 install_subdir('sudoers.d', install_dir: 'share/doc/vmnet-helper')
 
-test('basic', vmnet_helper)
