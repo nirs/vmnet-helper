@@ -252,7 +252,7 @@ void parse_options(struct options *opts, int argc, char **argv)
         uuid_generate_random(opts->interface_id);
     }
 
-    // When runninng via sudo we can get the real uid/gid via SUDO_*
+    // When running via sudo we can get the real uid/gid via SUDO_*
     // environment variables. When using setuid bit, getuid()/getgid() return
     // the real uid/gid.
 
