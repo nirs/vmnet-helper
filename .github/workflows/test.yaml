@@ -28,7 +28,7 @@ jobs:
         # Archiving requires a tag, but we checkout only the last commit.
         run: git describe --tags 2>/dev/null || git tag devel
       - name: Install requirements
-        run: brew install meson diffoscope
+        run: brew install meson diffoscope codespell
       - name: Build
         run: |
           meson setup build
@@ -42,3 +42,5 @@ jobs:
           diffoscope build/vmnet-helper-*.tar.gz repro/vmnet-helper-*.tar.gz
       - name: List shared interfaces
         run: build/vmnet-helper --list-shared-interfaces
+      - name: Check spelling
+        run: meson test -C build codespell
