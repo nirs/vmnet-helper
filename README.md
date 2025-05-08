@@ -39,6 +39,9 @@ password, you can install the default sudoers rule:
 sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/
 ```
 
+See [sudoers.d](sudoers.d) for info on how to setup a sudoers rules for
+vment-helper.
+
 A simpler but less secure way is to allow any user to use vmnet-helper
 without sudo by setting the setuid bit:
 
