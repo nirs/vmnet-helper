@@ -38,7 +38,6 @@ class VM:
         self.verbose = args.verbose
         self.driver = args.driver
         self.driver_command = args.driver_command
-        self.krunkit_port = args.krunkit_port
         self.cpus = args.cpus
         self.memory = args.memory
         self.distro = args.distro
@@ -179,7 +178,7 @@ class VM:
             self.driver_command or "krunkit",
             f"--memory={self.memory}",
             f"--cpus={self.cpus}",
-            f"--restful-uri=tcp://localhost:{self.krunkit_port}",
+            f"--restful-uri=none://",
             f"--device=virtio-blk,path={self.disk['image']}",
             f"--device=virtio-blk,path={self.cidata}",
             f"--device=virtio-net,unixSocketPath={self.socket},mac={self.mac_address}",

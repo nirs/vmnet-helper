@@ -21,7 +21,6 @@ import vmnet
 SERVER = "server"
 CLIENT = "client"
 TESTS = ["host-to-vm", "vm-to-host", "vm-to-vm"]
-PORTS = {SERVER: 30000, CLIENT: 30001}
 
 
 def main():
@@ -194,8 +193,6 @@ class VM:
             f"--driver={self.driver['name']}",
             f"--operation-mode={self.operation_mode}",
         ]
-        if self.driver["name"] == "krunkit":
-            cmd.append(f"--krunkit-port={PORTS[self.name]}")
         if self.operation_mode == "bridged" and self.shared_interface:
             cmd.append(f"--shared-interface={self.shared_interface}")
         if "command" in self.driver:

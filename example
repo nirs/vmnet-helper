@@ -84,13 +84,6 @@ def main():
         help=f"Use custom driver command",
     )
     p.add_argument(
-        "--krunkit-port",
-        metavar="PORT",
-        type=int,
-        default=8081,
-        help="krunkit restful-uri port (8081)",
-    )
-    p.add_argument(
         "--cpus",
         metavar="N",
         type=cpus,
