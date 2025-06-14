@@ -31,7 +31,7 @@ static void usage(int code)
 "                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
 "                 [--enable-tso] [--enable-checksum-offload] [--enable-isolation]\n"
-"                 [--list-shared-interfaces]\n"
+"                 [--enable-virtio-header] [--list-shared-interfaces]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
 "\n";
     fputs(msg, stderr);
@@ -47,6 +47,7 @@ enum {
     OPT_ENABLE_TSO,
     OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
+    OPT_ENABLE_VIRTIO_HEADER,
     OPT_LIST_SHARED_INTERFACES,
     OPT_VERSION,
 };
@@ -65,6 +66,7 @@ static struct option long_options[] = {
     {"enable-tso",              no_argument,        0,  OPT_ENABLE_TSO},
     {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
+    {"enable-virtio-header",    no_argument,        0,  OPT_ENABLE_VIRTIO_HEADER},
     {"list-shared-interfaces",  no_argument,        0,  OPT_LIST_SHARED_INTERFACES},
     {"verbose",                 no_argument,        0,  'v'},
     {"version",                 no_argument,        0,  OPT_VERSION},
@@ -219,6 +221,11 @@ void parse_options(struct options *opts, int argc, char **argv)
         case OPT_ENABLE_ISOLATION:
             opts->enable_isolation = true;
             break;
+        case OPT_ENABLE_VIRTIO_HEADER:
+            if (__builtin_available(macOS 15.4, *)) {
+                opts->enable_virtio_header = true;
+            }
+            break;
         case OPT_LIST_SHARED_INTERFACES:
             list_shared_interfaces();
             break;
@@ -281,6 +288,11 @@ void parse_options(struct options *opts, int argc, char **argv)
 
     if (opts->enable_isolation && opts->operation_mode != VMNET_HOST_MODE) {
         ERROR("Conflicting arguments: enable-isolation requires operation-mode=host");
+        exit(EXIT_FAILURE);
+    }
+
+    if (opts->enable_checksum_offload && opts->enable_virtio_header) {
+        ERROR("Conflicting arguments: enable-virtio-header is not compatible with enable-checksum-offload");
         exit(EXIT_FAILURE);
     }
 }

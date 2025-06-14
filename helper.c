@@ -255,6 +255,13 @@ static void start_host_interface(void)
     xpc_dictionary_set_bool(desc, vmnet_enable_tso_key, options.enable_tso);
     xpc_dictionary_set_bool(desc, vmnet_enable_checksum_offload_key, options.enable_checksum_offload);
 
+    if (__builtin_available(macOS 15.4, *)) {
+        if (options.enable_virtio_header) {
+            INFO("[main] enabling virtio header");
+            xpc_dictionary_set_bool(desc, vmnet_enable_virtio_header_key, options.enable_virtio_header);
+        }
+    }
+
     dispatch_semaphore_t completed = dispatch_semaphore_create(0);
 
     interface = vmnet_start_interface(
