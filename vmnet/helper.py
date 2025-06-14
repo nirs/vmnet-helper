@@ -40,6 +40,7 @@ class Helper:
         self.operation_mode = args.operation_mode
         self.shared_interface = args.shared_interface
         self.enable_isolation = args.enable_isolation
+        self.enable_virtio_header = args.enable_virtio_header
         self.vmnet_offload = args.vmnet_offload
         self.verbose = args.verbose
 
@@ -85,6 +86,9 @@ class Helper:
 
         if self.verbose:
             cmd.append("--verbose")
+
+        if self.enable_virtio_header:
+            cmd.append("--enable-virtio-header")
 
         if self.vmnet_offload == "on":
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])

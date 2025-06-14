@@ -57,6 +57,7 @@ enum {
     OPT_END_ADDRESS,
     OPT_SUBNET_MASK,
     OPT_ENABLE_ISOLATION,
+    OPT_ENABLE_VIRTIO_HEADER,
     OPT_VERSION
 };
 
@@ -71,6 +72,7 @@ static struct option long_options[] = {
     {"end-address",             required_argument,  0,  OPT_END_ADDRESS},
     {"subnet-mask",             required_argument,  0,  OPT_SUBNET_MASK},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
+    {"enable-virtio-header",    no_argument,        0,  OPT_ENABLE_VIRTIO_HEADER},
     {"verbose",                 no_argument,        0,  'v'},
     // Client options.
     {"version",                 no_argument,        0,  OPT_VERSION},
@@ -191,6 +193,11 @@ static void parse_options(int argc, char **argv)
         case OPT_ENABLE_ISOLATION:
             enable_isolation = true;
             append_helper_arg("--enable-isolation");
+            break;
+        case OPT_ENABLE_VIRTIO_HEADER:
+            if (__builtin_available(macOS 15.4, *)) {
+                append_helper_arg("--enable-virtio-header");
+            }
             break;
         case 'v':
             verbose = true;

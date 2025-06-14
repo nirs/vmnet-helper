@@ -19,6 +19,7 @@ struct options {
     bool enable_isolation;
     bool enable_tso;
     bool enable_checksum_offload;
+    bool enable_virtio_header;
     uid_t uid;
     gid_t gid;
 };

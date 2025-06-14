@@ -63,6 +63,11 @@ def main():
         help="Isolate the guest from other guests on the vmnet interface, requires --operation-mode=host",
     )
     p.add_argument(
+        "--enable-virtio-header",
+        action="store_true",
+        help="Enable virtio header on the vmnet interface, incompatile with --vment-offload",
+    )
+    p.add_argument(
         "--vmnet-offload",
         choices=["auto", "on", "off"],
         default="auto",
@@ -138,6 +143,9 @@ def main():
 
     if args.vmnet_offload == "auto":
         args.vmnet_offload = VMNET_OFFLOAD_AUTO[args.driver]
+
+    if args.vmnet_offload == "on" and args.enable_virtio_header:
+        p.error("--enable-virtio-header is not compatible with --vment-offload")
 
     if args.connection == "client":
         if args.driver == "krunkit":
