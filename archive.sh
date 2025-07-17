@@ -15,12 +15,8 @@ build_dir="${1:?Usage: $0 BUILD_DIR}"
 rm -rf "$build_dir/root"
 DESTDIR=root meson install -C "$build_dir"
 
-# v0.2.0 when building from tag (release)
-# v0.1.0-7-gb928332 when building without tag (development)
-version=$(git describe --tags)
-
 machine=$(uname -m)
-archive="$PWD/$build_dir/vmnet-helper-$version-$machine.tar"
+archive="$PWD/$build_dir/vmnet-helper-$machine.tar"
 
 # Make content reproducible by using commit time instead of build time.
 commit_time=$(git log -1 --pretty=%ct)
