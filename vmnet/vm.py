@@ -42,6 +42,7 @@ class VM:
         self.memory = args.memory
         self.distro = args.distro
         self.serial = store.vm_path(self.vm_name, "serial.log")
+        self.vmnet_offload = args.vmnet_offload
 
         # Running info
         self.disk = None
@@ -181,7 +182,7 @@ class VM:
             f"--restful-uri=none://",
             f"--device=virtio-blk,path={self.disk['image']}",
             f"--device=virtio-blk,path={self.cidata}",
-            f"--device=virtio-net,unixSocketPath={self.socket},mac={self.mac_address}",
+            f"--device=virtio-net,type=unixgram,path={self.socket},mac={self.mac_address},offloading={self.vmnet_offload}",
             f"--device=virtio-serial,logFilePath={self.serial}",
             "--krun-log-level=3",
         ]
