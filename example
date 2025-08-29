@@ -14,12 +14,6 @@ import sys
 
 import vmnet
 
-CONNECTION_AUTO = {
-    "vfkit": "fd",
-    "krunkit": "socket",
-    "qemu": "fd",
-}
-
 VMNET_OFFLOAD_AUTO = {
     "vfkit": "off",
     "krunkit": "off",
@@ -36,9 +30,9 @@ def main():
     p.add_argument("vm_name", help="VM name")
     p.add_argument(
         "--connection",
-        choices=["auto", "fd", "socket", "client"],
-        default="auto",
-        help="How to connect the helper and vm (auto)",
+        choices=["fd", "socket", "client"],
+        default="fd",
+        help="How to connect the helper and vm (fd)",
     )
 
     # Helper arguments
@@ -117,9 +111,6 @@ def main():
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
 
     args = p.parse_args()
-
-    if args.connection == "auto":
-        args.connection = CONNECTION_AUTO[args.driver]
 
     if args.operation_mode == "bridged" and not args.shared_interface:
         p.error("--shared-interface required for --operation-mode=bridged")

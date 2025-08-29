@@ -171,21 +171,27 @@ class VM:
         return cmd
 
     def krunkit_command(self):
-        if self.fd is not None:
-            raise ValueError("fd connection not supported for krunkit driver")
-        if self.socket is None:
-            raise ValueError("socket connection required")
-        return [
+        cmd = [
             self.driver_command or "krunkit",
             f"--memory={self.memory}",
             f"--cpus={self.cpus}",
             f"--restful-uri=none://",
             f"--device=virtio-blk,path={self.disk['image']}",
             f"--device=virtio-blk,path={self.cidata}",
-            f"--device=virtio-net,type=unixgram,path={self.socket},mac={self.mac_address},offloading={self.vmnet_offload}",
             f"--device=virtio-serial,logFilePath={self.serial}",
             "--krun-log-level=3",
         ]
+        if self.fd is not None:
+            cmd.append(
+                f"--device=virtio-net,type=unixgram,fd={self.fd},mac={self.mac_address},offloading={self.vmnet_offload}",
+            )
+        elif self.socket is not None:
+            cmd.append(
+                f"--device=virtio-net,type=unixgram,path={self.socket},mac={self.mac_address},offloading={self.vmnet_offload}",
+            )
+        else:
+            raise ValueError("fd or socket required")
+        return cmd
 
     def qemu_command(self):
         if self.fd is not None:
