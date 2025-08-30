@@ -86,7 +86,7 @@ class Helper:
         if self.verbose:
             cmd.append("--verbose")
 
-        if self.vmnet_offload == "on":
+        if self.vmnet_offload:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
 
         vm_home = store.vm_path(self.vm_name)

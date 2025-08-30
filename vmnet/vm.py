@@ -181,16 +181,19 @@ class VM:
             f"--device=virtio-serial,logFilePath={self.serial}",
             "--krun-log-level=3",
         ]
+
+        offloading = "on" if self.vmnet_offload else "off"
         if self.fd is not None:
             cmd.append(
-                f"--device=virtio-net,type=unixgram,fd={self.fd},mac={self.mac_address},offloading={self.vmnet_offload}",
+                f"--device=virtio-net,type=unixgram,fd={self.fd},mac={self.mac_address},offloading={offloading}",
             )
         elif self.socket is not None:
             cmd.append(
-                f"--device=virtio-net,type=unixgram,path={self.socket},mac={self.mac_address},offloading={self.vmnet_offload}",
+                f"--device=virtio-net,type=unixgram,path={self.socket},mac={self.mac_address},offloading={offloading}",
             )
         else:
             raise ValueError("fd or socket required")
+
         return cmd
 
     def qemu_command(self):
