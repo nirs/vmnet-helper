@@ -1,12 +1,12 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Compare vmnet-helper drivers with offloading
+# Compare vmnet-helper krunkit driver with and without offloading
 ---
 name: offloading
 title: vmnet-helper offloading
 networks: [vmnet-helper]
-drivers: [vfkit, krunkit, krunkit:nooffload]
+drivers: [krunkit, krunkit:offload]
 vms: [2]
 operation-modes: [shared, bridged, host]
 tests: [host-to-vm, vm-to-host, vm-to-vm]

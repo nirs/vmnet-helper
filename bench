@@ -197,8 +197,8 @@ class VM:
             cmd.append(f"--shared-interface={self.shared_interface}")
         if "command" in self.driver:
             cmd.append(f"--driver-command={self.driver['command']}")
-        if "offload" in self.driver:
-            cmd.append(f"--vmnet-offload={self.driver['offload']}")
+        if self.driver.get("offloading", False):
+            cmd.append("--enable-offloading")
 
         print(f"Starting process {cmd}")
         self.proc = subprocess.Popen(cmd)

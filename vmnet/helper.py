@@ -40,7 +40,7 @@ class Helper:
         self.operation_mode = args.operation_mode
         self.shared_interface = args.shared_interface
         self.enable_isolation = args.enable_isolation
-        self.vmnet_offload = args.vmnet_offload
+        self.enable_offloading = args.enable_offloading
         self.verbose = args.verbose
 
         # Running state.
@@ -86,7 +86,7 @@ class Helper:
         if self.verbose:
             cmd.append("--verbose")
 
-        if self.vmnet_offload:
+        if self.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
 
         vm_home = store.vm_path(self.vm_name)
