@@ -8,5 +8,5 @@ title: vmnet-helper offloading
 networks: [vmnet-helper]
 drivers: [krunkit, krunkit:offload]
 vms: [2]
-operation-modes: [shared, bridged, host]
+operation-modes: [shared, bridged]
 tests: [host-to-vm, vm-to-host, vm-to-vm]

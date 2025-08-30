@@ -3,5 +3,6 @@
 
 # Quick benchmark for testing the bench tool.
 ---
+operation-modes: [shared, bridged]
 shared-interface: en0
 time: 1
