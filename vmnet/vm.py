@@ -42,7 +42,7 @@ class VM:
         self.memory = args.memory
         self.distro = args.distro
         self.serial = store.vm_path(self.vm_name, "serial.log")
-        self.vmnet_offload = args.vmnet_offload
+        self.enable_offloading = args.enable_offloading
 
         # Running info
         self.disk = None
@@ -182,7 +182,7 @@ class VM:
             "--krun-log-level=3",
         ]
 
-        offloading = "on" if self.vmnet_offload else "off"
+        offloading = "on" if self.enable_offloading else "off"
         if self.fd is not None:
             cmd.append(
                 f"--device=virtio-net,type=unixgram,fd={self.fd},mac={self.mac_address},offloading={offloading}",
