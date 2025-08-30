@@ -7,6 +7,7 @@ drivers:
   - name: krunkit
     tag: offload
     offloading: true
+operation-modes: [shared, bridged]
 shared-interface: en0
 time: 30
 output: out

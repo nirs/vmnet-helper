@@ -11,6 +11,7 @@
 
 # Operation modes to test
 # operation-modes: [shared, bridged, host]
+operation-modes: [shared, bridged]
 
 # Tests to run
 # tests: [host-to-vm, vm-to-host, vm-to-vm]
