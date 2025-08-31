@@ -228,6 +228,38 @@ en10
 en0
 ```
 
+## Offloading options
+
+These options can be used with krunkit to get much better performance in some
+cases and much worse performance in other cases. See the
+[Offloading](#offloading) section for performance results.
+
+- **--enable-tso**: Enable TCP segmentation offload. Note, when this is enabled,
+  the interface may generate large (64K) TCP frames. It must also be prepared to
+  accept large TCP frames as well.
+
+- **-enable-checksum-offload**: Enable checksum offload for this interface. The
+  checksums that are offloaded are: IPv4 header checksum, UDP checksum (IPv4 and
+  IPv6), and TCP checksum (IPv4 and IPv6).
+
+  In order to perform the offload function, all packets flowing in and out of
+  the vmnet_interface instance are verified to pass basic IPv4, IPv6, UDP, and
+  TCP sanity checks. A packet that fails any of these checks is simply dropped.
+
+  On output, checksums are automatically computed as necessary on each packet
+  sent using vmnet_write().
+
+  On input, checksums are verified as necessary. If any checksum verification
+  fails, the packet is dropped and not delivered to vmnet_read().
+
+  Note that the checksum offload function for UDP and TCP checksums is unable to
+  deal with fragmented IPv4/IPv6 packets. The VM client networking stack must
+  handle UDP and TCP checksums on fragmented packets itself.
+
+> [!IMPORTANT]
+> You must use both **--enable-tso** and **--enable-checksum-offload** when
+> using krunkit **offloading=on** virtio-net option.
+
 ## Stopping the interface
 
 Terminate the vmnet-helper process gracefully. Send a SIGTERM or SIGINT
