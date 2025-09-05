@@ -17,11 +17,23 @@ config = configuration_data()
 config.set('PREFIX', get_option('prefix'))
 configure_file(input: 'config.h.in', output: 'config.h', configuration: config)
 
-version_h = vcs_tag(
-  command: ['git', 'describe', '--tags'],
+git_version = run_command('git', 'describe', '--tags', check: false).stdout().strip()
+if git_version == ''
+  git_version = 'devel'
+endif
+
+git_commit = run_command('git', 'rev-parse', 'HEAD', check: false).stdout().strip()
+if git_commit == ''
+  git_commit = 'unknown'
+endif
+
+version_conf = configuration_data()
+version_conf.set('GIT_VERSION', git_version)
+version_conf.set('GIT_COMMIT_SHA', git_commit)
+version_h = configure_file(
   input: 'version.h.in',
   output: 'version.h',
-  fallback: 'devel',
+  configuration: version_conf,
 )
 
 version_h_dep = declare_dependency(sources: [version_h])
