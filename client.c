@@ -197,7 +197,7 @@ static void parse_options(int argc, char **argv)
             append_helper_arg("--verbose");
             break;
         case OPT_VERSION:
-            printf("%s\n", GIT_VERSION);
+            printf("version: %s\ncommit: %s\n", GIT_VERSION, GIT_COMMIT);
             exit(0);
         case ':':
             ERRORF("Option %s requires an argument", optname);

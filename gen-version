@@ -1,0 +1,44 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+import subprocess
+import sys
+
+
+def run(*args):
+    try:
+        return subprocess.check_output(args).decode().strip()
+    except subprocess.CalledProcessError as e:
+        print(f"Failed: {args}: {e}", file=sys.stderr)
+        return "unknown"
+
+
+def read_output():
+    try:
+        with open(output) as f:
+            return f.read()
+    except FileNotFoundError:
+        return ""
+
+
+def write_output(content):
+    print(f"writing {output}")
+    with open(output, "w") as f:
+        f.write(content)
+
+
+# meson @OUTPUT@
+output = sys.argv[1]
+
+version = run("git", "describe", "--tags")
+commit = run("git", "rev-parse", "HEAD")
+
+content = f"""\
+#define GIT_VERSION "{version}"
+#define GIT_COMMIT  "{commit}"
+"""
+
+# Update only if content changed to avoid unnecessary rebuilds.
+if content != read_output():
+    write_output(content)

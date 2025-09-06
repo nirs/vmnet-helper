@@ -17,11 +17,12 @@ config = configuration_data()
 config.set('PREFIX', get_option('prefix'))
 configure_file(input: 'config.h.in', output: 'config.h', configuration: config)
 
-version_h = vcs_tag(
-  command: ['git', 'describe', '--tags'],
-  input: 'version.h.in',
+gen_version = find_program('gen-version')
+version_h = custom_target(
+  'version.h',
   output: 'version.h',
-  fallback: 'devel',
+  command: [gen_version, '@OUTPUT@'],
+  build_always_stale: true,
 )
 
 version_h_dep = declare_dependency(sources: [version_h])

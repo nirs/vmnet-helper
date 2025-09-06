@@ -226,7 +226,7 @@ void parse_options(struct options *opts, int argc, char **argv)
             verbose = true;
             break;
         case OPT_VERSION:
-            printf("%s\n", GIT_VERSION);
+            printf("version: %s\ncommit: %s\n", GIT_VERSION, GIT_COMMIT);
             exit(0);
         case ':':
             ERRORF("Option %s requires an argument", optname);
