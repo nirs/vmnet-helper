@@ -18,11 +18,9 @@ running the command.
 Download and extract the vmnet-helper release archive as root:
 
 ```console
-machine="$(uname -m)"
-archive="vmnet-helper-$machine.tar.gz"
-curl -LOf "https://github.com/nirs/vmnet-helper/releases/latest/download/$archive"
-sudo tar xvf "$archive" -C / opt/vmnet-helper
-rm "$archive"
+curl -fsSLO "https://github.com/nirs/vmnet-helper/releases/latest/download/vmnet-helper.tar.gz"
+sudo tar xvf vmnet-helper.tar.gz -C / opt/vmnet-helper
+rm vmnet-helper.tar.gz
 ```
 
 > [!IMPORTANT]
