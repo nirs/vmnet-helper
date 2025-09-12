@@ -42,13 +42,11 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Build vmnet-helper
-        run: |
-          meson setup build
-          meson compile -C build
+        run: ./build.sh build
       - name: Install vmnet-helper
         run: |
-          sudo meson install -C build
-          sudo install -m 0640 sudoers.d/vmnet-helper /etc/sudoers.d/
+          sudo tar xvf build/vmnet-helper.tar.gz -C / opt/vmnet-helper
+          sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/
       - name: Ensure bootpd is enabled
         run: |
           fw=/usr/libexec/ApplicationFirewall/socketfilterfw
