@@ -13,14 +13,8 @@ on:
 jobs:
   build:
     name: Build
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for--private-repositories
-          - macos-13  # amd64
-          - macos-15  # arm64
-    runs-on: ${{ matrix.platform }}
+    # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for--private-repositories
+    runs-on: macos-15 # arm64
     steps:
       - name: Checkout source
         uses: actions/checkout@v4
@@ -30,19 +24,14 @@ jobs:
       - name: Install requirements
         run: brew install meson diffoscope codespell
       - name: Build
-        run: |
-          meson setup build
-          meson compile -C build
-          ./archive.sh build
+        run: ./build.sh build
       - name: Test reproducibility
         run: |
-          meson setup repro
-          meson compile -C repro
-          ./archive.sh repro
-          diffoscope build/vmnet-helper-*.tar.gz repro/vmnet-helper-*.tar.gz
+          ./build.sh repro
+          diffoscope build/vmnet-helper.tar.gz repro/vmnet-helper.tar.gz
       - name: List shared interfaces
         run: build/vmnet-helper --list-shared-interfaces
       - name: Print version
         run: build/vmnet-helper --version
       - name: Check spelling
-        run: meson test -C build codespell
+        run: meson test -C build/arm64 codespell

@@ -12,13 +12,7 @@ on:
 jobs:
   release:
     name: Release artifacts
-    strategy:
-      fail-fast: false
-      matrix:
-        platform:
-          - macos-13
-          - macos-15
-    runs-on: ${{ matrix.platform }}
+    runs-on: macos-15
     permissions:
       contents: write
     steps:
@@ -27,18 +21,13 @@ jobs:
       - name: Install requirements
         run: brew install meson diffoscope
       - name: Build
-        run: |
-          meson setup build
-          meson compile -C build
-          ./archive.sh build
+        run: ./build.sh build
       - name: Test reproducibility
         run: |
-          meson setup repro
-          meson compile -C repro
-          ./archive.sh repro
-          diffoscope build/vmnet-helper-*.tar.gz repro/vmnet-helper-*.tar.gz
+          ./build.sh repro
+          diffoscope build/vmnet-helper.tar.gz repro/vmnet-helper.tar.gz
       - name: Upload
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release upload ${GITHUB_REF_NAME} build/vmnet-helper-*.tar.gz
+          gh release upload ${GITHUB_REF_NAME} build/vmnet-helper.tar.gz
