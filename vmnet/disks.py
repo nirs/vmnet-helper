@@ -8,14 +8,16 @@ import subprocess
 
 from . import store
 
+UBUNTU_RELEASE = "25.04"
+
 IMAGES = {
     "ubuntu": {
         "arm64": {
-            "image": "https://cloud-images.ubuntu.com/releases/25.04/release/ubuntu-25.04-server-cloudimg-arm64.img",
+            "image": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-arm64.img",
         },
         "x86_64": {
-            "image": "https://cloud-images.ubuntu.com/releases/25.04/release/ubuntu-25.04-server-cloudimg-amd64.img",
-            "kernel": "https://cloud-images.ubuntu.com/releases/25.04/release/unpacked/ubuntu-25.04-server-cloudimg-amd64-vmlinuz-generic",
+            "image": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-amd64.img",
+            "kernel": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/unpacked/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-amd64-vmlinuz-generic",
             # Based on the default kernel cmdline when not using kernel and initrd:
             # BOOT_IMAGE=/vmlinuz-6.11.0-14-generic root=LABEL=cloudimg-rootfs ro console=tty1 console=ttyS0
             "kernel_parameters": [
@@ -29,7 +31,7 @@ IMAGES = {
                 # https://github.com/lima-vm/socket_vmnet/pull/56
                 "no_timer_check",
             ],
-            "initrd": "https://cloud-images.ubuntu.com/releases/25.04/release/unpacked/ubuntu-25.04-server-cloudimg-amd64-initrd-generic",
+            "initrd": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/unpacked/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-amd64-initrd-generic",
         },
     },
     "alpine": {
