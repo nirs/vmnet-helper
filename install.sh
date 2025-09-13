@@ -17,15 +17,19 @@ configure_sudo=${VMNET_CONFIGURE_SUDO:-1}
 # Modify to install from your fork.
 user=${VMNET_USER:-nirs}
 
+# GitHub repo to install from (default vmnet-helper)
+# Modify to install from your fork if you renamed it.
+repo=${VMNET_REPO:-vmnet-helper}
+
 # Version to install (default latest)
 # Versions before v0.7.0 not supported.
 version=${VMNET_VERSION:-latest}
 
 # Release download URL.
 if [ "$version" = "latest" ]; then
-    release_url="https://github.com/$user/vmnet-helper/releases/latest/download/vmnet-helper.tar.gz"
+    release_url="https://github.com/$user/$repo/releases/latest/download/vmnet-helper.tar.gz"
 else
-    release_url="https://github.com/$user/vmnet-helper/releases/download/$version/vmnet-helper.tar.gz"
+    release_url="https://github.com/$user/$repo/releases/download/$version/vmnet-helper.tar.gz"
 fi
 
 if [ "$interactive" = "1" ]; then
