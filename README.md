@@ -15,34 +15,20 @@ running the command.
 
 ## Installation
 
-Download and extract the vmnet-helper release archive as root:
+To install the latest version run:
 
 ```console
 curl -fsSL https://github.com/nirs/vmnet-helper/releases/latest/download/install.sh | bash
 ```
 
-> [!IMPORTANT]
-> The vmnet-helper executable and the directory where it is installed
-> must be owned by root and may not be modifiable by unprivileged users.
+You can download the install script for inspection and run it locally.
 
-## Granting permission to run vmnet-helper
+The install script downloads the latest release and installs it at
+`/opt/vment-helper`. It recommends to configure sudo to run vment-helper without
+a password, and install a sudoers rule if you accept.
 
-To allow users in the *staff* group to run the vmnet helper without a
-password, you can install the default sudoers rule:
-
-```console
-sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/
-```
-
-See [sudoers.d](sudoers.d) for info on how to setup a sudoers rules for
-vment-helper.
-
-A simpler but less secure way is to allow any user to use vmnet-helper
-without sudo by setting the setuid bit:
-
-```console
-sudo chmod +s /opt/vmnet-helper/bin/vmnet-helper
-```
+To learn more about vment-helper sudoers configuration please see
+[sudoers.d](sudoers.d).
 
 ## Starting the interface by passing a file descriptor
 
