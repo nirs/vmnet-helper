@@ -302,6 +302,20 @@ Virtual machine IP address:  192.168.105.2
 
 To stop the virtual machine and the vmnet-helper press *Control+C*.
 
+### SSH configuration
+
+To configure ssh for the test vms add this to your `.ssh/config`:
+
+```
+Include ~/.vmnet-helper/vms/*/ssh.config
+```
+
+With this configuration you can login to the example vm with:
+
+```console
+ssh vm
+```
+
 ## Performance
 
 We benchmarked vmnet-helper with 3 VMs types (vfkit, krunkit, qemu) in

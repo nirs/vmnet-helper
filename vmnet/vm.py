@@ -10,6 +10,7 @@ import time
 
 from . import cidata
 from . import disks
+from . import ssh
 from . import store
 
 DRIVERS = ["vfkit", "krunkit", "qemu"]
@@ -48,6 +49,7 @@ class VM:
         self.disk = None
         self.cidata = None
         self.proc = None
+        self.ip_address = None
 
     def start(self):
         """
@@ -99,6 +101,7 @@ class VM:
 
     def stop(self):
         self.delete_ip_address()
+        ssh.delete_config(self)
         if self.client:
             # Terminate the vm and helper by terminating the process group.
             os.killpg(self.proc.pid, signal.SIGTERM)
@@ -126,9 +129,10 @@ class VM:
         for line in tail(self.serial, timeout):
             self.check_running()
             if line.startswith(prefix):
-                ip_address = line[len(prefix) :]
-                print(f"Virtual machine IP address: {ip_address}")
-                self.write_ip_address(ip_address)
+                self.ip_address = line[len(prefix) :]
+                print(f"Virtual machine IP address: {self.ip_address}")
+                self.write_ip_address()
+                ssh.create_config(self)
                 return
         self.check_running()
         print("Timeout looking up ip address")
@@ -139,10 +143,10 @@ class VM:
                 f"Virtual machine terminated (exitcode {self.proc.returncode})"
             )
 
-    def write_ip_address(self, ip_address):
+    def write_ip_address(self):
         path = store.vm_path(self.vm_name, "ip-address")
         with open(path, "w") as f:
-            f.write(ip_address)
+            f.write(self.ip_address)
 
     def delete_ip_address(self):
         path = store.vm_path(self.vm_name, "ip-address")
