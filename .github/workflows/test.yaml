@@ -13,7 +13,7 @@ on:
 jobs:
   build:
     name: Build
-    # https://docs.github.com/en/actions/using-github-hosted-runners/using-github-hosted-runners/about-github-hosted-runners#standard-github-hosted-runners-for--private-repositories
+    # https://docs.github.com/en/actions/reference/runners/github-hosted-runners#standard-github-hosted-runners-for-public-repositories
     runs-on: macos-15 # arm64
     steps:
       - name: Checkout source
