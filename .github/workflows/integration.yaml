@@ -13,8 +13,9 @@ on:
 jobs:
   example:
     name: Example
-    # macos-15 (arm64) does not support nested virtualization yet.
-    runs-on: macos-13
+    # macos-15 (arm64) is using M1 cpus but nested virtualization require M3 or
+    # later.
+    runs-on: macos-15-intel
     strategy:
       fail-fast: false
       matrix:
