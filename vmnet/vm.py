@@ -281,7 +281,7 @@ def qemu_firmware(arch):
     filename = f"edk2-{arch}-code.fd"
     candidates = [
         f"/opt/homebrew/share/qemu/{filename}",  # Apple silicon
-        f"/usr/local/share/qemu/{filename}",  # macos-13 github runner
+        f"/usr/local/share/qemu/{filename}",  # intel (github runner)
     ]
     for path in candidates:
         if os.path.exists(path):
