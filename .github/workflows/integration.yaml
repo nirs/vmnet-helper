@@ -48,12 +48,6 @@ jobs:
         run: |
           sudo tar xvf build/vmnet-helper.tar.gz -C / opt/vmnet-helper
           sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/
-      - name: Ensure bootpd is enabled
-        run: |
-          fw=/usr/libexec/ApplicationFirewall/socketfilterfw
-          sudo $fw --remove /usr/libexec/bootpd
-          sudo $fw --add /usr/libexec/bootpd
-          sudo $fw --unblock /usr/libexec/bootpd
       - name: Ensure public key
         run: |
           ssh-keygen -q -N "" </dev/zero
