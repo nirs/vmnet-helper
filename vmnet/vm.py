@@ -163,6 +163,7 @@ class VM:
             f"--device=virtio-blk,path={self.disk['image']}",
             f"--device=virtio-serial,logFilePath={self.serial}",
             "--log-level=debug",
+            "--device=virtio-rng",
         ]
         if self.fd is not None:
             cmd.append(f"--device=virtio-net,fd={self.fd},mac={self.mac_address}")
@@ -184,6 +185,7 @@ class VM:
             f"--device=virtio-blk,path={self.cidata}",
             f"--device=virtio-serial,logFilePath={self.serial}",
             "--krun-log-level=3",
+            "--device=virtio-rng",
         ]
 
         offloading = "on" if self.enable_offloading else "off"
@@ -247,6 +249,8 @@ class VM:
             f"file:{self.serial}",
             "-nographic",
             "-nodefaults",
+            "-device",
+            "virtio-rng-pci"
         ]
 
         # Optional arguments
