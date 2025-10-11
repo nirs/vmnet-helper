@@ -97,7 +97,7 @@ static void usage(int code)
 static void append_helper_arg(char *arg)
 {
     if (helper_next == sizeof(helper_argv) - 1) {
-        ERROR("Too many arguments");
+        ERROR("[client] too many arguments");
         exit(EXIT_FAILURE);
     }
 
@@ -109,7 +109,7 @@ static void validate_interface_id(const char *arg)
 {
     uuid_t uuid;
     if (uuid_parse(arg, uuid) < 0) {
-        ERRORF("Invalid interface-id: \"%s\"", arg);
+        ERRORF("[client] invalid interface-id: \"%s\"", arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -123,7 +123,7 @@ static void validate_operation_mode(const char *arg)
     } else if (strcmp(arg, "host") == 0) {
         operation_mode = VMNET_HOST_MODE;
     } else {
-        ERRORF("Invalid operation-mode: \"%s\"", arg);
+        ERRORF("[client] invalid operation-mode: \"%s\"", arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -132,7 +132,7 @@ static void validate_address(const char *arg, const char *name)
 {
     struct in_addr addr;
     if (inet_aton(arg, &addr) == 0) {
-        ERRORF("Invalid %s: \"%s\"]", name, arg);
+        ERRORF("[client] invalid %s: \"%s\"]", name, arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -200,22 +200,22 @@ static void parse_options(int argc, char **argv)
             printf("version: %s\ncommit: %s\n", GIT_VERSION, GIT_COMMIT);
             exit(0);
         case ':':
-            ERRORF("Option %s requires an argument", optname);
+            ERRORF("[client] option %s requires an argument", optname);
             exit(EXIT_FAILURE);
         case '?':
         default:
-            ERRORF("Invalid option: %s", optname);
+            ERRORF("[client] invalid option: %s", optname);
             exit(EXIT_FAILURE);
         }
     }
 
     if (operation_mode == VMNET_BRIDGED_MODE && shared_interface == NULL) {
-        ERROR("Missing argument: shared-interface is required for operation-mode=bridged");
+        ERROR("[client] missing argument: shared-interface is required for operation-mode=bridged");
         exit(EXIT_FAILURE);
     }
 
     if (enable_isolation && operation_mode != VMNET_HOST_MODE) {
-        ERROR("Conflicting arguments: enable-isolation requires operation-mode=host");
+        ERROR("[client] conflicting arguments: enable-isolation requires operation-mode=host");
         exit(EXIT_FAILURE);
     }
 
@@ -223,7 +223,7 @@ static void parse_options(int argc, char **argv)
     command_argv = &argv[optind];
 
     if (command_argv[0] == NULL) {
-        ERROR("No command specified");
+        ERROR("[client] no command specified");
         usage(1);
     }
 }
@@ -235,12 +235,12 @@ static void set_socket_buffers(int fd)
 
     const int sndbuf_size = SEND_BUFFER_SIZE;
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size)) < 0) {
-        WARNF("setsockopt: %s", strerror(errno));
+        WARNF("[client] setsockopt: %s", strerror(errno));
     }
 
     const int rcvbuf_size = RECV_BUFFER_SIZE;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) < 0) {
-        WARNF("setsockopt: %s", strerror(errno));
+        WARNF("[client] setsockopt: %s", strerror(errno));
     }
 }
 
@@ -253,7 +253,7 @@ static void create_socketpair(void)
 
     int fds[2];
     if (socketpair(PF_LOCAL, SOCK_DGRAM, 0, fds) < 0) {
-        ERRORF("socketpair: %s", strerror(errno));
+        ERRORF("[client] socketpair: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -263,12 +263,12 @@ static void create_socketpair(void)
     // fds[0]. If the descriptors are already in place dup2 does nothing.
 
     if (dup2(fds[1], COMMAND_FD) < 0) {
-        ERRORF("dup2: %s", strerror(errno));
+        ERRORF("[client] dup2: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     if (dup2(fds[0], HELPER_FD) < 0) {
-        ERRORF("dup2: %s", strerror(errno));
+        ERRORF("[client] dup2: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
