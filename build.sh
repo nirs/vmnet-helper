@@ -55,4 +55,5 @@ rm -f "$archive"
         --files-from /dev/stdin
 
 # Create reproducible file by disabling filename and timestamp.
+rm -f "$archive.gz"
 gzip -9 --no-name $archive
