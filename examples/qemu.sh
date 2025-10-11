@@ -18,7 +18,7 @@ if [ ! -f "$CIDATA_ISO" ]; then
 fi
 
 # Start qemu and vmnet-helper connected via unix datagram sockets.
-/opt/vmnet-helper/bin/vmnet-client \
+/opt/vmnet-helper/bin/vmnet-client -- \
     qemu-system-aarch64 \
     -m 1024 \
     -cpu host \

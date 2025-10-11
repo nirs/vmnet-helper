@@ -139,7 +139,7 @@ with one socket, and the command provided by the user with the other socket.
 Example run with *vfkit*:
 
 ```console
-/opt/vmnet-helper/bin/vmnet-client \
+/opt/vmnet-helper/bin/vmnet-client -- \
     vfkit \
     --bootloader=efi,variable-store=efi-variable-store,create \
     "--device=virtio-blk,path=disk.img" \
