@@ -18,7 +18,7 @@ if [ ! -f "$CIDATA_ISO" ]; then
 fi
 
 # Start vfkit and vmnet-helper connected via unix datagram sockets.
-/opt/vmnet-helper/bin/vmnet-client \
+/opt/vmnet-helper/bin/vmnet-client -- \
     vfkit \
     --memory=1024 \
     --cpus=1 \
