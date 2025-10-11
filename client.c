@@ -290,12 +290,20 @@ int main(int argc, char **argv)
 
     if (helper_pid == 0) {
         // Child: execute vmnet-helper.
+
+        // Don't inherit the command socket.
+        close(COMMAND_FD);
+
         if (execvp(helper_argv[0], helper_argv) < 0) {
             ERRORF("execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
     } else {
         // Parent: execute the command.
+
+        // Don't inherit the helper socket.
+        close(HELPER_FD);
+
         if (execvp(command_argv[0], command_argv) < 0) {
             ERRORF("execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
