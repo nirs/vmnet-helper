@@ -693,7 +693,8 @@ static int read_from_vm(void)
     }
 
     vm.msgs[0].msg_len = len;
-    return 1;
+
+    return len > 0;
 }
 
 static int write_to_host(int count)
