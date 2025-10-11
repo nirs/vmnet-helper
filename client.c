@@ -6,6 +6,7 @@
 #include <errno.h>
 #include <getopt.h>
 #include <limits.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,6 +49,10 @@ static char **command_argv;
 static uint32_t operation_mode;
 static const char *shared_interface;
 static bool enable_isolation;
+
+static pid_t helper_pid = -1;
+static pid_t command_pid = -1;
+static volatile sig_atomic_t terminated;
 
 enum {
     OPT_INTERFACE_ID = CHAR_MAX + 1,
@@ -276,37 +281,166 @@ static void create_socketpair(void)
     set_socket_buffers(COMMAND_FD);
 }
 
-int main(int argc, char **argv)
+static void stop_helper(void)
 {
-    parse_options(argc, argv);
+    DEBUGF("[client] terminating helper (pid %d)", helper_pid);
 
-    create_socketpair();
+    if (kill(helper_pid, SIGTERM) == -1 && errno != ESRCH) {
+        ERRORF("failed to terminate helper: %s", strerror(errno));
+        return;
+    }
 
-    pid_t helper_pid = fork();
+    DEBUG("[client] waiting for helper");
+
+    pid_t result;
+    do {
+        result = waitpid(helper_pid, NULL, 0);
+    } while (result == -1 && errno == EINTR);
+
+    DEBUG("[client] helper terminated");
+}
+
+static void start_helper(void)
+{
+    helper_pid = fork();
     if (helper_pid < 0) {
-        ERRORF("fork: %s", strerror(errno));
+        ERRORF("[client] fork: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     if (helper_pid == 0) {
-        // Child: execute vmnet-helper.
-
         // Don't inherit the command socket.
         close(COMMAND_FD);
 
         if (execvp(helper_argv[0], helper_argv) < 0) {
-            ERRORF("execvp: %s", strerror(errno));
+            ERRORF("[client] execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
-    } else {
-        // Parent: execute the command.
+    }
 
+    if (atexit(stop_helper) < 0) {
+        ERRORF("[client] atexit: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    // Forget the helper socket.
+    close(HELPER_FD);
+
+    DEBUGF("[client] started helper (pid %d)", helper_pid);
+}
+
+static void start_command(void)
+{
+    command_pid = fork();
+    if (command_pid < 0) {
+        ERRORF("[client] fork: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    if (command_pid == 0) {
         // Don't inherit the helper socket.
         close(HELPER_FD);
 
         if (execvp(command_argv[0], command_argv) < 0) {
-            ERRORF("execvp: %s", strerror(errno));
+            ERRORF("[client] execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
+
+    // Forget the command socket.
+    close(COMMAND_FD);
+
+    DEBUGF("[client] started command (pid %d)", command_pid);
+}
+
+static void stop_command(void)
+{
+    DEBUGF("[client] terminating command (pid %d)", command_pid);
+
+    if (kill(command_pid, SIGTERM) == -1 && errno != ESRCH) {
+        ERRORF("failed to terminate command: %s", strerror(errno));
+        return;
+    }
+
+    DEBUG("[client] waiting for command");
+
+    pid_t result;
+    do {
+        result = waitpid(command_pid, NULL, 0);
+    } while (result == -1 && errno == EINTR);
+
+    DEBUG("[client] command terminated");
+}
+
+static int wait_for_command(void)
+{
+    while (1) {
+        pid_t result;
+        int status;
+
+        result = waitpid(command_pid, &status, 0);
+
+        if (result == -1) {
+            if (errno != EINTR) {
+                ERRORF("[client] waitpid: %s", strerror(errno));
+                exit(EXIT_FAILURE);
+            }
+            if (terminated) {
+                stop_command();
+                return 128 + terminated;
+            }
+        }
+
+        if (WIFEXITED(status)) {
+            int exit_status = WEXITSTATUS(status);
+            DEBUGF("[client] command terminated with exit status %d", exit_status);
+            command_pid = -1;
+            return exit_status;
+        }
+
+        if (WIFSIGNALED(status)) {
+            int term_signal = WTERMSIG(status);
+            DEBUGF("[client] command terminated by signal %d", term_signal);
+            command_pid = -1;
+            return 128 + term_signal;
+        }
+    }
+}
+
+static void handle_signal(int signo)
+{
+    terminated = signo;
+}
+
+static void setup_signals(void)
+{
+    struct sigaction sa;
+    sa.sa_handler = handle_signal;
+    sigemptyset(&sa.sa_mask);
+
+    // Disable SA_RESTART so waitpid() can be interrupted.
+    sa.sa_flags = 0;
+
+    if (sigaction(SIGTERM, &sa, NULL) == -1) {
+        ERRORF("[client] signal: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    if (sigaction(SIGINT, &sa, NULL) == -1) {
+        ERRORF("[client] signal: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+}
+
+int main(int argc, char **argv)
+{
+    parse_options(argc, argv);
+
+    setup_signals();
+    create_socketpair();
+
+    start_helper();
+    start_command();
+
+    return wait_for_command();
 }
