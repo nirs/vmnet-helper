@@ -20,8 +20,8 @@
 
 // To keep it simple we always use the same file descriptor for the helper and
 // command. Inheriting additional file descriptors is not supported.
-const int HELPER_FD = 3;
-const int COMMAND_FD = 4;
+static const int HELPER_FD = 3;
+static const int COMMAND_FD = 4;
 
 bool verbose = false;
 
