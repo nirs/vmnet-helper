@@ -59,6 +59,8 @@ jobs:
         run: |
           source .venv/bin/activate
           ./example test --driver ${{ matrix.driver }} --connection ${{ matrix.connection }} --timeout 300 -v &
+          pid=$!
+          echo $pid > test.pid
           vm="$HOME/.vmnet-helper/vms/test"
           if ! timeout 300s bash -c "until test -f $vm/ip-address; do sleep 3; done"; then
               echo >&2 "Timeout waiting for $vm/ip-address"
@@ -103,3 +105,18 @@ jobs:
         run: |
           vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
           iperf3-darwin -c $vm_ip --reverse
+      - name: Terminate example VM
+        run: |
+          pid=$(cat test.pid)
+          echo "Terminating example (pid $pid)"
+          kill $pid
+          echo "waiting for termination"
+          for n in $(seq 20); do
+              if ! kill -s 0 $pid; then
+                  echo "example terminated ($n/20)"
+                  exit 0
+              fi
+              sleep 1
+          done
+          echo "timeout terminating example" >&2
+          exit 1
