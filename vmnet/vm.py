@@ -80,18 +80,12 @@ class VM:
 
     def _start_process(self, cmd):
         pass_fds = []
-        process_group = None
         stdout = None
         logfile = store.vm_path(self.vm_name, f"{self.driver}.log")
         with open(logfile, "w") as log:
             if self.client:
-                # We start the vm via the client as a process group leader. The
-                # helper process started by the client will run in the same
-                # process group. This makes it easy to terminate both processes
-                # when stopping the vm.
                 cmd = self.client_command(cmd)
                 stdout = log
-                process_group = 0
             elif self.fd is not None:
                 pass_fds = [self.fd]
             self.write_command(cmd)
@@ -100,20 +94,13 @@ class VM:
                 stdout=stdout,
                 stderr=log,
                 pass_fds=pass_fds,
-                process_group=process_group,
             )
 
     def stop(self):
         self.delete_ip_address()
         ssh.delete_config(self)
-        if self.client:
-            # Terminate the vm and helper by terminating the process group.
-            os.killpg(self.proc.pid, signal.SIGTERM)
-            os.wait()
-        else:
-            # Terminate the vm process.
-            self.proc.terminate()
-            self.proc.wait()
+        self.proc.terminate()
+        self.proc.wait()
 
     def write_command(self, cmd):
         """
