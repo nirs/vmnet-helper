@@ -87,6 +87,14 @@ jobs:
           $ssh_cmd sudo apt-get update -y
           $ssh_cmd sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iperf3
           $ssh_cmd sudo systemctl start iperf3.service
+          echo "Waiting for iperf3 server ..."
+          $ssh_cmd bash -s << EOF
+            if ! timeout 10s bash -c "until ss -tln | grep -q :5201; do sleep 1; done"; then
+              echo >&2 "Timeout waiting for iperf3 port"
+              exit 1
+            fi
+          EOF
+          echo "iperf3 server is ready"
       - name: Run iperf3 (host to vm)
         run: |
           vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
