@@ -37,6 +37,9 @@ class Helper:
         self.socket = socket
         self.vm_name = args.vm_name
         self.operation_mode = args.operation_mode
+        self.start_address = args.start_address
+        self.end_address = args.end_address
+        self.subnet_mask = args.subnet_mask
         self.shared_interface = args.shared_interface
         self.enable_isolation = args.enable_isolation
         self.enable_offloading = args.enable_offloading
@@ -77,10 +80,20 @@ class Helper:
         cmd.append(f"--interface-id={interface_id}")
         cmd.append(f"--operation-mode={self.operation_mode}")
 
-        if self.operation_mode == "bridged":
+        if self.operation_mode == "shared":
+            if self.start_address:
+                cmd.append(f"--start-address={self.start_address}")
+            if self.end_address:
+                cmd.append(f"--end-address={self.end_address}")
+            if self.subnet_mask:
+                cmd.append(f"--subnet-mask={self.subnet_mask}")
+        elif self.operation_mode == "bridged":
             cmd.append(f"--shared-interface={self.shared_interface}")
-        elif self.operation_mode == "host" and self.enable_isolation:
-            cmd.append("--enable-isolation")
+        elif self.operation_mode == "host":
+            if self.enable_isolation:
+                cmd.append("--enable-isolation")
+        else:
+            raise RuntimeError(f"invalid operation mode {self.operation_mode}")
 
         if self.verbose:
             cmd.append("--verbose")
