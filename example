@@ -44,6 +44,26 @@ def main():
         help=f"vmnet operation mode ({vmnet.OPERATION_MODES[0]})",
     )
     p.add_argument(
+        "--start-address",
+        help=(
+            "The starting IPv4 address (string) to use for the interface. This "
+            "address is used as the gateway address. The subsequent address up "
+            "to and including --end-address_key are placed in the DHCP pool. All "
+            "other addresses are available for static assignment. "
+            "The address must be in the private IP range (RFC 1918)."
+        ),
+    )
+    p.add_argument(
+        "--end-address",
+        help=(
+            "The DHCP IPv4 range end address (string) to use for the interface. "
+            "The address must be in the private IP range (RFC 1918)."
+        ),
+    )
+    p.add_argument(
+        "--subnet-mask", help="The IPv4 subnet mask (string) to use on the interface."
+    )
+    p.add_argument(
         "--shared-interface",
         choices=shared_interfaces,
         default=shared_interfaces[0],
