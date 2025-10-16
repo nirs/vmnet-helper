@@ -31,7 +31,6 @@ RECV_BUFFER_SIZE = 4 * 1024 * 1024
 
 
 class Helper:
-
     def __init__(self, args, fd=None, socket=None):
         # Configuration
         self.fd = fd
@@ -59,7 +58,7 @@ class Helper:
             cmd = [
                 "sudo",
                 "--non-interactive",
-                f"--close-from={self.fd+1}",
+                f"--close-from={self.fd + 1}",
                 HELPER,
                 f"--fd={self.fd}",
             ]
