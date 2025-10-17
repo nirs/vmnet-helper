@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import hashlib
+import logging
 import os
 import platform
 import subprocess
@@ -55,19 +56,19 @@ def create_disk(vm):
     disk = {"image": store.vm_path(vm.vm_name, "disk.img")}
     if not os.path.isfile(disk["image"]):
         image = create_image(image_info["image"], format="raw", size="20g")
-        print(f"Creating image '{disk['image']}'")
+        logging.info("Creating image '%s'", disk["image"])
         clone(image, disk["image"])
     if "kernel" in image_info:
         disk["kernel"] = store.vm_path(vm.vm_name, "kernel")
         if not os.path.isfile(disk["kernel"]):
             kernel = create_image(image_info["kernel"])
-            print(f"Creating kernel '{disk['kernel']}'")
+            logging.info("Creating kernel '%s'", disk["kernel"])
             clone(kernel, disk["kernel"])
     if "initrd" in image_info:
         disk["initrd"] = store.vm_path(vm.vm_name, "initrd")
         if not os.path.isfile(disk["initrd"]):
             initrd = create_image(image_info["initrd"])
-            print(f"Creating initrd '{disk['initrd']}'")
+            logging.info("Creating initrd '%s'", disk["initrd"])
             clone(initrd, disk["initrd"])
     if "kernel_parameters" in image_info:
         disk["kernel_parameters"] = image_info["kernel_parameters"]
@@ -98,7 +99,7 @@ def create_image(url, format=None, size=None):
 
 
 def download_image(image_url, path):
-    print(f"Downloading image '{image_url}'")
+    logging.info("Downloading image '%s'", image_url)
     cmd = [
         "curl",
         "--fail",
@@ -112,13 +113,13 @@ def download_image(image_url, path):
 
 
 def convert_image(src, target, format):
-    print(f"Converting image to '{format}' format '{target}'")
+    logging.info("Converting image to '%s' format '%s'", format, target)
     cmd = ["qemu-img", "convert", "-f", "qcow2", "-O", format, src, target]
     subprocess.run(cmd, check=True)
 
 
 def resize_image(path, size):
-    print(f"Resizing image to {size}")
+    logging.info("Resizing image to %s", size)
     cmd = ["qemu-img", "resize", "-q", "-f", "raw", path, size]
     subprocess.run(cmd, check=True)
 

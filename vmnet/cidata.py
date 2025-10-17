@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import glob
+import logging
 import os
 import platform
 import subprocess
@@ -45,7 +46,7 @@ def create_iso(vm):
         "meta-data",
         "network-config",
     ]
-    print(f"Creating cloud-init iso '{cidata}'")
+    logging.info("Creating cloud-init iso '%s'", cidata)
     subprocess.run(
         cmd,
         check=True,

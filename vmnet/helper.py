@@ -3,6 +3,7 @@
 
 import hashlib
 import json
+import logging
 import os
 import socket
 import subprocess
@@ -54,8 +55,10 @@ class Helper:
         Starts vmnet-helper with fd or socket.
         """
         interface_id = interface_id_from(self.vm_name)
-        print(
-            f"Starting vmnet-helper for '{self.vm_name}' with interface id '{interface_id}'"
+        logging.info(
+            "Starting vmnet-helper for '%s' with interface id '%s'",
+            self.vm_name,
+            interface_id,
         )
         if self.fd is not None:
             cmd = [
