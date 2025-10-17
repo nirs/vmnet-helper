@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
 import os
 import platform
 import selectors
@@ -68,8 +69,11 @@ class VM:
             cmd = self.qemu_command()
         else:
             raise ValueError(f"Invalid driver '{self.driver}'")
-        print(
-            f"Starting '{self.driver}' virtual machine '{self.vm_name}' with mac address '{self.mac_address}'"
+        logging.info(
+            "Starting '%s' virtual machine '%s' with mac address '%s'",
+            self.driver,
+            self.vm_name,
+            self.mac_address,
         )
         store.silent_remove(self.serial)
         self._start_process(cmd)
@@ -130,12 +134,12 @@ class VM:
             self.check_running()
             if line.startswith(prefix):
                 self.ip_address = line[len(prefix) :]
-                print(f"Virtual machine IP address: {self.ip_address}")
+                logging.info("Virtual machine IP address: %s", self.ip_address)
                 self.write_ip_address()
                 ssh.create_config(self)
                 return
         self.check_running()
-        print("Timeout looking up ip address")
+        logging.warning("Timeout looking up ip address")
 
     def check_running(self):
         if self.proc.poll() is not None:
@@ -250,7 +254,7 @@ class VM:
             "-nographic",
             "-nodefaults",
             "-device",
-            "virtio-rng-pci"
+            "virtio-rng-pci",
         ]
 
         # Optional arguments
@@ -277,6 +281,7 @@ class VM:
         cmd.append("--")
         cmd.extend(vm_command)
         return cmd
+
 
 def qemu_firmware(arch):
     """
