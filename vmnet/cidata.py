@@ -69,8 +69,7 @@ def create_user_data(vm):
         "ssh_authorized_keys": public_keys(),
         "runcmd": [
             "ip_address=$(ip -4 -j addr show dev vmnet0 | jq -r '.[0].addr_info[0].local')",
-            f"echo > {serial_console}",
-            f"echo {vm.vm_name} address: $ip_address > {serial_console}",
+            f'printf "\n{vm.vm_name} address: %s\n" "$ip_address" > "{serial_console}"',
         ],
     }
 
