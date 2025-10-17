@@ -25,41 +25,46 @@ repo=${VMNET_REPO:-vmnet-helper}
 # Versions before v0.7.0 not supported.
 version=${VMNET_VERSION:-latest}
 
-# Release download URL.
-if [ "$version" = "latest" ]; then
-    release_url="https://github.com/$user/$repo/releases/latest/download/vmnet-helper.tar.gz"
-else
-    release_url="https://github.com/$user/$repo/releases/download/$version/vmnet-helper.tar.gz"
-fi
+run() {
+    # Release download URL.
+    if [ "$version" = "latest" ]; then
+        release_url="https://github.com/$user/$repo/releases/latest/download/vmnet-helper.tar.gz"
+    else
+        release_url="https://github.com/$user/$repo/releases/download/$version/vmnet-helper.tar.gz"
+    fi
 
-if [ "$interactive" = "1" ]; then
-    echo "Installation requires your password to install vmnet-helper as root"
-    sudo true
+    if [ "$interactive" = "1" ]; then
+        echo "Installation requires your password to install vmnet-helper as root"
+        sudo true
 
-    read -p "Configure sudo to run vmnet-helper without a password? (Y/n): " reply </dev/tty
-    case "$reply" in
-        Y|y|"")
-            configure_sudo=1
-            ;;
-        *)
-            configure_sudo=0
-            echo "Please check /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/README.md"
-            echo "if you want to configure sudo later."
-            ;;
-    esac
-fi
+        read -p "Configure sudo to run vmnet-helper without a password? (Y/n): " reply </dev/tty
+        case "$reply" in
+            Y|y|"")
+                configure_sudo=1
+                ;;
+            *)
+                configure_sudo=0
+                echo "Please check /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/README.md"
+                echo "if you want to configure sudo later."
+                ;;
+        esac
+    fi
 
-echo
-echo "Installing vmnet-helper at /opt/vmnet-helper"
-# IMPORTANT: The vmnet-helper executable and the directory where it is installed
-# must be owned by root and may not be modifiable by unprivileged users.
-curl --fail --silent --show-error --location "$release_url" \
-    | sudo tar --extract --verbose --file - --directory / opt/vmnet-helper
+    echo
+    echo "Installing vmnet-helper at /opt/vmnet-helper"
 
-if [ $configure_sudo -eq 1 ]; then
-    echo "Installing /etc/sudoers.d/vmnet-helper"
-    sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/
-fi
+    # IMPORTANT: The vmnet-helper executable and the directory where it is installed
+    # must be owned by root and may not be modifiable by unprivileged users.
+    curl --fail --silent --show-error --location "$release_url" \
+        | sudo tar --extract --verbose --file - --directory / opt/vmnet-helper
 
-echo
-echo "✅ vmnet-helper was installed successfully!"
+    if [ $configure_sudo -eq 1 ]; then
+        echo "Installing /etc/sudoers.d/vmnet-helper"
+        sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/
+    fi
+
+    echo
+    echo "✅ vmnet-helper was installed successfully!"
+}
+
+run
