@@ -277,6 +277,10 @@ static void start_host_interface(void)
 
 static void drop_privileges(void)
 {
+    if (geteuid() != 0) {
+        return;
+    }
+
     if (options.gid != 0) {
         if (setgid(options.gid) < 0) {
             ERRORF("[main] unable to change gid to %d: %s", options.gid, strerror(errno));
@@ -289,7 +293,9 @@ static void drop_privileges(void)
             exit(EXIT_FAILURE);
         }
     }
-    INFOF("[main] running as uid: %d gid: %d", geteuid(), getegid());
+    if (options.gid != 0 || options.uid != 0) {
+        INFOF("[main] dropped privileges to uid: %d gid: %d", geteuid(), getegid());
+    }
 }
 
 static void remove_socket_lockfile(void)
@@ -844,6 +850,8 @@ static void check_os_version(const char *prog)
 
     INFOF("[main] running %s %s on macOS %d.%d.%d",
           prog, GIT_VERSION, v.major, v.minor, v.point);
+
+    INFOF("[main] running as uid: %d gid: %d", geteuid(), getegid());
 
     if (v.major > 13) {
         INFO("[main] enabling bulk forwarding");
