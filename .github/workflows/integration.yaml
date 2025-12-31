@@ -5,6 +5,7 @@
 name: Integration
 
 on:
+  workflow_call:
   pull_request:
   push:
     branches:
