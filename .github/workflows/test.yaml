@@ -9,6 +9,8 @@ on:
   push:
     branches:
     - main
+  schedule:
+    - cron: '0 3 * * 0' # runs job at 3AM every sunday
 
 permissions:
   contents: read
