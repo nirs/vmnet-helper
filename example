@@ -40,6 +40,12 @@ def main():
     # Helper arguments
 
     p.add_argument(
+        "--unprivileged",
+        dest="privileged",
+        action="store_false",
+        help="Run vmnet-helper as unprivileged user (macOS 26 only)",
+    )
+    p.add_argument(
         "--operation-mode",
         choices=vmnet.OPERATION_MODES,
         default=vmnet.OPERATION_MODES[0],

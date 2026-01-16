@@ -45,7 +45,7 @@ class Helper:
         self.enable_isolation = args.enable_isolation
         self.enable_offloading = args.enable_offloading
         self.verbose = args.verbose
-        self.privileged = True
+        self.privileged = args.privileged
 
         # Running state.
         self.proc = None
