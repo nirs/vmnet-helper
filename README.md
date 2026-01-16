@@ -24,10 +24,10 @@ curl -fsSL https://github.com/nirs/vmnet-helper/releases/latest/download/install
 You can download the install script for inspection and run it locally.
 
 The install script downloads the latest release and installs it at
-`/opt/vment-helper`. It recommends to configure sudo to run vment-helper without
+`/opt/vmnet-helper`. It recommends to configure sudo to run vmnet-helper without
 a password, and install a sudoers rule if you accept.
 
-To learn more about vment-helper sudoers configuration please see
+To learn more about vmnet-helper sudoers configuration please see
 [sudoers.d](sudoers.d).
 
 ## Starting the interface by passing a file descriptor
@@ -120,7 +120,7 @@ When your client sends the first packet, the helper will start serving:
 
 ```console
 INFO  [main] serving client "/tmp/example/vm/vfkit-1262-6e38.sock"
-INFO  [main] host formwarding started
+INFO  [main] host forwarding started
 INFO  [main] vm forwarding started
 INFO  [main] waiting for termination
 ```

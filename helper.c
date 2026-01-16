@@ -301,7 +301,7 @@ static void remove_socket_lockfile(void)
     DEBUGF("[main] remove lockfile \"%s\"", socket_lockfile);
 
     if (remove(socket_lockfile) < 0 && errno != ENOENT) {
-        WARNF("[main] remove(\"%s\": %s", socket_lockfile, strerror(errno));
+        WARNF("[main] remove(\"%s\"): %s", socket_lockfile, strerror(errno));
     }
 
     free(socket_lockfile);
@@ -659,7 +659,7 @@ static void start_forwarding_from_host(void)
         exit(EXIT_FAILURE);
     }
 
-    INFO("[main] started host formwarding");
+    INFO("[main] started host forwarding");
 }
 
 static int read_from_vm(void)

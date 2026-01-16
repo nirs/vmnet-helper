@@ -27,7 +27,7 @@ static const int COMMAND_FD = 4;
 bool verbose = false;
 
 // vmnet-helper arguments. Parsed arguments are appended to this list.
-// We depend on sudoers configuration to allow vment-helper to run
+// We depend on sudoers configuration to allow vmnet-helper to run
 // without a password and enable the closefrom_override option for this
 // user. See sudoers.d/README.md for more info.
 static char *helper_argv[32] = {
