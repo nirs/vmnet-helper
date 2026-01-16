@@ -27,6 +27,9 @@ struct client_options {
     char *subnet_mask;
     char *shared_interface;
     bool enable_isolation;
+
+    // Client options.
+    bool unprivileged;
 };
 
 // To keep it simple we always use the same file descriptor for the helper and
@@ -58,6 +61,7 @@ enum {
     OPT_END_ADDRESS,
     OPT_SUBNET_MASK,
     OPT_ENABLE_ISOLATION,
+    OPT_UNPRIVILEGED,
     OPT_VERSION
 };
 
@@ -74,6 +78,7 @@ static struct option long_options[] = {
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
     {"verbose",                 no_argument,        0,  'v'},
     // Client options.
+    {"unprivileged",            no_argument,        0,  OPT_UNPRIVILEGED},
     {"version",                 no_argument,        0,  OPT_VERSION},
     {"help",                    no_argument,        0,  'h'},
     {0,                         0,                  0,  0},
@@ -88,8 +93,11 @@ static void usage(int code)
 "    vmnet-client [--interface-id UUID] [--operation-mode shared|bridged|host]\n"
 "                 [--start-address ADDR] [--end-address ADDR]\n"
 "                 [--subnet-mask MASK] [--shared-interface NAME]\n"
-"                 [--enable-isolation] [-v|--verbose] [--version] [-h|--help]\n"
+"                 [--enable-isolation] [--unprivileged]\n"
+"                 [-v|--verbose] [--version] [-h|--help]\n"
 "                 -- command ...\n"
+"\n"
+"Note: --unprivileged requires macOS 26 or later.\n"
 "\n";
     fputs(msg, stderr);
     exit(code);
@@ -108,13 +116,15 @@ static void append_helper_arg(char *arg)
 
 static void build_helper_argv(void)
 {
-    // We depend on sudoers configuration to allow vmnet-helper to run without
-    // a password and enable the closefrom_override option for this user. See
-    // sudoers.d/README.md for more info.
-    append_helper_arg("sudo");
-    append_helper_arg("--non-interactive");
-    // Allow the helper to inherit file descriptor 3.
-    append_helper_arg("--close-from=4");
+    if (!options.unprivileged) {
+        // We depend on sudoers configuration to allow vmnet-helper to run
+        // without a password and enable the closefrom_override option for this
+        // user. See sudoers.d/README.md for more info.
+        append_helper_arg("sudo");
+        append_helper_arg("--non-interactive");
+        // Allow the helper to inherit file descriptor 3.
+        append_helper_arg("--close-from=4");
+    }
 
     append_helper_arg(PREFIX "/bin/vmnet-helper");
     append_helper_arg("--fd=3");
@@ -248,6 +258,9 @@ static void parse_options(int argc, char **argv)
             break;
         case 'v':
             verbose = true;
+            break;
+        case OPT_UNPRIVILEGED:
+            options.unprivileged = true;
             break;
         case OPT_VERSION:
             printf("version: %s\ncommit: %s\n", GIT_VERSION, GIT_COMMIT);
