@@ -33,7 +33,7 @@ the command.
 
 ## Per-user rule
 
-If you want to allow a user not in the staff group to use vment-helper,
+If you want to allow a user not in the staff group to use vmnet-helper,
 create a rule for the specific user. This example allows user `alice` to
 use vmnet-helper without a password:
 
@@ -43,11 +43,11 @@ alice  ALL = (root) NOPASSWD: /opt/vmnet-helper/bin/vmnet-helper
 Defaults:alice closefrom_override
 ```
 
-## Adding new group for vment-helper
+## Adding new group for vmnet-helper
 
-You can create a new "vment" group and add users to the group to allow
-them to use vment-helper without a password. This example creates the
-group "vment" and add a sudoers rule for the group:
+You can create a new "vmnet" group and add users to the group to allow
+them to use vmnet-helper without a password. This example creates the
+group "vmnet" and add a sudoers rule for the group:
 
 Find an available group GroupID number:
 
@@ -62,7 +62,7 @@ Create the new group:
 
 ```console
 sudo dscl . create /Groups/vmnet
-sudo dscl . create /Groups/vmnet RealName "vment helper"
+sudo dscl . create /Groups/vmnet RealName "vmnet helper"
 sudo dscl . create /Groups/vmnet gid 702
 ```
 
@@ -72,7 +72,7 @@ Add the user "alice" to the group:
 sudo dscl . create /Groups/vmnet GroupMembership alice
 ```
 
-Add a vment-helper sudoers rule for the group:
+Add a vmnet-helper sudoers rule for the group:
 
 ```console
 $ cat /etc/sudoers.d/vmnet-helper

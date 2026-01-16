@@ -146,7 +146,7 @@ static void parse_address(const char *arg, const char *name, const char **p)
 {
     struct in_addr addr;
     if (inet_aton(arg, &addr) == 0) {
-        ERRORF("Invalid %s: \"%s\"]", name, arg);
+        ERRORF("Invalid %s: \"%s\"", name, arg);
         exit(EXIT_FAILURE);
     }
     *p = arg;
