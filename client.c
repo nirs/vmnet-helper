@@ -13,7 +13,6 @@
 #include <sys/socket.h>
 #include <unistd.h>
 #include <uuid/uuid.h>
-#include <vmnet/vmnet.h>
 
 #include "config.h"
 #include "log.h"
@@ -46,7 +45,7 @@ static int helper_next = 5;
 static char **command_argv;
 
 // We need to remember these for validation.
-static uint32_t operation_mode;
+static const char *operation_mode;
 static const char *shared_interface;
 static bool enable_isolation;
 
@@ -110,6 +109,21 @@ static void append_helper_arg(char *arg)
     helper_next++;
 }
 
+static bool is_shared(const char *mode)
+{
+    return mode && strcmp(mode, "shared") == 0;
+}
+
+static bool is_host(const char *mode)
+{
+    return mode && strcmp(mode, "host") == 0;
+}
+
+static bool is_bridged(const char *mode)
+{
+    return mode && strcmp(mode, "bridged") == 0;
+}
+
 static void validate_interface_id(const char *arg)
 {
     uuid_t uuid;
@@ -121,13 +135,7 @@ static void validate_interface_id(const char *arg)
 
 static void validate_operation_mode(const char *arg)
 {
-    if (strcmp(arg, "shared") == 0) {
-        operation_mode = VMNET_SHARED_MODE;
-    } else if (strcmp(arg, "bridged") == 0) {
-        operation_mode = VMNET_BRIDGED_MODE;
-    } else if (strcmp(arg, "host") == 0) {
-        operation_mode = VMNET_HOST_MODE;
-    } else {
+    if (!is_shared(arg) && !is_host(arg) && !is_bridged(arg)) {
         ERRORF("[client] invalid operation-mode: \"%s\"", arg);
         exit(EXIT_FAILURE);
     }
@@ -170,6 +178,7 @@ static void parse_options(int argc, char **argv)
             break;
         case OPT_OPERATION_MODE:
             validate_operation_mode(optarg);
+            operation_mode = optarg;
             append_helper_arg("--operation-mode");
             append_helper_arg(optarg);
             break;
@@ -214,12 +223,12 @@ static void parse_options(int argc, char **argv)
         }
     }
 
-    if (operation_mode == VMNET_BRIDGED_MODE && shared_interface == NULL) {
+    if (is_bridged(operation_mode) && shared_interface == NULL) {
         ERROR("[client] missing argument: shared-interface is required for operation-mode=bridged");
         exit(EXIT_FAILURE);
     }
 
-    if (enable_isolation && operation_mode != VMNET_HOST_MODE) {
+    if (enable_isolation && !is_host(operation_mode)) {
         ERROR("[client] conflicting arguments: enable-isolation requires operation-mode=host");
         exit(EXIT_FAILURE);
     }
