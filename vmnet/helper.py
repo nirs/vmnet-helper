@@ -120,11 +120,11 @@ class Helper:
         else:
             raise RuntimeError(f"invalid operation mode {self.operation_mode}")
 
-        if self.verbose:
-            cmd.append("--verbose")
-
         if self.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
+
+        if self.verbose:
+            cmd.append("--verbose")
 
         return cmd
 
