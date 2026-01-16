@@ -18,6 +18,17 @@
 #include "log.h"
 #include "version.h"
 
+struct client_options {
+    // Helper options passed to the helper.
+    char *interface_id;
+    char *operation_mode;
+    char *start_address;
+    char *end_address;
+    char *subnet_mask;
+    char *shared_interface;
+    bool enable_isolation;
+};
+
 // To keep it simple we always use the same file descriptor for the helper and
 // command. Inheriting additional file descriptors is not supported.
 static const int HELPER_FD = 3;
@@ -25,29 +36,15 @@ static const int COMMAND_FD = 4;
 
 bool verbose = false;
 
-// vmnet-helper arguments. Parsed arguments are appended to this list.
-// We depend on sudoers configuration to allow vmnet-helper to run
-// without a password and enable the closefrom_override option for this
-// user. See sudoers.d/README.md for more info.
-static char *helper_argv[32] = {
-    "sudo",
-    "--non-interactive",
-    // Allow the helper to inherit file descriptor 3.
-    "--close-from=4",
-    PREFIX "/bin/vmnet-helper",
-    "--fd=3",
-    NULL,
-};
+// Client options parsed from the command line.
+static struct client_options options;
 
-static int helper_next = 5;
+// vmnet-helper arguments. Built by build_helper_argv().
+static char *helper_argv[32];
+static int helper_next = 0;
 
 // Pointer to first command argument in argv.
 static char **command_argv;
-
-// We need to remember these for validation.
-static const char *operation_mode;
-static const char *shared_interface;
-static bool enable_isolation;
 
 static pid_t helper_pid = -1;
 static pid_t command_pid = -1;
@@ -109,6 +106,58 @@ static void append_helper_arg(char *arg)
     helper_next++;
 }
 
+static void build_helper_argv(void)
+{
+    // We depend on sudoers configuration to allow vmnet-helper to run without
+    // a password and enable the closefrom_override option for this user. See
+    // sudoers.d/README.md for more info.
+    append_helper_arg("sudo");
+    append_helper_arg("--non-interactive");
+    // Allow the helper to inherit file descriptor 3.
+    append_helper_arg("--close-from=4");
+
+    append_helper_arg(PREFIX "/bin/vmnet-helper");
+    append_helper_arg("--fd=3");
+
+    if (options.interface_id) {
+        append_helper_arg("--interface-id");
+        append_helper_arg(options.interface_id);
+    }
+
+    if (options.operation_mode) {
+        append_helper_arg("--operation-mode");
+        append_helper_arg(options.operation_mode);
+    }
+
+    if (options.start_address) {
+        append_helper_arg("--start-address");
+        append_helper_arg(options.start_address);
+    }
+
+    if (options.end_address) {
+        append_helper_arg("--end-address");
+        append_helper_arg(options.end_address);
+    }
+
+    if (options.subnet_mask) {
+        append_helper_arg("--subnet-mask");
+        append_helper_arg(options.subnet_mask);
+    }
+
+    if (options.shared_interface) {
+        append_helper_arg("--shared-interface");
+        append_helper_arg(options.shared_interface);
+    }
+
+    if (options.enable_isolation) {
+        append_helper_arg("--enable-isolation");
+    }
+
+    if (verbose) {
+        append_helper_arg("--verbose");
+    }
+}
+
 static bool is_shared(const char *mode)
 {
     return mode && strcmp(mode, "shared") == 0;
@@ -150,8 +199,8 @@ static void validate_address(const char *arg, const char *name)
     }
 }
 
-// Parse and validate helper arguments in argv and append to helper_argv, and
-// initialize command_argv to point to first command argument.
+// Parse and validate helper arguments in argv and initialize command_argv to
+// point to first command argument.
 static void parse_options(int argc, char **argv)
 {
     const char *optname;
@@ -173,42 +222,32 @@ static void parse_options(int argc, char **argv)
             break;
         case OPT_INTERFACE_ID:
             validate_interface_id(optarg);
-            append_helper_arg("--interface-id");
-            append_helper_arg(optarg);
+            options.interface_id = optarg;
             break;
         case OPT_OPERATION_MODE:
             validate_operation_mode(optarg);
-            operation_mode = optarg;
-            append_helper_arg("--operation-mode");
-            append_helper_arg(optarg);
+            options.operation_mode = optarg;
             break;
         case OPT_SHARED_INTERFACE:
-            shared_interface = optarg;
-            append_helper_arg("--shared-interface");
-            append_helper_arg(optarg);
+            options.shared_interface = optarg;
             break;
         case OPT_START_ADDRESS:
             validate_address(optarg, optname);
-            append_helper_arg("--start-address");
-            append_helper_arg(optarg);
+            options.start_address = optarg;
             break;
         case OPT_END_ADDRESS:
             validate_address(optarg, optname);
-            append_helper_arg("--end-address");
-            append_helper_arg(optarg);
+            options.end_address = optarg;
             break;
         case OPT_SUBNET_MASK:
             validate_address(optarg, optname);
-            append_helper_arg("--subnet-mask");
-            append_helper_arg(optarg);
+            options.subnet_mask = optarg;
             break;
         case OPT_ENABLE_ISOLATION:
-            enable_isolation = true;
-            append_helper_arg("--enable-isolation");
+            options.enable_isolation = true;
             break;
         case 'v':
             verbose = true;
-            append_helper_arg("--verbose");
             break;
         case OPT_VERSION:
             printf("version: %s\ncommit: %s\n", GIT_VERSION, GIT_COMMIT);
@@ -223,12 +262,12 @@ static void parse_options(int argc, char **argv)
         }
     }
 
-    if (is_bridged(operation_mode) && shared_interface == NULL) {
+    if (is_bridged(options.operation_mode) && options.shared_interface == NULL) {
         ERROR("[client] missing argument: shared-interface is required for operation-mode=bridged");
         exit(EXIT_FAILURE);
     }
 
-    if (enable_isolation && !is_host(operation_mode)) {
+    if (options.enable_isolation && !is_host(options.operation_mode)) {
         ERROR("[client] conflicting arguments: enable-isolation requires operation-mode=host");
         exit(EXIT_FAILURE);
     }
@@ -440,6 +479,7 @@ static void setup_signals(void)
 int main(int argc, char **argv)
 {
     parse_options(argc, argv);
+    build_helper_argv();
 
     setup_signals();
     become_process_group_leader();
