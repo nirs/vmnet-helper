@@ -16,6 +16,10 @@ for prog in vmnet-helper vmnet-client; do
     lipo -create "$build_dir/x86_64/$prog" "$build_dir/arm64/$prog" -output "$build_dir/$prog"
 done
 
+# Ad-hoc signing to allow creation of vmnet interfaces without root.
+codesign --force --verbose --entitlements entitlements.plist --sign - "$build_dir/vmnet-helper"
+codesign --display --entitlements - "$build_dir/vmnet-helper"
+
 root_dir="$build_dir/root"
 prefix="/opt/vmnet-helper"
 
