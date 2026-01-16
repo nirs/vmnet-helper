@@ -9,9 +9,11 @@ set -e -u -o pipefail
 # Set to 0 to disable interaction.
 interactive=${VMNET_INTERACTIVE:-1}
 
-# Configur sudo to allow running vmnet-helper without a password (default 1)
-# Set to 0 to skip sudoers configuration.
-configure_sudo=${VMNET_CONFIGURE_SUDO:-1}
+# Configure sudo to allow running vmnet-helper without a password.
+# - Not set: auto mode (enabled on macOS 15 and earlier, disabled on macOS 26+)
+# - Set to 1: enable (in interactive mode, asks for confirmation)
+# - Set to 0: disable
+configure_sudo=${VMNET_CONFIGURE_SUDO:-}
 
 # GitHub user to install from (default nirs)
 # Modify to install from your fork.
@@ -25,6 +27,17 @@ repo=${VMNET_REPO:-vmnet-helper}
 # Versions before v0.7.0 not supported.
 version=${VMNET_VERSION:-latest}
 
+recommend_sudo() {
+    # On macOS 26+, vmnet-helper can run without root privileges.
+    local major_version
+    major_version=$(sw_vers -productVersion | cut -d. -f1)
+    if [ "$major_version" -ge 26 ]; then
+        echo 0
+    else
+        echo 1
+    fi
+}
+
 run() {
     # Release download URL.
     if [ "$version" = "latest" ]; then
@@ -33,21 +46,27 @@ run() {
         release_url="https://github.com/$user/$repo/releases/download/$version/vmnet-helper.tar.gz"
     fi
 
+    # Auto mode: configure sudo on macOS 15 and earlier, skip on macOS 26+.
+    if [ -z "$configure_sudo" ]; then
+        configure_sudo=$(recommend_sudo)
+    fi
+
     if [ "$interactive" = "1" ]; then
         echo "Installation requires your password to install vmnet-helper as root"
         sudo true
 
-        read -p "Configure sudo to run vmnet-helper without a password? (Y/n): " reply </dev/tty
-        case "$reply" in
-            Y|y|"")
-                configure_sudo=1
-                ;;
-            *)
-                configure_sudo=0
-                echo "Please check /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/README.md"
-                echo "if you want to configure sudo later."
-                ;;
-        esac
+        if [ "$configure_sudo" = "1" ]; then
+            read -p "Configure sudo to run vmnet-helper without a password? (Y/n): " reply </dev/tty
+            case "$reply" in
+                Y|y|"")
+                    ;;
+                *)
+                    configure_sudo=0
+                    echo "Please check /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/README.md"
+                    echo "if you want to configure sudo later."
+                    ;;
+            esac
+        fi
     fi
 
     echo
