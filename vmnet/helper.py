@@ -45,6 +45,7 @@ class Helper:
         self.enable_isolation = args.enable_isolation
         self.enable_offloading = args.enable_offloading
         self.verbose = args.verbose
+        self.privileged = True
 
         # Running state.
         self.proc = None
@@ -84,21 +85,19 @@ class Helper:
             raise
 
     def _build_command(self, interface_id):
+        if self.privileged:
+            cmd = ["sudo", "--non-interactive"]
+            if self.fd is not None:
+                cmd.append(f"--close-from={self.fd + 1}")
+        else:
+            cmd = []
+
+        cmd.append(HELPER)
+
         if self.fd is not None:
-            cmd = [
-                "sudo",
-                "--non-interactive",
-                f"--close-from={self.fd + 1}",
-                HELPER,
-                f"--fd={self.fd}",
-            ]
+            cmd.append(f"--fd={self.fd}")
         elif self.socket is not None:
-            cmd = [
-                "sudo",
-                "--non-interactive",
-                HELPER,
-                f"--socket={self.socket}",
-            ]
+            cmd.append(f"--socket={self.socket}")
         else:
             raise ValueError("fd or socket required")
 
