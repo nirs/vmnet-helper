@@ -265,6 +265,8 @@ class VM:
             cmd.append("--enable-isolation")
         if self.args.verbose:
             cmd.append("--verbose")
+        if not self.args.privileged:
+            cmd.append("--unprivileged")
         cmd.append("--")
         cmd.extend(vm_command)
         return cmd
