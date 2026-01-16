@@ -51,9 +51,7 @@ jobs:
       - name: Build vmnet-helper
         run: ./build.sh build
       - name: Install vmnet-helper
-        run: |
-          sudo tar xvf build/vmnet-helper.tar.gz -C / opt/vmnet-helper
-          sudo install -m 0640 /opt/vmnet-helper/share/doc/vmnet-helper/sudoers.d/vmnet-helper /etc/sudoers.d/
+        run: VMNET_INTERACTIVE=0 ./install.sh build/vmnet-helper.tar.gz
       - name: Ensure public key
         run: |
           ssh-keygen -q -N "" </dev/zero
