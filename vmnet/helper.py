@@ -60,6 +60,30 @@ class Helper:
             self.vm_name,
             interface_id,
         )
+        cmd = self._build_command(interface_id)
+
+        vm_home = store.vm_path(self.vm_name)
+        os.makedirs(vm_home, exist_ok=True)
+        logfile = os.path.join(vm_home, "vmnet-helper.log")
+
+        with open(logfile, "w") as log:
+            self.proc = subprocess.Popen(
+                cmd,
+                stdout=subprocess.PIPE,
+                stderr=log,
+                pass_fds=[self.fd] if self.fd is not None else [],
+            )
+        try:
+            reply = self.proc.stdout.readline()  # type: ignore[attr-defined]
+            if not reply:
+                raise RuntimeError("No response from helper")
+
+            self.interface = json.loads(reply)
+        except:
+            self.stop()
+            raise
+
+    def _build_command(self, interface_id):
         if self.fd is not None:
             cmd = [
                 "sudo",
@@ -68,7 +92,6 @@ class Helper:
                 HELPER,
                 f"--fd={self.fd}",
             ]
-            pass_fds = [self.fd]
         elif self.socket is not None:
             cmd = [
                 "sudo",
@@ -76,7 +99,6 @@ class Helper:
                 HELPER,
                 f"--socket={self.socket}",
             ]
-            pass_fds = []
         else:
             raise ValueError("fd or socket required")
 
@@ -104,26 +126,7 @@ class Helper:
         if self.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
 
-        vm_home = store.vm_path(self.vm_name)
-        os.makedirs(vm_home, exist_ok=True)
-        logfile = os.path.join(vm_home, "vmnet-helper.log")
-
-        with open(logfile, "w") as log:
-            self.proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
-                stderr=log,
-                pass_fds=pass_fds,
-            )
-        try:
-            reply = self.proc.stdout.readline()  # type: ignore[attr-defined]
-            if not reply:
-                raise RuntimeError("No response from helper")
-
-            self.interface = json.loads(reply)
-        except:
-            self.stop()
-            raise
+        return cmd
 
     def stop(self):
         self.proc.terminate()
