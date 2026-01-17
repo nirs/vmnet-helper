@@ -1,0 +1,121 @@
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+---
+name: Install
+
+on:
+  # Test install.sh changes against latest release
+  pull_request:
+    paths:
+      - install.sh
+  # Run after release workflow completes successfully
+  workflow_run:
+    workflows: [Release]
+    types: [completed]
+  # Run weekly to detect regressions (e.g., Homebrew breaking the formula)
+  schedule:
+    - cron: '0 4 * * 0'  # Runs job at 4AM every sunday
+  # Allow manual triggering for debugging
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  install:
+    name: ${{ matrix.os }} (${{ matrix.method }})
+    # Skip if triggered by a failed release workflow
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-26
+            method: brew
+          - os: macos-15
+            method: install.sh
+          - os: macos-14
+            method: install.sh
+    runs-on: ${{ matrix.os }}
+    env:
+      # Homebrew installs to libexec, install script to /opt
+      VMNET_HELPER_BREW: /opt/homebrew/opt/vmnet-helper/libexec/vmnet-helper
+      VMNET_HELPER_INSTALL_SH: /opt/vmnet-helper/bin/vmnet-helper
+    steps:
+      - name: Host info
+        run: |
+          uname -a
+          sw_vers
+
+      - name: Checkout source (pull request only)
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+
+      - name: Get latest release info
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          release=$(gh api repos/nirs/vmnet-helper/releases/latest)
+          version=$(echo "$release" | jq -r .tag_name)
+          # Get commit from the tag
+          tag=$(gh api repos/nirs/vmnet-helper/git/ref/tags/$version)
+          commit=$(echo "$tag" | jq -r .object.sha)
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "Expected version: $version"
+          echo "Expected commit: $commit"
+
+      - name: Install via Homebrew
+        if: matrix.method == 'brew'
+        run: |
+          brew tap nirs/vmnet-helper
+          brew install vmnet-helper
+
+      - name: Install via script (local)
+        if: matrix.method == 'install.sh' && github.event_name == 'pull_request'
+        run: |
+          VMNET_INTERACTIVE=0 ./install.sh
+
+      - name: Install via script (release)
+        if: matrix.method == 'install.sh' && github.event_name != 'pull_request'
+        run: |
+          curl -fsSL https://github.com/nirs/vmnet-helper/releases/latest/download/install.sh \
+            | VMNET_INTERACTIVE=0 bash
+
+      - name: Verify installation
+        env:
+          EXPECTED_VERSION: ${{ steps.release.outputs.version }}
+          EXPECTED_COMMIT: ${{ steps.release.outputs.commit }}
+        run: |
+          if [[ "${{ matrix.method }}" == "brew" ]]; then
+            vmnet_helper="$VMNET_HELPER_BREW"
+          else
+            vmnet_helper="$VMNET_HELPER_INSTALL_SH"
+          fi
+
+          echo "Checking $vmnet_helper"
+          output=$("$vmnet_helper" --version)
+          echo "$output"
+
+          # Parse version and commit
+          installed_version=$(echo "$output" | grep "^version:" | awk '{print $2}')
+          installed_commit=$(echo "$output" | grep "^commit:" | awk '{print $2}')
+
+          echo "Installed version: $installed_version"
+          echo "Installed commit: $installed_commit"
+
+          # Verify version
+          if [[ "$installed_version" != "$EXPECTED_VERSION" ]]; then
+            echo "Version mismatch: expected $EXPECTED_VERSION, got $installed_version"
+            exit 1
+          fi
+
+          # Verify commit
+          if [[ "$installed_commit" != "$EXPECTED_COMMIT" ]]; then
+            echo "Commit mismatch: expected $EXPECTED_COMMIT, got $installed_commit"
+            exit 1
+          fi
+
+          echo "Installation verified successfully"
