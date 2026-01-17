@@ -5,13 +5,16 @@ SPDX-License-Identifier: Apache-2.0
 
 # vmnet-helper
 
-The vmnet helper allows unprivileged process to create a vmnet interface
-without the `com.apple.vm.networking` entitlement, and without running
-the VM process as root.
+A high-performance network proxy connecting virtual machines to the
+macOS vmnet network without running the VM process as root or requiring
+the `com.apple.vm.networking` entitlement.
 
-The vmnet-helper need to run as root to start the vmnet interface, but
-after starting it drops privileges and run as the real user and group
-running the command.
+On macOS 15 and earlier, the helper requires root only to start the
+vmnet interface, then immediately drops privileges and runs as the
+unprivileged user.
+
+> [!NOTE]
+> On macOS 26 and later, the helper does not require root privileges.
 
 ## Installation
 
@@ -24,11 +27,13 @@ curl -fsSL https://github.com/nirs/vmnet-helper/releases/latest/download/install
 You can download the install script for inspection and run it locally.
 
 The install script downloads the latest release and installs it at
-`/opt/vmnet-helper`. It recommends to configure sudo to run vmnet-helper without
-a password, and install a sudoers rule if you accept.
+`/opt/vmnet-helper`.
 
-To learn more about vmnet-helper sudoers configuration please see
-[sudoers.d](sudoers.d).
+- On macOS 15 and earlier: the install script configures a sudoers rule
+  to allow running vmnet-helper without a password. See [sudoers.d](sudoers.d)
+  for more info.
+- On macOS 26 and later: no sudo configuration needed. vmnet-helper runs
+  as an unprivileged user.
 
 ## Starting the interface by passing a file descriptor
 
@@ -150,6 +155,10 @@ Example run with *vfkit*:
 > The command run by *vmnet-client* must use file descriptor 4.
 
 See the [examples](examples/) for more examples for using *vmnet-client*.
+
+> [!TIP]
+> On macOS 26 and later, use the `--unprivileged` option to run the
+> helper without sudo.
 
 ## Operation modes
 
