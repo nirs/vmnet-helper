@@ -7,6 +7,7 @@ from .helper import (
     Helper,
     OPERATION_MODES,
     shared_interfaces,
+    requires_root,
     socketpair,
 )
 from .store import vm_path
