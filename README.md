@@ -16,7 +16,19 @@ unprivileged user.
 > [!NOTE]
 > On macOS 26 and later, the helper does not require root privileges.
 
+<!-- IMPORTANT: Do not change this heading - external links depend on it -->
 ## Installation
+
+### macOS 26 and later
+
+Install using [Homebrew](https://brew.sh/):
+
+```console
+brew tap nirs/vmnet-helper
+brew install vmnet-helper
+```
+
+### macOS 15 and earlier
 
 To install the latest version run:
 
@@ -27,13 +39,13 @@ curl -fsSL https://github.com/nirs/vmnet-helper/releases/latest/download/install
 You can download the install script for inspection and run it locally.
 
 The install script downloads the latest release and installs it at
-`/opt/vmnet-helper`.
+`/opt/vmnet-helper`, and configures a sudoers rule to allow running
+vmnet-helper without a password. See [sudoers.d](sudoers.d) for more info.
 
-- On macOS 15 and earlier: the install script configures a sudoers rule
-  to allow running vmnet-helper without a password. See [sudoers.d](sudoers.d)
-  for more info.
-- On macOS 26 and later: no sudo configuration needed. vmnet-helper runs
-  as an unprivileged user.
+> [!NOTE]
+> Homebrew installation is not available for macOS 15 and earlier because
+> vmnet-helper requires root privileges. Installing via Homebrew would allow
+> malware to replace the executable and gain root access.
 
 ## Starting the interface by passing a file descriptor
 
