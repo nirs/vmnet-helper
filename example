@@ -43,6 +43,7 @@ def main():
         "--unprivileged",
         dest="privileged",
         action="store_false",
+        default=vmnet.requires_root(),
         help="Run vmnet-helper as unprivileged user (macOS 26 only)",
     )
     p.add_argument(

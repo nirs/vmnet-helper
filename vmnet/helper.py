@@ -5,6 +5,7 @@ import hashlib
 import json
 import logging
 import os
+import platform
 import socket
 import subprocess
 import uuid
@@ -130,6 +131,15 @@ class Helper:
     def stop(self):
         self.proc.terminate()
         self.proc.wait()
+
+
+def requires_root():
+    """
+    Returns True if the helper requires root.
+    """
+    release = platform.mac_ver()[0]
+    major = release.split(".")[0]
+    return int(major) < 26
 
 
 def interface_id_from(name):
