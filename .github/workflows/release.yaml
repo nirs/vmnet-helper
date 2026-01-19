@@ -8,6 +8,8 @@ on:
   release:
     types:
       - created
+      - edited
+      - published
 
 permissions:
   contents: read
@@ -19,6 +21,12 @@ jobs:
     permissions:
       contents: write
     steps:
+      - name: Release info
+        run: |
+          echo "Triggered by: ${{ github.event_name }}""
+          echo "Action type: ${{ github.event.action }}"
+          echo "Target commitish: ${{ github.event.release.target_commitish }}"
+          echo "Tag name: ${{ github.event.release.tag_name }}"
       - name: Checkout source
         uses: actions/checkout@v4
       - name: Install requirements
