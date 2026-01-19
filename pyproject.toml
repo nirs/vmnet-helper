@@ -3,3 +3,13 @@
 
 [tool.basedpyright]
 typeCheckingMode = "standard"
+
+[tool.codespell]
+# Ignore words in the ignore file.
+ignore-words = ".codespell-ignore"
+
+# Skip git and build directories
+skip = "./.git,./build"
+
+# Check spelling in file names.
+check-filenames = true
