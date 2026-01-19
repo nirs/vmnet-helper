@@ -5,32 +5,54 @@
 name: Release
 
 on:
-  release:
-    types:
-      - created
+  # The only way to trigger the workflow when using immutable releases is to
+  # run when pushing a tag.
+  push:
+    tags:
+      - 'v*'
 
 permissions:
   contents: read
 
 jobs:
   release:
-    name: Release artifacts
+    name: Create release
     runs-on: macos-26
     permissions:
       contents: write
     steps:
+      - name: Release info
+        run: |
+          echo "Triggered by tag: ${{ github.ref_name }}"
+          echo "Commit SHA: ${{ github.sha }}"
+
       - name: Checkout source
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Install requirements
         run: brew install meson diffoscope
+
       - name: Build
         run: ./build.sh build
+
       - name: Test reproducibility
         run: |
           ./build.sh repro
           diffoscope build/vmnet-helper.tar.gz repro/vmnet-helper.tar.gz
-      - name: Upload
+
+      - name: Create release and upload assets
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        # Create a draft for pre-release. The release will be changed to be
+        # "latest" after testing.
         run: |
-          gh release upload ${GITHUB_REF_NAME} build/vmnet-helper.tar.gz install.sh
+          gh release create "$TAG" \
+            --title "$TAG" \
+            --draft \
+            --prerelease \
+            --generate-notes \
+            build/vmnet-helper.tar.gz \
+            install.sh
