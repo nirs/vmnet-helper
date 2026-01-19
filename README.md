@@ -483,6 +483,10 @@ timeout, which are not in scope for vmnet-helper.
 sofntnet is released under AGPL license which may be harder to adopt in
 your organization.
 
+## Documentation
+
+- [How to create a release](docs/release.md)
+
 ## License
 
 vmnet-helper is under the [Apache 2.0 license](/LICENSES/Apache-2.0.txt)
