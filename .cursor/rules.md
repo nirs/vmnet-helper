@@ -44,3 +44,19 @@ Content guidelines:
 - Discuss the negative effects of the change if any
 - If the change includes new APIs, describe the new APIs and how they are used
 - Avoid describing details that are best seen in the diff
+
+Example formatting:
+- Use "Example:" header on its own line
+- Blank line after the header
+- Indent commands and output with 4 spaces
+- Use "%" for command prompt
+- Use backslash for command line continuation
+- Wrap long log lines instead of using backslash
+
+Example:
+
+    % ./example server -v --operation-mode shared \
+          --start-address 192.168.100.1
+    ...
+    DEBUG [main] starting interface mode 'shared' start-address '192.168.100.1'
+        end-address '192.168.100.15' subnet-mask '255.255.255.240'
