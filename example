@@ -87,6 +87,12 @@ def main():
         action="store_true",
         help="Enable vmnet tso and checksum-offload options (krunkit driver only)",
     )
+    p.add_argument(
+        "--network",
+        dest="network_name",
+        metavar="NAME",
+        help="Join a network managed by vmnet-broker (macOS 26 only)",
+    )
 
     # VM arguments
 
@@ -138,6 +144,16 @@ def main():
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
 
     args = p.parse_args()
+
+    if args.network_name:
+        if args.operation_mode:
+            p.error("--network cannot be used with --operation-mode")
+        if args.start_address:
+            p.error("--network cannot be used with --start-address")
+        if args.end_address:
+            p.error("--network cannot be used with --end-address")
+        if args.subnet_mask:
+            p.error("--network cannot be used with --subnet-mask")
 
     if args.operation_mode:
         if args.operation_mode == "bridged" and not args.shared_interface:
