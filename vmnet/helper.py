@@ -111,22 +111,24 @@ class Helper:
             raise ValueError("fd or socket required")
 
         cmd.append(f"--interface-id={interface_id}")
-        cmd.append(f"--operation-mode={self.operation_mode}")
 
-        if self.operation_mode == "shared":
-            if self.start_address:
-                cmd.append(f"--start-address={self.start_address}")
-            if self.end_address:
-                cmd.append(f"--end-address={self.end_address}")
-            if self.subnet_mask:
-                cmd.append(f"--subnet-mask={self.subnet_mask}")
-        elif self.operation_mode == "bridged":
-            cmd.append(f"--shared-interface={self.shared_interface}")
-        elif self.operation_mode == "host":
-            if self.enable_isolation:
-                cmd.append("--enable-isolation")
-        else:
-            raise RuntimeError(f"invalid operation mode {self.operation_mode}")
+        if self.operation_mode:
+            cmd.append(f"--operation-mode={self.operation_mode}")
+
+            if self.operation_mode == "shared":
+                if self.start_address:
+                    cmd.append(f"--start-address={self.start_address}")
+                if self.end_address:
+                    cmd.append(f"--end-address={self.end_address}")
+                if self.subnet_mask:
+                    cmd.append(f"--subnet-mask={self.subnet_mask}")
+            elif self.operation_mode == "bridged":
+                cmd.append(f"--shared-interface={self.shared_interface}")
+            elif self.operation_mode == "host":
+                if self.enable_isolation:
+                    cmd.append("--enable-isolation")
+            else:
+                raise RuntimeError(f"invalid operation mode: {self.operation_mode}")
 
         if self.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])

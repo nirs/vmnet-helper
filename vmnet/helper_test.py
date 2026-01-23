@@ -63,6 +63,13 @@ class TestStart:
     Test that vmnet-helper starts correctly with various options
     """
 
+    def test_default_mode(self):
+        """
+        Test starting helper without mode default to "shared".
+        """
+        with run_helper(privileged=PRIVILEGED) as (h, sock):
+            self.check_interface(h.interface)
+
     def test_shared_mode(self):
         """
         Test starting helper with shared mode
