@@ -238,6 +238,26 @@ void parse_options(struct options *opts, int argc, char **argv)
         }
     }
 
+    // Apply defaults when not using vmnet-broker network.
+    if (opts->network_name == NULL) {
+        if (opts->operation_mode == 0) {
+            opts->operation_mode = VMNET_SHARED_MODE;
+        }
+        // Address defaults only apply to shared mode.
+        // https://github.com/nirs/vmnet-helper/issues/121
+        if (opts->operation_mode == VMNET_SHARED_MODE) {
+            if (opts->start_address == NULL) {
+                opts->start_address = "192.168.105.1";
+            }
+            if (opts->end_address == NULL) {
+                opts->end_address = "192.168.105.254";
+            }
+            if (opts->subnet_mask == NULL) {
+                opts->subnet_mask = "255.255.255.0";
+            }
+        }
+    }
+
     if (opts->fd == -1 && opts->socket == NULL) {
         ERROR("Missing argument: either \"fd\" or \"socket\" required");
         usage(1);

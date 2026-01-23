@@ -101,10 +101,6 @@ static void init_endpoint(struct endpoint *e, size_t max_packet_size)
 
 static struct options options = {
     .fd = -1,
-    .operation_mode = VMNET_SHARED_MODE,
-    .start_address = "192.168.105.1",
-    .end_address = "192.168.105.254",
-    .subnet_mask = "255.255.255.0",
 };
 
 static struct endpoint host;
