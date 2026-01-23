@@ -850,6 +850,11 @@ static void check_os_version(const char *prog)
     INFOF("[main] running %s %s on macOS %d.%d.%d",
           prog, GIT_VERSION, v.major, v.minor, v.point);
 
+    if (options.network_name != NULL && v.major < 26) {
+        ERROR("[main] --network requires macOS 26 or later");
+        exit(EXIT_FAILURE);
+    }
+
     INFOF("[main] running as uid: %d gid: %d", geteuid(), getegid());
 
     if (v.major > 13) {
