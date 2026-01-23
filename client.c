@@ -26,6 +26,7 @@ struct client_options {
     char *end_address;
     char *subnet_mask;
     char *shared_interface;
+    char *network_name;
     bool enable_isolation;
 
     // Client options.
@@ -61,6 +62,7 @@ enum {
     OPT_END_ADDRESS,
     OPT_SUBNET_MASK,
     OPT_ENABLE_ISOLATION,
+    OPT_NETWORK,
     OPT_UNPRIVILEGED,
     OPT_VERSION
 };
@@ -76,6 +78,7 @@ static struct option long_options[] = {
     {"end-address",             required_argument,  0,  OPT_END_ADDRESS},
     {"subnet-mask",             required_argument,  0,  OPT_SUBNET_MASK},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
+    {"network",                 required_argument,  0,  OPT_NETWORK},
     {"verbose",                 no_argument,        0,  'v'},
     // Client options.
     {"unprivileged",            no_argument,        0,  OPT_UNPRIVILEGED},
@@ -93,11 +96,18 @@ static void usage(int code)
 "    vmnet-client [--interface-id UUID] [--operation-mode shared|bridged|host]\n"
 "                 [--start-address ADDR] [--end-address ADDR]\n"
 "                 [--subnet-mask MASK] [--shared-interface NAME]\n"
-"                 [--enable-isolation] [--unprivileged]\n"
+"                 [--enable-isolation] [--network NAME] [--unprivileged]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
 "                 -- command ...\n"
 "\n"
-"Note: --unprivileged requires macOS 26 or later.\n"
+"Modes:\n"
+"    By default, vmnet-helper creates a new network using the specified options.\n"
+"    With --network, vmnet-helper joins a network managed by vmnet-broker.\n"
+"\n"
+"    --network is mutually exclusive with: --operation-mode, --shared-interface,\n"
+"    --start-address, --end-address, --subnet-mask.\n"
+"\n"
+"    --network and --unprivileged require macOS 26 or later.\n"
 "\n";
     fputs(msg, stderr);
     exit(code);
@@ -161,6 +171,11 @@ static void build_helper_argv(void)
 
     if (options.enable_isolation) {
         append_helper_arg("--enable-isolation");
+    }
+
+    if (options.network_name) {
+        append_helper_arg("--network");
+        append_helper_arg(options.network_name);
     }
 
     if (verbose) {
@@ -256,6 +271,9 @@ static void parse_options(int argc, char **argv)
         case OPT_ENABLE_ISOLATION:
             options.enable_isolation = true;
             break;
+        case OPT_NETWORK:
+            options.network_name = optarg;
+            break;
         case 'v':
             verbose = true;
             break;
@@ -275,14 +293,40 @@ static void parse_options(int argc, char **argv)
         }
     }
 
-    if (is_bridged(options.operation_mode) && options.shared_interface == NULL) {
-        ERROR("[client] missing argument: shared-interface is required for operation-mode=bridged");
-        exit(EXIT_FAILURE);
-    }
+    if (options.network_name != NULL) {
+        // Check for conflicts with --network option.
+        if (options.operation_mode != NULL) {
+            ERROR("[client] conflicting arguments: --network cannot be used with --operation-mode");
+            exit(EXIT_FAILURE);
+        }
+        if (options.shared_interface != NULL) {
+            ERROR("[client] conflicting arguments: --network cannot be used with --shared-interface");
+            exit(EXIT_FAILURE);
+        }
+        if (options.start_address != NULL) {
+            ERROR("[client] conflicting arguments: --network cannot be used with --start-address");
+            exit(EXIT_FAILURE);
+        }
+        if (options.end_address != NULL) {
+            ERROR("[client] conflicting arguments: --network cannot be used with --end-address");
+            exit(EXIT_FAILURE);
+        }
+        if (options.subnet_mask != NULL) {
+            ERROR("[client] conflicting arguments: --network cannot be used with --subnet-mask");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        if (is_bridged(options.operation_mode) && options.shared_interface == NULL) {
+            ERROR("[client] missing argument: shared-interface is required for operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
 
-    if (options.enable_isolation && !is_host(options.operation_mode)) {
-        ERROR("[client] conflicting arguments: enable-isolation requires operation-mode=host");
-        exit(EXIT_FAILURE);
+        // TODO: Validate that isolation doesn't work with shared and bridged modes.
+        // https://github.com/nirs/vmnet-helper/issues/148
+        if (options.enable_isolation && !is_host(options.operation_mode)) {
+            ERROR("[client] conflicting arguments: enable-isolation requires operation-mode=host");
+            exit(EXIT_FAILURE);
+        }
     }
 
     // The rest of the arguments are the command arguments.
