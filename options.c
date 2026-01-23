@@ -31,8 +31,17 @@ static void usage(int code)
 "                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
 "                 [--enable-tso] [--enable-checksum-offload] [--enable-isolation]\n"
-"                 [--list-shared-interfaces]\n"
+"                 [--network NAME] [--list-shared-interfaces]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
+"\n"
+"Modes:\n"
+"    By default, vmnet-helper creates a new network using the specified options.\n"
+"    With --network, vmnet-helper joins a network managed by vmnet-broker.\n"
+"\n"
+"    --network is mutually exclusive with: --operation-mode, --shared-interface,\n"
+"    --start-address, --end-address, --subnet-mask.\n"
+"\n"
+"    --network requires macOS 26 or later.\n"
 "\n";
     fputs(msg, stderr);
     exit(code);
@@ -48,6 +57,7 @@ enum {
     OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
     OPT_LIST_SHARED_INTERFACES,
+    OPT_NETWORK,
     OPT_VERSION,
 };
 
@@ -66,6 +76,7 @@ static struct option long_options[] = {
     {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
     {"list-shared-interfaces",  no_argument,        0,  OPT_LIST_SHARED_INTERFACES},
+    {"network",                 required_argument,  0,  OPT_NETWORK},
     {"verbose",                 no_argument,        0,  'v'},
     {"version",                 no_argument,        0,  OPT_VERSION},
     {"help",                    no_argument,        0,  'h'},
@@ -222,6 +233,9 @@ void parse_options(struct options *opts, int argc, char **argv)
         case OPT_LIST_SHARED_INTERFACES:
             list_shared_interfaces();
             break;
+        case OPT_NETWORK:
+            opts->network_name = optarg;
+            break;
         case 'v':
             verbose = true;
             break;
@@ -238,14 +252,38 @@ void parse_options(struct options *opts, int argc, char **argv)
         }
     }
 
-    // Apply defaults when not using vmnet-broker network.
-    if (opts->network_name == NULL) {
+    if (opts->network_name != NULL) {
+        // Check for conflicts with --network option.
+        if (opts->operation_mode != 0) {
+            ERROR("Conflicting arguments: --network cannot be used with --operation-mode");
+            exit(EXIT_FAILURE);
+        }
+        if (opts->shared_interface != NULL) {
+            ERROR("Conflicting arguments: --network cannot be used with --shared-interface");
+            exit(EXIT_FAILURE);
+        }
+        if (opts->start_address != NULL) {
+            ERROR("Conflicting arguments: --network cannot be used with --start-address");
+            exit(EXIT_FAILURE);
+        }
+        if (opts->end_address != NULL) {
+            ERROR("Conflicting arguments: --network cannot be used with --end-address");
+            exit(EXIT_FAILURE);
+        }
+        if (opts->subnet_mask != NULL) {
+            ERROR("Conflicting arguments: --network cannot be used with --subnet-mask");
+            exit(EXIT_FAILURE);
+        }
+    } else {
+        // Apply defaults and validate when not using vmnet-broker network.
         if (opts->operation_mode == 0) {
             opts->operation_mode = VMNET_SHARED_MODE;
         }
-        // Address defaults only apply to shared mode.
-        // https://github.com/nirs/vmnet-helper/issues/121
-        if (opts->operation_mode == VMNET_SHARED_MODE) {
+
+        switch (opts->operation_mode) {
+        case VMNET_SHARED_MODE:
+            // Address defaults only apply to shared mode.
+            // https://github.com/nirs/vmnet-helper/issues/121
             if (opts->start_address == NULL) {
                 opts->start_address = "192.168.105.1";
             }
@@ -255,6 +293,27 @@ void parse_options(struct options *opts, int argc, char **argv)
             if (opts->subnet_mask == NULL) {
                 opts->subnet_mask = "255.255.255.0";
             }
+
+            // TODO: Validate that isolation doesn't work with shared mode.
+            // https://github.com/nirs/vmnet-helper/issues/148
+            if (opts->enable_isolation) {
+                ERROR("Conflicting arguments: enable-isolation cannot be used with shared mode");
+                exit(EXIT_FAILURE);
+            }
+            break;
+        case VMNET_BRIDGED_MODE:
+            if (opts->shared_interface == NULL) {
+                ERROR("Missing argument: shared-interface is required for operation-mode=bridged");
+                exit(EXIT_FAILURE);
+            }
+
+            // TODO: Validate that isolation doesn't work with bridged mode.
+            // https://github.com/nirs/vmnet-helper/issues/148
+            if (opts->enable_isolation) {
+                ERROR("Conflicting arguments: enable-isolation cannot be used with bridged mode");
+                exit(EXIT_FAILURE);
+            }
+            break;
         }
     }
 
@@ -294,13 +353,4 @@ void parse_options(struct options *opts, int argc, char **argv)
         }
     }
 
-    if (opts->operation_mode == VMNET_BRIDGED_MODE && opts->shared_interface == NULL) {
-        ERROR("Missing argument: shared-interface is required for operation-mode=bridged");
-        exit(EXIT_FAILURE);
-    }
-
-    if (opts->enable_isolation && opts->operation_mode != VMNET_HOST_MODE) {
-        ERROR("Conflicting arguments: enable-isolation requires operation-mode=host");
-        exit(EXIT_FAILURE);
-    }
 }
