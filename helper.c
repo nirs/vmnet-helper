@@ -230,10 +230,60 @@ static void write_vmnet_info(xpc_object_t param)
     fflush(stdout);
 }
 
+static const char *mode_name(operating_modes_t mode)
+{
+    switch (mode) {
+    case VMNET_SHARED_MODE:
+        return "shared";
+    case VMNET_BRIDGED_MODE:
+        return "bridged";
+    case VMNET_HOST_MODE:
+        return "host";
+    default:
+        return "unknown";
+    }
+}
+
 // Start interface with the specified operation mode and options.
 static void start_interface_with_options(void)
 {
-    DEBUG("[main] starting interface with options");
+    char interface_id[37];
+    uuid_unparse(options.interface_id, interface_id);
+
+    switch (options.operation_mode) {
+    case VMNET_SHARED_MODE:
+        DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
+               "enable-tso %s enable-checksum-offload %s "
+               "start-address '%s' end-address '%s' subnet-mask '%s'",
+               mode_name(options.operation_mode),
+               interface_id,
+               options.enable_tso ? "true" : "false",
+               options.enable_checksum_offload ? "true" : "false",
+               options.start_address,
+               options.end_address,
+               options.subnet_mask);
+        break;
+    case VMNET_BRIDGED_MODE:
+        DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
+               "enable-tso %s enable-checksum-offload %s "
+               "shared-interface '%s'",
+               mode_name(options.operation_mode),
+               interface_id,
+               options.enable_tso ? "true" : "false",
+               options.enable_checksum_offload ? "true" : "false",
+               options.shared_interface);
+        break;
+    case VMNET_HOST_MODE:
+        DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
+               "enable-tso %s enable-checksum-offload %s "
+               "enable-isolation %s",
+               mode_name(options.operation_mode),
+               interface_id,
+               options.enable_tso ? "true" : "false",
+               options.enable_checksum_offload ? "true" : "false",
+               options.enable_isolation ? "true" : "false");
+        break;
+    }
 
     xpc_object_t desc = xpc_dictionary_create(NULL, NULL, 0);
     xpc_dictionary_set_uuid(desc, vmnet_interface_id_key, options.interface_id);
@@ -353,6 +403,12 @@ static vmnet_network_ref acquire_network_from_broker(void)
 // Start interface with a network.
 static void start_interface_with_network(vmnet_network_ref network)
 {
+    DEBUGF("[main] starting interface with network "
+           "enable-tso %s enable-checksum-offload %s enable-isolation %s",
+           options.enable_tso ? "true" : "false",
+           options.enable_checksum_offload ? "true" : "false",
+           options.enable_isolation ? "true" : "false");
+
     // Build interface descriptor with compatible options.
     // NOTE: vmnet_interface_id_key is ignored silently and we get a random MAC
     // address.
