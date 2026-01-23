@@ -30,6 +30,7 @@ version_h_dep = declare_dependency(sources: [version_h])
 subdir('vmnet-broker')
 
 vmnet_framework = dependency('appleframeworks', modules: 'vmnet', required: true)
+corefoundation = dependency('appleframeworks', modules: 'CoreFoundation', required: true)
 
 vmnet_helper = executable(
   'vmnet-helper',
@@ -37,7 +38,9 @@ vmnet_helper = executable(
   'options.c',
   install: true,
   dependencies: [
+    corefoundation,
     vmnet_framework,
+    vmnet_broker_dep,
     version_h_dep,
   ],
 )

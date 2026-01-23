@@ -1,6 +1,7 @@
 // SPDX-FileCopyrightText: The vmnet-helper authors
 // SPDX-License-Identifier: Apache-2.0
 
+#include <arpa/inet.h>
 #include <assert.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -27,6 +28,7 @@
 #include "options.h"
 #include "socket_x.h"
 #include "version.h"
+#include "vmnet-broker.h"
 
 // vmnet_read() can return up to 256 packets. There is no constant in vmnet for
 // this value. https://developer.apple.com/documentation/vmnet?language=objc
@@ -66,6 +68,12 @@ struct version {
     int point;
 };
 
+struct network_info {
+    char subnet[INET_ADDRSTRLEN];
+    char mask[INET_ADDRSTRLEN];
+    char ipv6_prefix[INET6_ADDRSTRLEN];
+    uint8_t prefix_len;
+};
 struct endpoint {
     dispatch_queue_t queue;
     struct vmpktdesc packets[MAX_PACKET_COUNT];
@@ -271,17 +279,119 @@ static void start_interface_with_options(void)
     DEBUG("[main] started interface with options");
 }
 
-// Start interface using a network from vmnet-broker.
-static void start_interface_with_network(void)
-{
-    DEBUGF("[main] using network \"%s\" from vmnet-broker", options.network_name);
+// Functions for starting interface with a network from vmnet-broker.
+// These are only available when building with macOS 26+ SDK.
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 
-    // TODO: Implement vmnet-broker integration
-    ERROR("[main] --network is not implemented yet");
-    exit(EXIT_FAILURE);
+static void network_info(vmnet_network_ref network, struct network_info *info) {
+    struct in_addr subnet;
+    struct in_addr mask;
+    struct in6_addr ipv6_prefix;
+
+    // Runtime check required by clang for macOS 26+ APIs.
+    // check_os_version() already verified we're on macOS 26+.
+    if (__builtin_available(macOS 26.0, *)) {
+        vmnet_network_get_ipv4_subnet(network, &subnet, &mask);
+        vmnet_network_get_ipv6_prefix(network, &ipv6_prefix, &info->prefix_len);
+    } else {
+        assert(0 && "unreachable");
+    }
+
+    inet_ntop(AF_INET, &subnet, info->subnet, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &mask, info->mask, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET6, &ipv6_prefix, info->ipv6_prefix, INET6_ADDRSTRLEN);
+}
+
+// Acquire network from vmnet-broker.
+static vmnet_network_ref acquire_network_from_broker(void)
+{
+    DEBUGF("[main] acquiring network \"%s\" from vmnet-broker", options.network_name);
+
+    vmnet_broker_return_t broker_status;
+    xpc_object_t serialization = vmnet_broker_acquire_network(
+        options.network_name, &broker_status
+    );
+    if (serialization == NULL) {
+        ERRORF("[main] failed to acquire network \"%s\": %s",
+               options.network_name, vmnet_broker_strerror(broker_status));
+        exit(EXIT_FAILURE);
+    }
+
+    char *desc = xpc_copy_description(serialization);
+    DEBUGF("[main] acquired network serialization: %s", desc);
+    free(desc);
+
+    DEBUG("[main] creating network from serialization");
+
+    // Runtime check required by clang for macOS 26+ APIs.
+    // check_os_version() already verified we're on macOS 26+.
+    vmnet_return_t vmnet_status;
+    vmnet_network_ref network;
+    if (__builtin_available(macOS 26.0, *)) {
+        network = vmnet_network_create_with_serialization(
+            serialization, &vmnet_status
+        );
+    } else {
+        assert(0 && "unreachable");
+    }
+    xpc_release(serialization);
+
+    if (network == NULL) {
+        ERRORF("[main] failed to create network: %s",
+               host_strerror(vmnet_status));
+        exit(EXIT_FAILURE);
+    }
+
+    struct network_info info;
+    network_info(network, &info);
+    DEBUGF("[main] created network subnet '%s' mask '%s' ipv6_prefix '%s' prefix_len %d",
+           info.subnet, info.mask, info.ipv6_prefix, info.prefix_len);
+
+    return network;
+}
+
+// Start interface with a network.
+static void start_interface_with_network(vmnet_network_ref network)
+{
+    // Build interface descriptor with compatible options.
+    // NOTE: vmnet_interface_id_key is ignored silently and we get a random MAC
+    // address.
+    // TODO: Disable allocation of mac address - in this more the user need to
+    // generate the address.
+    xpc_object_t interface_desc = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_bool(interface_desc, vmnet_enable_tso_key, options.enable_tso);
+    xpc_dictionary_set_bool(interface_desc, vmnet_enable_checksum_offload_key, options.enable_checksum_offload);
+    xpc_dictionary_set_bool(interface_desc, vmnet_enable_isolation_key, options.enable_isolation);
+
+    dispatch_semaphore_t completed = dispatch_semaphore_create(0);
+
+    // Runtime check required by clang for macOS 26+ APIs.
+    // check_os_version() already verified we're on macOS 26+.
+    if (__builtin_available(macOS 26.0, *)) {
+        interface = vmnet_interface_start_with_network(
+                network, interface_desc, host.queue, ^(vmnet_return_t status, xpc_object_t param) {
+            if (status != VMNET_SUCCESS) {
+                ERRORF("[main] vmnet_interface_start_with_network: %s",
+                       host_strerror(status));
+                exit(EXIT_FAILURE);
+            }
+
+            write_vmnet_info(param);
+            max_packet_size = xpc_dictionary_get_uint64(param, vmnet_max_packet_size_key);
+            dispatch_semaphore_signal(completed);
+        });
+    } else {
+        assert(0 && "unreachable");
+    }
+
+    dispatch_semaphore_wait(completed, DISPATCH_TIME_FOREVER);
+    dispatch_release(completed);
+    xpc_release(interface_desc);
 
     DEBUG("[main] started interface with network");
 }
+
+#endif // __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 
 static void start_host_interface(void)
 {
@@ -290,7 +400,14 @@ static void start_host_interface(void)
     host.queue = dispatch_queue_create("com.github.nirs.vmnet-helper.host", DISPATCH_QUEUE_SERIAL);
 
     if (options.network_name != NULL) {
-        start_interface_with_network();
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
+        vmnet_network_ref network = acquire_network_from_broker();
+        start_interface_with_network(network);
+        CFRelease(network);
+#else
+        ERROR("[main] --network requires macOS 26 SDK");
+        exit(EXIT_FAILURE);
+#endif
     } else {
         start_interface_with_options();
     }
