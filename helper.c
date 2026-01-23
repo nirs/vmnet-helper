@@ -270,6 +270,7 @@ static void start_host_interface(void)
     });
 
     dispatch_semaphore_wait(completed, DISPATCH_TIME_FOREVER);
+    dispatch_release(completed);
     xpc_release(desc);
 
     INFO("[main] started vmnet interface");
@@ -815,6 +816,7 @@ static void stop_host_interface(void)
     }
 
     dispatch_semaphore_wait(completed, DISPATCH_TIME_FOREVER);
+    dispatch_release(completed);
 
     INFO("[main] stopped vmnet interface");
 }
