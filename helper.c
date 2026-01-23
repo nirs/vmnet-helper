@@ -222,11 +222,10 @@ static void write_vmnet_info(xpc_object_t param)
     fflush(stdout);
 }
 
-static void start_host_interface(void)
+// Start interface with the specified operation mode and options.
+static void start_interface_with_options(void)
 {
-    DEBUG("[main] starting vmnet interface");
-
-    host.queue = dispatch_queue_create("com.github.nirs.vmnet-helper.host", DISPATCH_QUEUE_SERIAL);
+    DEBUG("[main] starting interface with options");
 
     xpc_object_t desc = xpc_dictionary_create(NULL, NULL, 0);
     xpc_dictionary_set_uuid(desc, vmnet_interface_id_key, options.interface_id);
@@ -268,6 +267,33 @@ static void start_host_interface(void)
     dispatch_semaphore_wait(completed, DISPATCH_TIME_FOREVER);
     dispatch_release(completed);
     xpc_release(desc);
+
+    DEBUG("[main] started interface with options");
+}
+
+// Start interface using a network from vmnet-broker.
+static void start_interface_with_network(void)
+{
+    DEBUGF("[main] using network \"%s\" from vmnet-broker", options.network_name);
+
+    // TODO: Implement vmnet-broker integration
+    ERROR("[main] --network is not implemented yet");
+    exit(EXIT_FAILURE);
+
+    DEBUG("[main] started interface with network");
+}
+
+static void start_host_interface(void)
+{
+    DEBUG("[main] starting vmnet interface");
+
+    host.queue = dispatch_queue_create("com.github.nirs.vmnet-helper.host", DISPATCH_QUEUE_SERIAL);
+
+    if (options.network_name != NULL) {
+        start_interface_with_network();
+    } else {
+        start_interface_with_options();
+    }
 
     INFO("[main] started vmnet interface");
 }
