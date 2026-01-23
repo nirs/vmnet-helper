@@ -51,6 +51,7 @@ class Helper:
         self.end_address = args.end_address
         self.subnet_mask = args.subnet_mask
         self.shared_interface = args.shared_interface
+        self.network_name = args.network_name
         self.enable_isolation = args.enable_isolation
         self.enable_offloading = args.enable_offloading
         self.verbose = args.verbose
@@ -112,7 +113,9 @@ class Helper:
 
         cmd.append(f"--interface-id={interface_id}")
 
-        if self.operation_mode:
+        if self.network_name:
+            cmd.append(f"--network={self.network_name}")
+        elif self.operation_mode:
             cmd.append(f"--operation-mode={self.operation_mode}")
 
             if self.operation_mode == "shared":

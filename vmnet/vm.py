@@ -259,12 +259,14 @@ class VM:
 
     def client_command(self, vm_command):
         cmd = [self.client]
-        if self.args.operation_mode:
+        if self.args.network_name:
+            cmd.append(f"--network={self.args.network_name}")
+        elif self.args.operation_mode:
             cmd.append(f"--operation-mode={self.args.operation_mode}")
-        if self.args.operation_mode == "bridged":
-            cmd.append(f"--shared-interface={self.args.shared_interface}")
-        elif self.args.operation_mode == "host" and self.args.enable_isolation:
-            cmd.append("--enable-isolation")
+            if self.args.operation_mode == "bridged":
+                cmd.append(f"--shared-interface={self.args.shared_interface}")
+            elif self.args.operation_mode == "host" and self.args.enable_isolation:
+                cmd.append("--enable-isolation")
         if self.args.verbose:
             cmd.append("--verbose")
         if not self.args.privileged:
