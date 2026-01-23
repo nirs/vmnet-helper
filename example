@@ -49,8 +49,7 @@ def main():
     p.add_argument(
         "--operation-mode",
         choices=vmnet.OPERATION_MODES,
-        default=vmnet.OPERATION_MODES[0],
-        help=f"vmnet operation mode ({vmnet.OPERATION_MODES[0]})",
+        help="vmnet operation mode",
     )
     p.add_argument(
         "--start-address",
@@ -140,11 +139,15 @@ def main():
 
     args = p.parse_args()
 
-    if args.operation_mode == "bridged" and not args.shared_interface:
-        p.error("--shared-interface required for --operation-mode=bridged")
+    if args.operation_mode:
+        if args.operation_mode == "bridged" and not args.shared_interface:
+            p.error("--shared-interface required for --operation-mode=bridged")
 
-    if args.enable_isolation and args.operation_mode != "host":
-        p.error("--enable-isolation requires --operation-mode=host")
+        if args.enable_isolation and args.operation_mode != "host":
+            p.error("--enable-isolation requires --operation-mode=host")
+    else:
+        if args.start_address or args.end_address or args.subnet_mask:
+            p.error("--operation-mode required when using address options")
 
     if args.connection == "client":
         if args.driver == "krunkit":

@@ -258,7 +258,9 @@ class VM:
         return cmd
 
     def client_command(self, vm_command):
-        cmd = [self.client, f"--operation-mode={self.args.operation_mode}"]
+        cmd = [self.client]
+        if self.args.operation_mode:
+            cmd.append(f"--operation-mode={self.args.operation_mode}")
         if self.args.operation_mode == "bridged":
             cmd.append(f"--shared-interface={self.args.shared_interface}")
         elif self.args.operation_mode == "host" and self.args.enable_isolation:
