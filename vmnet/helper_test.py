@@ -40,8 +40,6 @@ from .helper import (
     SUBNET_MASK,
 )
 
-# Use privileged mode on macOS < 26 (requires sudo), unprivileged on macOS 26+
-PRIVILEGED = helper.requires_root()
 
 # ARP operation codes (RFC 826)
 # https://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
@@ -67,14 +65,14 @@ class TestStart:
         """
         Test starting helper without mode default to "shared".
         """
-        with run_helper(privileged=PRIVILEGED) as (h, sock):
+        with run_helper() as (h, sock):
             self.check_interface(h.interface)
 
     def test_shared_mode(self):
         """
         Test starting helper with shared mode
         """
-        with run_helper(operation_mode="shared", privileged=PRIVILEGED) as (h, sock):
+        with run_helper(operation_mode="shared") as (h, sock):
             self.check_interface(h.interface)
 
     def test_shared_mode_custom_subnet(self):
@@ -86,7 +84,6 @@ class TestStart:
             start_address="192.168.200.1",
             end_address="192.168.200.254",
             subnet_mask="255.255.255.0",
-            privileged=PRIVILEGED,
         ) as (h, sock):
             self.check_interface(h.interface)
             assert h.interface[START_ADDRESS] == "192.168.200.1"
@@ -99,7 +96,6 @@ class TestStart:
         """
         with run_helper(
             operation_mode="host",
-            privileged=PRIVILEGED,
         ) as (h, sock):
             self.check_interface(h.interface)
 
@@ -110,7 +106,6 @@ class TestStart:
         with run_helper(
             operation_mode="host",
             enable_isolation=True,
-            privileged=PRIVILEGED,
         ) as (h, sock):
             self.check_interface(h.interface)
 
@@ -131,7 +126,7 @@ class TestConnectivity:
         """
         Test ARP resolution to gateway
         """
-        with run_helper(operation_mode="shared", privileged=PRIVILEGED) as (h, sock):
+        with run_helper(operation_mode="shared") as (h, sock):
             gateway_mac = arp_resolve(h, sock)
             assert gateway_mac is not None
 
@@ -139,7 +134,7 @@ class TestConnectivity:
         """
         Test ICMP ping to gateway
         """
-        with run_helper(operation_mode="shared", privileged=PRIVILEGED) as (h, sock):
+        with run_helper(operation_mode="shared") as (h, sock):
             gateway_mac = arp_resolve(h, sock)
             gateway_ip = h.interface[START_ADDRESS]
             ping(h, sock, gateway_mac, gateway_ip)
@@ -149,7 +144,7 @@ class TestConnectivity:
         Test ICMP ping to external IP via NAT
         """
         external_ips = ["1.1.1.1", "8.8.8.8"]
-        with run_helper(operation_mode="shared", privileged=PRIVILEGED) as (h, sock):
+        with run_helper(operation_mode="shared") as (h, sock):
             gateway_mac = arp_resolve(h, sock)
             retry(ping_any, h, sock, gateway_mac, external_ips)
 
@@ -169,7 +164,7 @@ def run_helper(
     enable_isolation=False,
     enable_offloading=False,
     verbose=True,
-    privileged=True,
+    privileged=helper.requires_root(),
 ):
     """
     Context manager to run vmnet-helper with a socketpair.
@@ -179,7 +174,7 @@ def run_helper(
     - sock: Host-side socket for sending/receiving packets
 
     Example:
-        with run_helper(operation_mode="shared", privileged=True) as (h, sock):
+        with run_helper(operation_mode="shared") as (h, sock):
             assert MAC_ADDRESS in h.interface
             sock.send(packet)
     """
