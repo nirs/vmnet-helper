@@ -69,12 +69,15 @@ struct version {
 };
 
 struct network {
+#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
     vmnet_network_ref ref;
+#endif
     char subnet[INET_ADDRSTRLEN];
     char mask[INET_ADDRSTRLEN];
     char ipv6_prefix[INET6_ADDRSTRLEN];
     uint8_t prefix_len;
 };
+
 struct endpoint {
     dispatch_queue_t queue;
     struct vmpktdesc packets[MAX_PACKET_COUNT];
@@ -198,7 +201,10 @@ static void trigger_shutdown(int flags)
     }
 }
 
-static void write_vmnet_info(xpc_object_t param)
+// Write interface info as JSON to stdout.
+// param: vmnet interface parameters from vmnet_start_interface callback
+// net: network info from vmnet-broker, NULL unless using --network
+static void write_interface_info(xpc_object_t param, struct network *net)
 {
     __block int count = 0;
 
@@ -226,6 +232,13 @@ static void write_vmnet_info(xpc_object_t param)
         }
         return true;
     });
+
+    if (net != NULL) {
+        print_item("\"%s\":\"%s\"", "net_ipv4_subnet", net->subnet);
+        print_item("\"%s\":\"%s\"", "net_ipv4_mask", net->mask);
+        print_item("\"%s\":\"%s\"", "net_ipv6_prefix", net->ipv6_prefix);
+        print_item("\"%s\":%d", "net_ipv6_prefix_len", net->prefix_len);
+    }
 
     printf("}\n");
     fflush(stdout);
@@ -318,7 +331,7 @@ static void start_interface_with_options(void)
             exit(EXIT_FAILURE);
         }
 
-        write_vmnet_info(param);
+        write_interface_info(param, NULL);
         max_packet_size = xpc_dictionary_get_uint64(param, vmnet_max_packet_size_key);
         dispatch_semaphore_signal(completed);
     });
@@ -332,6 +345,7 @@ static void start_interface_with_options(void)
 
 // Functions for starting interface with a network from vmnet-broker.
 // These are only available when building with macOS 26+ SDK.
+// TODO: Extract to network.c and compile only on macOS 26+.
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 
 static void network_init(struct network *net, vmnet_network_ref ref)
@@ -441,7 +455,7 @@ static void start_interface_with_network(struct network *net)
                 exit(EXIT_FAILURE);
             }
 
-            write_vmnet_info(param);
+            write_interface_info(param, net);
             max_packet_size = xpc_dictionary_get_uint64(param, vmnet_max_packet_size_key);
             dispatch_semaphore_signal(completed);
         });
