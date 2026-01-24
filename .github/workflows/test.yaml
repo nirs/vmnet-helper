@@ -41,6 +41,16 @@ jobs:
         run: build/vmnet-helper --list-shared-interfaces
       - name: Print version
         run: build/vmnet-helper --version
+      - name: Install vmnet-helper
+        run: VMNET_INTERACTIVE=0 ./install.sh build/vmnet-helper.tar.gz
+      - name: Create virtual env
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install pytest scapy pyyaml
+      - name: Run tests
+        run: |
+          source .venv/bin/activate
+          pytest -v --log-cli-level=INFO
 
   reproducibility:
     name: Reproducibility
