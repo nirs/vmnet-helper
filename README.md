@@ -483,6 +483,22 @@ timeout, which are not in scope for vmnet-helper.
 sofntnet is released under AGPL license which may be harder to adopt in
 your organization.
 
+## Development
+
+To set up the development environment:
+
+```console
+python3 -m venv .venv
+source .venv/bin/activate
+pip install pytest scapy pyyaml
+```
+
+To run the tests:
+
+```console
+pytest -v
+```
+
 ## Documentation
 
 - [How to create a release](docs/release.md)
