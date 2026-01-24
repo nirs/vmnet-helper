@@ -209,7 +209,9 @@ def run_with_fd(args):
     helper.start()
     try:
         # Start the VM with the MAC address and the second socket.
-        vm = vmnet.VM(args, helper.interface[vmnet.MAC_ADDRESS], fd=vm_sock.fileno())
+        vm = vmnet.VM(
+            args, helper.interface[vmnet.VMNET_MAC_ADDRESS], fd=vm_sock.fileno()
+        )
         vm.start()
         try:
             vm.wait_for_ip_address(timeout=args.timeout)
@@ -234,7 +236,7 @@ def run_with_socket(args):
     helper.start()
     try:
         # Start the VM with the MAC address and the socket path.
-        vm = vmnet.VM(args, helper.interface[vmnet.MAC_ADDRESS], socket=socket)
+        vm = vmnet.VM(args, helper.interface[vmnet.VMNET_MAC_ADDRESS], socket=socket)
         vm.start()
         try:
             vm.wait_for_ip_address(timeout=args.timeout)

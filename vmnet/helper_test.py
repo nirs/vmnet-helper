@@ -22,6 +22,7 @@ Tests run in two modes:
 """
 
 import contextlib
+import ipaddress
 import logging
 import os
 import socket
@@ -33,11 +34,15 @@ from scapy.all import ARP, ICMP, IP, Ether  # type: ignore[import-untyped]
 
 from . import helper
 from .helper import (
-    END_ADDRESS,
-    MAC_ADDRESS,
-    MAX_PACKET_SIZE,
-    START_ADDRESS,
-    SUBNET_MASK,
+    NET_IPV4_MASK,
+    NET_IPV4_SUBNET,
+    NET_IPV6_PREFIX,
+    NET_IPV6_PREFIX_LEN,
+    VMNET_END_ADDRESS,
+    VMNET_MAC_ADDRESS,
+    VMNET_MAX_PACKET_SIZE,
+    VMNET_START_ADDRESS,
+    VMNET_SUBNET_MASK,
 )
 
 
@@ -86,9 +91,9 @@ class TestStart:
             subnet_mask="255.255.255.0",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[START_ADDRESS] == "192.168.200.1"
-            assert h.interface[END_ADDRESS] == "192.168.200.254"
-            assert h.interface[SUBNET_MASK] == "255.255.255.0"
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
 
     def test_host_mode(self):
         """
@@ -110,11 +115,11 @@ class TestStart:
             self.check_interface(h.interface)
 
     def check_interface(self, interface):
-        assert MAC_ADDRESS in interface
-        assert START_ADDRESS in interface
-        assert END_ADDRESS in interface
-        assert SUBNET_MASK in interface
-        assert MAX_PACKET_SIZE in interface
+        assert VMNET_MAC_ADDRESS in interface
+        assert VMNET_START_ADDRESS in interface
+        assert VMNET_END_ADDRESS in interface
+        assert VMNET_SUBNET_MASK in interface
+        assert VMNET_MAX_PACKET_SIZE in interface
 
 
 class TestConnectivity:
@@ -136,7 +141,7 @@ class TestConnectivity:
         """
         with run_helper(operation_mode="shared") as (h, sock):
             gateway_mac = arp_resolve(h, sock)
-            gateway_ip = h.interface[START_ADDRESS]
+            gateway_ip = find_gateway_ip(h.interface)
             ping(h, sock, gateway_mac, gateway_ip)
 
     def test_ping_external_via_nat(self):
@@ -175,7 +180,7 @@ def run_helper(
 
     Example:
         with run_helper(operation_mode="shared") as (h, sock):
-            assert MAC_ADDRESS in h.interface
+            assert VMNET_MAC_ADDRESS in h.interface
             sock.send(packet)
     """
     args = SimpleNamespace(
@@ -213,13 +218,10 @@ def arp_resolve(h, sock, timeout=1.0):
     """
     Send ARP request to gateway and return gateway MAC address.
     """
-    gateway_ip = h.interface[START_ADDRESS]
-    my_mac = h.interface[MAC_ADDRESS]
-    packet_size = h.interface[MAX_PACKET_SIZE]
-
-    # NOTE: works in CI when the network is empty, may not work locally if the
-    # address is used by a VM, but this is very unlikely.
-    my_ip = h.interface[END_ADDRESS]
+    gateway_ip = find_gateway_ip(h.interface)
+    my_mac = h.interface[VMNET_MAC_ADDRESS]
+    packet_size = h.interface[VMNET_MAX_PACKET_SIZE]
+    my_ip = find_my_ip(h.interface)
 
     request = Ether(dst="ff:ff:ff:ff:ff:ff", src=my_mac) / ARP(
         op=ARP_REQUEST, hwsrc=my_mac, psrc=my_ip, pdst=gateway_ip
@@ -253,13 +255,10 @@ def ping(h, sock, gateway_mac, target_ip, timeout=1.0):
     """
     Send ICMP echo request and wait for reply.
     """
-    gateway_ip = h.interface[START_ADDRESS]
-    my_mac = h.interface[MAC_ADDRESS]
-    packet_size = h.interface[MAX_PACKET_SIZE]
-
-    # NOTE: works in CI when the network is empty, may not work locally if the
-    # address is used by a VM, but this is very unlikely.
-    my_ip = h.interface[END_ADDRESS]
+    gateway_ip = find_gateway_ip(h.interface)
+    my_mac = h.interface[VMNET_MAC_ADDRESS]
+    packet_size = h.interface[VMNET_MAX_PACKET_SIZE]
+    my_ip = find_my_ip(h.interface)
 
     request = (
         Ether(dst=gateway_mac, src=my_mac)
@@ -303,6 +302,33 @@ def ping_any(h, sock, gateway_mac, ips):
 
 
 # --- Utilities ---
+
+
+def find_gateway_ip(interface):
+    """
+    Return gateway IP, supporting both modes.
+    """
+    for key in (VMNET_START_ADDRESS, NET_IPV4_SUBNET):
+        if key in interface:
+            return interface[key]
+
+    raise AssertionError("No gateway address in interface")
+
+
+def find_my_ip(interface):
+    """
+    Return usable IP for this client, supporting both modes.
+
+    NOTE: works in CI when the network is empty, may not work locally if the
+    address is used by a VM, but this is very unlikely.
+    """
+    if VMNET_END_ADDRESS in interface:
+        return interface[VMNET_END_ADDRESS]
+    # --network mode: calculate from subnet and mask
+    subnet = interface[NET_IPV4_SUBNET]
+    mask = interface[NET_IPV4_MASK]
+    network = ipaddress.IPv4Network(f"{subnet}/{mask}", strict=False)
+    return str(network.broadcast_address - 1)
 
 
 def retry(func, *args, retries=10, **kwargs):

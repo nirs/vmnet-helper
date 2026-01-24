@@ -33,11 +33,17 @@ RECV_BUFFER_SIZE = 4 * 1024 * 1024
 
 # Vmnet interface info keys
 # https://developer.apple.com/documentation/vmnet/interface_param_xpc_dictionary_keys?language=objc
-START_ADDRESS = "vmnet_start_address"
-END_ADDRESS = "vmnet_end_address"
-MAC_ADDRESS = "vmnet_mac_address"
-SUBNET_MASK = "vmnet_subnet_mask"
-MAX_PACKET_SIZE = "vmnet_max_packet_size"
+VMNET_START_ADDRESS = "vmnet_start_address"
+VMNET_END_ADDRESS = "vmnet_end_address"
+VMNET_MAC_ADDRESS = "vmnet_mac_address"
+VMNET_SUBNET_MASK = "vmnet_subnet_mask"
+VMNET_MAX_PACKET_SIZE = "vmnet_max_packet_size"
+
+# Network info keys (--network mode only)
+NET_IPV4_SUBNET = "net_ipv4_subnet"
+NET_IPV4_MASK = "net_ipv4_mask"
+NET_IPV6_PREFIX = "net_ipv6_prefix"
+NET_IPV6_PREFIX_LEN = "net_ipv6_prefix_len"
 
 
 class Helper:
