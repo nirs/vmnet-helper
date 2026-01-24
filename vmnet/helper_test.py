@@ -242,7 +242,11 @@ def arp_resolve(h, sock, timeout=1.0):
         except socket.timeout:
             continue
         reply = Ether(response)
-        if reply.haslayer(ARP) and reply[ARP].op == ARP_REPLY and reply[ARP].psrc == gateway_ip:
+        if (
+            reply.haslayer(ARP)
+            and reply[ARP].op == ARP_REPLY
+            and reply[ARP].psrc == gateway_ip
+        ):
             elapsed = time.monotonic() - start
             log.info("Got ARP reply in %.6f seconds", elapsed)
             return reply[ARP].hwsrc
@@ -262,7 +266,11 @@ def ping(h, sock, gateway_mac, target_ip, timeout=1.0):
     # address is used by a VM, but this is very unlikely.
     my_ip = h.interface[END_ADDRESS]
 
-    request = Ether(dst=gateway_mac, src=my_mac) / IP(src=my_ip, dst=target_ip) / ICMP(type=ICMP_ECHO_REQUEST)
+    request = (
+        Ether(dst=gateway_mac, src=my_mac)
+        / IP(src=my_ip, dst=target_ip)
+        / ICMP(type=ICMP_ECHO_REQUEST)
+    )
     sock.send(bytes(request))
     log.info("Sent ICMP echo request to %s", target_ip)
 

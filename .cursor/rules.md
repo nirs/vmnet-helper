@@ -13,6 +13,7 @@
 - Keep changes small to make human review easy and avoid mistakes
 - Update documentation if needed
 - Avoid unrelated changes (spelling, whitespace, etc.)
+- Run `black` after modifying Python code to maintain consistent formatting
 
 ## Building
 
