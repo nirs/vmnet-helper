@@ -1,6 +1,16 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
+[tool.pytest.ini_options]
+# Use *_test.py naming convention for easier tab completion
+python_files = "*_test.py"
+python_classes = "Test*"
+python_functions = "test_*"
+# Show extra test summary info for all except passed
+addopts = "-ra"
+# Shorter log format for live logs
+log_cli_format = "%(name)s: %(message)s"
+
 [tool.basedpyright]
 typeCheckingMode = "standard"
 
