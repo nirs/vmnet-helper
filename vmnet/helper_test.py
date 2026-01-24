@@ -25,6 +25,7 @@ import contextlib
 import ipaddress
 import logging
 import os
+import platform
 import socket
 import time
 from types import SimpleNamespace
@@ -45,6 +46,9 @@ from .helper import (
     VMNET_SUBNET_MASK,
 )
 
+# Enable broker tests on macOS >= 26
+MACOS_26 = int(platform.mac_ver()[0].split(".")[0]) >= 26
+
 
 # ARP operation codes (RFC 826)
 # https://www.iana.org/assignments/arp-parameters/arp-parameters.xhtml
@@ -57,6 +61,18 @@ ICMP_ECHO_REQUEST = 8
 ICMP_ECHO_REPLY = 0
 
 log = logging.getLogger("test")
+
+
+def broker_installed():
+    """
+    Check if vmnet-broker is installed.
+
+    This is not entirely correct since the plist may be installed but the
+    broker may be unloaded. The correct check requires sudo (launchctl print),
+    and we don't want to force developers to use sudo for running the tests.
+    """
+    return os.path.exists("/Library/LaunchDaemons/com.github.nirs.vmnet-broker.plist")
+
 
 # --- Tests ---
 
@@ -152,6 +168,72 @@ class TestConnectivity:
         with run_helper(operation_mode="shared") as (h, sock):
             gateway_mac = arp_resolve(h, sock)
             retry(ping_any, h, sock, gateway_mac, external_ips)
+
+
+# On macOS >= 26 we can test also the --network option.
+if MACOS_26:
+
+    @pytest.mark.skipif(not broker_installed(), reason="vmnet-broker not installed")
+    class TestNetworkStart:
+        """
+        Test starting helper with --network option (macOS 26 only)
+        """
+
+        def test_shared_network(self):
+            """
+            Test starting helper with shared network
+            """
+            with run_helper(network_name="shared") as (h, sock):
+                self.check_interface(h.interface)
+
+        def test_host_network(self):
+            """
+            Test starting helper with host network
+            """
+            with run_helper(network_name="host") as (h, sock):
+                self.check_interface(h.interface)
+
+        def check_interface(self, interface):
+            # Address keys are not available in --network mode.
+            assert VMNET_MAC_ADDRESS in interface
+            assert VMNET_MAX_PACKET_SIZE in interface
+            # Network info keys
+            assert NET_IPV4_SUBNET in interface
+            assert NET_IPV4_MASK in interface
+            assert NET_IPV6_PREFIX in interface
+            assert NET_IPV6_PREFIX_LEN in interface
+
+    @pytest.mark.skipif(not broker_installed(), reason="vmnet-broker not installed")
+    class TestNetworkConnectivity:
+        """
+        Test network connectivity with --network option (macOS 26 only)
+        """
+
+        def test_arp_gateway(self):
+            """
+            Test ARP resolution to gateway
+            """
+            with run_helper(network_name="shared") as (h, sock):
+                gateway_mac = arp_resolve(h, sock)
+                assert gateway_mac is not None
+
+        def test_ping_gateway(self):
+            """
+            Test ICMP ping to gateway
+            """
+            with run_helper(network_name="shared") as (h, sock):
+                gateway_mac = arp_resolve(h, sock)
+                gateway_ip = find_gateway_ip(h.interface)
+                ping(h, sock, gateway_mac, gateway_ip)
+
+        def test_ping_external_via_nat(self):
+            """
+            Test ICMP ping to external IP via NAT
+            """
+            external_ips = ["1.1.1.1", "8.8.8.8"]
+            with run_helper(network_name="shared") as (h, sock):
+                gateway_mac = arp_resolve(h, sock)
+                retry(ping_any, h, sock, gateway_mac, external_ips)
 
 
 # --- Helper runner ---
