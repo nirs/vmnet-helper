@@ -68,7 +68,8 @@ struct version {
     int point;
 };
 
-struct network_info {
+struct network {
+    vmnet_network_ref ref;
     char subnet[INET_ADDRSTRLEN];
     char mask[INET_ADDRSTRLEN];
     char ipv6_prefix[INET6_ADDRSTRLEN];
@@ -333,7 +334,10 @@ static void start_interface_with_options(void)
 // These are only available when building with macOS 26+ SDK.
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 
-static void network_info(vmnet_network_ref network, struct network_info *info) {
+static void network_init(struct network *net, vmnet_network_ref ref)
+{
+    net->ref = ref;
+
     struct in_addr subnet;
     struct in_addr mask;
     struct in6_addr ipv6_prefix;
@@ -341,19 +345,27 @@ static void network_info(vmnet_network_ref network, struct network_info *info) {
     // Runtime check required by clang for macOS 26+ APIs.
     // check_os_version() already verified we're on macOS 26+.
     if (__builtin_available(macOS 26.0, *)) {
-        vmnet_network_get_ipv4_subnet(network, &subnet, &mask);
-        vmnet_network_get_ipv6_prefix(network, &ipv6_prefix, &info->prefix_len);
+        vmnet_network_get_ipv4_subnet(ref, &subnet, &mask);
+        vmnet_network_get_ipv6_prefix(ref, &ipv6_prefix, &net->prefix_len);
     } else {
         assert(0 && "unreachable");
     }
 
-    inet_ntop(AF_INET, &subnet, info->subnet, INET_ADDRSTRLEN);
-    inet_ntop(AF_INET, &mask, info->mask, INET_ADDRSTRLEN);
-    inet_ntop(AF_INET6, &ipv6_prefix, info->ipv6_prefix, INET6_ADDRSTRLEN);
+    inet_ntop(AF_INET, &subnet, net->subnet, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET, &mask, net->mask, INET_ADDRSTRLEN);
+    inet_ntop(AF_INET6, &ipv6_prefix, net->ipv6_prefix, INET6_ADDRSTRLEN);
+}
+
+static void network_destroy(struct network *net)
+{
+    if (net->ref != NULL) {
+        CFRelease(net->ref);
+        net->ref = NULL;
+    }
 }
 
 // Acquire network from vmnet-broker.
-static vmnet_network_ref acquire_network_from_broker(void)
+static void acquire_network_from_broker(struct network *net)
 {
     DEBUGF("[main] acquiring network \"%s\" from vmnet-broker", options.network_name);
 
@@ -376,9 +388,9 @@ static vmnet_network_ref acquire_network_from_broker(void)
     // Runtime check required by clang for macOS 26+ APIs.
     // check_os_version() already verified we're on macOS 26+.
     vmnet_return_t vmnet_status;
-    vmnet_network_ref network;
+    vmnet_network_ref ref;
     if (__builtin_available(macOS 26.0, *)) {
-        network = vmnet_network_create_with_serialization(
+        ref = vmnet_network_create_with_serialization(
             serialization, &vmnet_status
         );
     } else {
@@ -386,22 +398,19 @@ static vmnet_network_ref acquire_network_from_broker(void)
     }
     xpc_release(serialization);
 
-    if (network == NULL) {
+    if (ref == NULL) {
         ERRORF("[main] failed to create network: %s",
                host_strerror(vmnet_status));
         exit(EXIT_FAILURE);
     }
 
-    struct network_info info;
-    network_info(network, &info);
+    network_init(net, ref);
     DEBUGF("[main] created network subnet '%s' mask '%s' ipv6_prefix '%s' prefix_len %d",
-           info.subnet, info.mask, info.ipv6_prefix, info.prefix_len);
-
-    return network;
+           net->subnet, net->mask, net->ipv6_prefix, net->prefix_len);
 }
 
 // Start interface with a network.
-static void start_interface_with_network(vmnet_network_ref network)
+static void start_interface_with_network(struct network *net)
 {
     DEBUGF("[main] starting interface with network "
            "enable-tso %s enable-checksum-offload %s enable-isolation %s",
@@ -425,7 +434,7 @@ static void start_interface_with_network(vmnet_network_ref network)
     // check_os_version() already verified we're on macOS 26+.
     if (__builtin_available(macOS 26.0, *)) {
         interface = vmnet_interface_start_with_network(
-                network, interface_desc, host.queue, ^(vmnet_return_t status, xpc_object_t param) {
+                net->ref, interface_desc, host.queue, ^(vmnet_return_t status, xpc_object_t param) {
             if (status != VMNET_SUCCESS) {
                 ERRORF("[main] vmnet_interface_start_with_network: %s",
                        host_strerror(status));
@@ -457,9 +466,10 @@ static void start_host_interface(void)
 
     if (options.network_name != NULL) {
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
-        vmnet_network_ref network = acquire_network_from_broker();
-        start_interface_with_network(network);
-        CFRelease(network);
+        struct network net = {0};
+        acquire_network_from_broker(&net);
+        start_interface_with_network(&net);
+        network_destroy(&net);
 #else
         ERROR("[main] --network requires macOS 26 SDK");
         exit(EXIT_FAILURE);
