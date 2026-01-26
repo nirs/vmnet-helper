@@ -69,9 +69,6 @@ struct version {
 };
 
 struct network {
-#if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
-    vmnet_network_ref ref;
-#endif
     char subnet[INET_ADDRSTRLEN];
     char mask[INET_ADDRSTRLEN];
     char ipv6_prefix[INET6_ADDRSTRLEN];
@@ -204,7 +201,7 @@ static void trigger_shutdown(int flags)
 // Write interface info as JSON to stdout.
 // param: vmnet interface parameters from vmnet_start_interface callback
 // net: network info from vmnet-broker, NULL unless using --network
-static void write_interface_info(xpc_object_t param, struct network *net)
+static void write_interface_info(xpc_object_t param, const struct network *net)
 {
     __block int count = 0;
 
@@ -348,10 +345,8 @@ static void start_interface_with_options(void)
 // TODO: Extract to network.c and compile only on macOS 26+.
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 
-static void network_init(struct network *net, vmnet_network_ref ref)
+static void network_from_ref(vmnet_network_ref ref, struct network *net)
 {
-    net->ref = ref;
-
     struct in_addr subnet;
     struct in_addr mask;
     struct in6_addr ipv6_prefix;
@@ -370,16 +365,8 @@ static void network_init(struct network *net, vmnet_network_ref ref)
     inet_ntop(AF_INET6, &ipv6_prefix, net->ipv6_prefix, INET6_ADDRSTRLEN);
 }
 
-static void network_destroy(struct network *net)
-{
-    if (net->ref != NULL) {
-        CFRelease(net->ref);
-        net->ref = NULL;
-    }
-}
-
 // Acquire network from vmnet-broker.
-static void acquire_network_from_broker(struct network *net)
+static vmnet_network_ref acquire_network_from_broker(void)
 {
     DEBUGF("[main] acquiring network \"%s\" from vmnet-broker", options.network_name);
 
@@ -418,16 +405,21 @@ static void acquire_network_from_broker(struct network *net)
         exit(EXIT_FAILURE);
     }
 
-    network_init(net, ref);
-    DEBUGF("[main] created network subnet '%s' mask '%s' ipv6_prefix '%s' prefix_len %d",
-           net->subnet, net->mask, net->ipv6_prefix, net->prefix_len);
+    return ref;
 }
 
 // Start interface with a network.
-static void start_interface_with_network(struct network *net)
+static void start_interface_with_network(vmnet_network_ref ref)
 {
-    DEBUGF("[main] starting interface with network "
-           "enable-tso %s enable-checksum-offload %s enable-isolation %s",
+    struct network net;
+    network_from_ref(ref, &net);
+
+    DEBUGF("[main] starting interface with network subnet '%s' mask '%s' ipv6_prefix '%s' "
+           "prefix_len %d enable-tso %s enable-checksum-offload %s enable-isolation %s",
+           net.subnet,
+           net.mask,
+           net.ipv6_prefix,
+           net.prefix_len,
            options.enable_tso ? "true" : "false",
            options.enable_checksum_offload ? "true" : "false",
            options.enable_isolation ? "true" : "false");
@@ -448,14 +440,14 @@ static void start_interface_with_network(struct network *net)
     // check_os_version() already verified we're on macOS 26+.
     if (__builtin_available(macOS 26.0, *)) {
         interface = vmnet_interface_start_with_network(
-                net->ref, interface_desc, host.queue, ^(vmnet_return_t status, xpc_object_t param) {
+                ref, interface_desc, host.queue, ^(vmnet_return_t status, xpc_object_t param) {
             if (status != VMNET_SUCCESS) {
                 ERRORF("[main] vmnet_interface_start_with_network: %s",
                        host_strerror(status));
                 exit(EXIT_FAILURE);
             }
 
-            write_interface_info(param, net);
+            write_interface_info(param, &net);
             max_packet_size = xpc_dictionary_get_uint64(param, vmnet_max_packet_size_key);
             dispatch_semaphore_signal(completed);
         });
@@ -480,10 +472,9 @@ static void start_host_interface(void)
 
     if (options.network_name != NULL) {
 #if __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
-        struct network net = {0};
-        acquire_network_from_broker(&net);
-        start_interface_with_network(&net);
-        network_destroy(&net);
+        vmnet_network_ref ref = acquire_network_from_broker();
+        start_interface_with_network(ref);
+        CFRelease(ref);
 #else
         ERROR("[main] --network requires macOS 26 SDK");
         exit(EXIT_FAILURE);
