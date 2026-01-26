@@ -17,14 +17,20 @@ alwaysApply: true
 - Do the minimal change needed, no extra code that is not needed right now
 - Keep changes small to make human review easy and avoid mistakes
 - Update documentation if needed
+- Use proper punctuation in comments (end sentences with periods)
 - Avoid unrelated changes (spelling, whitespace, etc.)
 - Run `black` after modifying Python code to maintain consistent formatting
 
 ## Building
 
-- Use `./build.sh buid-dir` to build a release tarball
+- Use `./build.sh build` to build a release tarball
 - Use `meson compile -C build/{arch}` for quick build for current architecture
 - Never use direct `clang` commands that would create `.o` or `.d` files in the source directory
+
+## Running tests
+
+- Run `pytest` to verify all tests pass
+- Running specific tests (e.g., `pytest -k test_name`) is fine for quick local verification
 
 ## File organization
 
@@ -34,6 +40,14 @@ alwaysApply: true
 ## Error handling
 
 - Check existing code for error handling conventions
+
+## Git workflow
+
+- NEVER commit directly to main branch.
+- NEVER push to GitHub without user review.
+- Keep commits small and focused.
+- For unrelated changes, create a new branch from main.
+- Avoid complicated git operations. The user can rebase later.
 
 ## Commit messages
 
