@@ -5,17 +5,17 @@
 name: Integration
 
 on:
-  # Start after Test workflow begins running, giving it priority for runners.
-  workflow_run:
-    workflows: ["Test"]
-    types: [in_progress]
+  pull_request:
+  push:
+    branches:
+    - main
   schedule:
     - cron: '0 3 * * 0' # Runs job at 3AM every sunday
 
 # Cancel in-progress workflow when PR is updated.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_branch }}
-  cancel-in-progress: ${{ github.event.workflow_run.event == 'pull_request' }}
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
