@@ -427,7 +427,7 @@ static void start_interface_with_network(vmnet_network_ref ref)
     // Build interface descriptor with compatible options.
     // NOTE: vmnet_interface_id_key is ignored silently and we get a random MAC
     // address.
-    // TODO: Disable allocation of mac address - in this more the user need to
+    // TODO: Disable allocation of mac address - in this mode the user need to
     // generate the address.
     xpc_object_t interface_desc = xpc_dictionary_create(NULL, NULL, 0);
     xpc_dictionary_set_bool(interface_desc, vmnet_enable_tso_key, options.enable_tso);
