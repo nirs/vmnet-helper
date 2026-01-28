@@ -12,6 +12,11 @@ on:
   schedule:
     - cron: '0 3 * * 0' # runs job at 3AM every sunday
 
+# Cancel in-progress workflow when PR is updated.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 permissions:
   contents: read
 
@@ -54,6 +59,11 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest -v --log-cli-level=INFO
+
+  integration:
+    needs: test
+    if: ${{ !cancelled() }}  # Run even if test failed, skip if cancelled
+    uses: ./.github/workflows/integration.yaml
 
   reproducibility:
     name: Reproducibility
