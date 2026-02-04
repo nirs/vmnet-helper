@@ -501,6 +501,7 @@ pytest -v
 
 ## Documentation
 
+- [Architecture](docs/architecture.md)
 - [How to create a release](docs/release.md)
 
 ## License
