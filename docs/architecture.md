@@ -18,20 +18,14 @@ network, the host, and the internet (via NAT in shared mode). The bridge is
 created automatically when the first vmnet interface is created and removed
 when the last interface is destroyed.
 
-VM tools such as QEMU provide virtual network devices backed by a file
-descriptor. To connect a VM to vmnet, the application reads and writes packets
-on one end of the socketpair and calls the vmnet APIs (vmnet_read, vmnet_write)
-on the other. For example, QEMU's `-netdev vmnet-shared` mode does this directly.
+VM tools such as QEMU can use vmnet directly. For example, QEMU's
+`-netdev vmnet-shared` mode creates the vmnet interface and copies packets
+between the VM and vmnet internally.
 
 ```mermaid
 flowchart TB
   subgraph qemu["QEMU"]
     vm1["vm 192.168.105.2"]
-    fd1["fd"]
-    fd2["fd"]
-
-    vm1 <--> fd1
-    fd1 <--> fd2
   end
 
   subgraph vmnet
@@ -120,8 +114,8 @@ flowchart TB
     vmnet2 <--> bridge
   end
 
-  helper1 <--> vmnet1
-  helper2 <--> vmnet2
+  helper1 <-->|"forward packets"| vmnet1
+  helper2 <-->|"forward packets"| vmnet2
 ```
 
 - **minikube**: Starts vfkit and vmnet-helper internally, connecting them via a socketpair.
@@ -194,10 +188,10 @@ flowchart TB
     vmnet2 <--> bridge
   end
 
-  vm1 <--> vmnet1
+  vm1 <-->|"native packet forwarding"| vmnet1
   vm1 -->|"acquire network"| vmnet-broker
 
-  helper1 <--> vmnet2
+  helper1 <-->|"forward packets"| vmnet2
   helper1 -->|"acquire network"| vmnet-broker
 
   vmnet-broker --> vmnet
