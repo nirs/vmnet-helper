@@ -24,4 +24,4 @@ from .vm import (
     VM,
     DRIVERS,
 )
-from .mac import mac_address_from
+from .mac import address_from as mac_address_from
