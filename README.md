@@ -490,13 +490,19 @@ To set up the development environment:
 ```console
 python3 -m venv .venv
 source .venv/bin/activate
-pip install pytest scapy pyyaml
+pip install pytest scapy pyyaml black
 ```
 
 To run the tests:
 
 ```console
 pytest -v
+```
+
+To format Python code:
+
+```console
+./fmt.sh
 ```
 
 ## Documentation
