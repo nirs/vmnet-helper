@@ -416,6 +416,10 @@ static vmnet_network_ref acquire_network_from_broker(void)
 // Start interface with a network.
 static void start_interface_with_network(vmnet_network_ref ref)
 {
+    if (!uuid_is_null(options.interface_id)) {
+        WARN("[main] --interface-id is ignored with --network");
+    }
+
     struct network net;
     network_from_ref(ref, &net);
 
