@@ -189,7 +189,7 @@ class SecondsFormatter(logging.Formatter):
 
 
 def setup_logging():
-    formatter = SecondsFormatter('[%(seconds)8.3f] %(levelname)s %(message)s')
+    formatter = SecondsFormatter("[%(seconds)8.3f] %(levelname)s %(message)s")
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(formatter)
     logging.basicConfig(handlers=[handler], level=logging.INFO)
