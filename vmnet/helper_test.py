@@ -40,6 +40,7 @@ from .helper import (
     NET_IPV6_PREFIX,
     NET_IPV6_PREFIX_LEN,
     VMNET_END_ADDRESS,
+    VMNET_INTERFACE_ID,
     VMNET_MAC_ADDRESS,
     VMNET_MAX_PACKET_SIZE,
     VMNET_START_ADDRESS,
@@ -59,6 +60,8 @@ ARP_REPLY = 2
 # https://www.iana.org/assignments/icmp-parameters/icmp-parameters.xhtml
 ICMP_ECHO_REQUEST = 8
 ICMP_ECHO_REPLY = 0
+
+VM_NAME = "test"
 
 log = logging.getLogger("test")
 
@@ -131,6 +134,8 @@ class TestStart:
             self.check_interface(h.interface)
 
     def check_interface(self, interface):
+        expected_id = helper.interface_id_from(VM_NAME)
+        assert interface[VMNET_INTERFACE_ID].lower() == expected_id.lower()
         assert VMNET_MAC_ADDRESS in interface
         assert VMNET_START_ADDRESS in interface
         assert VMNET_END_ADDRESS in interface
@@ -241,7 +246,7 @@ if MACOS_26:
 
 @contextlib.contextmanager
 def run_helper(
-    vm_name="test",
+    vm_name=VM_NAME,
     operation_mode=None,
     start_address=None,
     end_address=None,

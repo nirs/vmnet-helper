@@ -37,6 +37,7 @@ VMNET_START_ADDRESS = "vmnet_start_address"
 VMNET_END_ADDRESS = "vmnet_end_address"
 VMNET_MAC_ADDRESS = "vmnet_mac_address"
 VMNET_SUBNET_MASK = "vmnet_subnet_mask"
+VMNET_INTERFACE_ID = "vmnet_interface_id"
 VMNET_MAX_PACKET_SIZE = "vmnet_max_packet_size"
 
 # Network info keys (--network mode only)
