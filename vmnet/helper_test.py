@@ -133,6 +133,16 @@ class TestStart:
         ) as (h, sock):
             self.check_interface(h.interface)
 
+    def test_no_interface_id(self):
+        """
+        Test starting helper without --interface-id. vmnet should assign
+        a new interface identifier and MAC address.
+        """
+        with run_helper(generate_interface_id=False) as (h, sock):
+            assert VMNET_INTERFACE_ID in h.interface
+            assert VMNET_MAC_ADDRESS in h.interface
+            assert VMNET_MAX_PACKET_SIZE in h.interface
+
     def check_interface(self, interface):
         expected_id = helper.interface_id_from(VM_NAME)
         assert interface[VMNET_INTERFACE_ID].lower() == expected_id.lower()
@@ -255,6 +265,7 @@ def run_helper(
     network_name=None,
     enable_isolation=False,
     enable_offloading=False,
+    generate_interface_id=True,
     verbose=True,
     privileged=helper.requires_root(),
 ):
@@ -286,7 +297,11 @@ def run_helper(
 
     host_sock, vm_sock = helper.socketpair()
     try:
-        h = helper.Helper(args, fd=vm_sock.fileno())
+        h = helper.Helper(
+            args,
+            fd=vm_sock.fileno(),
+            generate_interface_id=generate_interface_id,
+        )
         h.start()
         assert h.interface is not None  # Set by start()
         try:

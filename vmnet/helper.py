@@ -48,7 +48,7 @@ NET_IPV6_PREFIX_LEN = "net_ipv6_prefix_len"
 
 
 class Helper:
-    def __init__(self, args, fd=None, socket=None):
+    def __init__(self, args, fd=None, socket=None, generate_interface_id=True):
         # Configuration
         self.fd = fd
         self.socket = socket
@@ -63,6 +63,7 @@ class Helper:
         self.enable_offloading = args.enable_offloading
         self.verbose = args.verbose
         self.privileged = args.privileged
+        self.generate_interface_id = generate_interface_id
 
         # Running state.
         self.proc = None
@@ -72,12 +73,19 @@ class Helper:
         """
         Starts vmnet-helper with fd or socket.
         """
-        interface_id = interface_id_from(self.vm_name)
-        logging.info(
-            "Starting vmnet-helper for '%s' with interface id '%s'",
-            self.vm_name,
-            interface_id,
-        )
+        if self.generate_interface_id and not self.network_name:
+            interface_id = interface_id_from(self.vm_name)
+            logging.info(
+                "Starting vmnet-helper for '%s' with interface id '%s'",
+                self.vm_name,
+                interface_id,
+            )
+        else:
+            interface_id = None
+            logging.info(
+                "Starting vmnet-helper for '%s'",
+                self.vm_name,
+            )
         cmd = self._build_command(interface_id)
 
         vm_home = store.vm_path(self.vm_name)
@@ -97,6 +105,7 @@ class Helper:
                 raise RuntimeError("No response from helper")
 
             self.interface = json.loads(reply)
+            logging.debug("interface: %s", self.interface)
         except:
             self.stop()
             raise
@@ -118,7 +127,8 @@ class Helper:
         else:
             raise ValueError("fd or socket required")
 
-        cmd.append(f"--interface-id={interface_id}")
+        if interface_id is not None:
+            cmd.append(f"--interface-id={interface_id}")
 
         if self.network_name:
             cmd.append(f"--network={self.network_name}")
