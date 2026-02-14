@@ -430,11 +430,11 @@ static void start_interface_with_network(vmnet_network_ref ref)
            options.enable_isolation ? "true" : "false");
 
     // Build interface descriptor with compatible options.
-    // NOTE: vmnet_interface_id_key is ignored silently and we get a random MAC
-    // address.
-    // TODO: Disable allocation of mac address - in this mode the user need to
-    // generate the address.
+    // NOTE: vmnet_allocate_mac_address_key is ignored on macOS 26.2 and vmnet
+    // still generates a random MAC address. The caller should generate a
+    // stable MAC address from the VM name.
     xpc_object_t interface_desc = xpc_dictionary_create(NULL, NULL, 0);
+    xpc_dictionary_set_bool(interface_desc, vmnet_allocate_mac_address_key, false);
     xpc_dictionary_set_bool(interface_desc, vmnet_enable_tso_key, options.enable_tso);
     xpc_dictionary_set_bool(interface_desc, vmnet_enable_checksum_offload_key, options.enable_checksum_offload);
     xpc_dictionary_set_bool(interface_desc, vmnet_enable_isolation_key, options.enable_isolation);
