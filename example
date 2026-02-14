@@ -251,7 +251,7 @@ def run_with_client(args):
     """
     Use vmnet-client to run a vm with fd.
     """
-    vm = vmnet.VM(args, vmnet.random_mac_address(), fd=4, client=vmnet.CLIENT)
+    vm = vmnet.VM(args, vmnet.mac_address_from(args.vm_name), fd=4, client=vmnet.CLIENT)
     vm.start()
     try:
         vm.wait_for_ip_address(timeout=args.timeout)

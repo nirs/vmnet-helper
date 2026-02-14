@@ -24,4 +24,4 @@ from .vm import (
     VM,
     DRIVERS,
 )
-from .mac import random_mac_address
+from .mac import mac_address_from
