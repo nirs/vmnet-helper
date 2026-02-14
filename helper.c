@@ -258,8 +258,10 @@ static const char *mode_name(operating_modes_t mode)
 // Start interface with the specified operation mode and options.
 static void start_interface_with_options(void)
 {
-    char interface_id[37];
-    uuid_unparse(options.interface_id, interface_id);
+    char interface_id[37] = "(unset)";
+    if (!uuid_is_null(options.interface_id)) {
+        uuid_unparse(options.interface_id, interface_id);
+    }
 
     switch (options.operation_mode) {
     case VMNET_SHARED_MODE:
@@ -297,7 +299,10 @@ static void start_interface_with_options(void)
     }
 
     xpc_object_t desc = xpc_dictionary_create(NULL, NULL, 0);
-    xpc_dictionary_set_uuid(desc, vmnet_interface_id_key, options.interface_id);
+
+    if (!uuid_is_null(options.interface_id)) {
+        xpc_dictionary_set_uuid(desc, vmnet_interface_id_key, options.interface_id);
+    }
     xpc_dictionary_set_uint64(desc, vmnet_operation_mode_key, options.operation_mode);
 
     switch (options.operation_mode) {
