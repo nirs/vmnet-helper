@@ -82,6 +82,20 @@ jobs:
           ./build.sh repro
           diffoscope build/vmnet-helper.tar.gz repro/vmnet-helper.tar.gz
 
+  formatting:
+    name: Formatting
+    runs-on: macos-26
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Check formatting
+        run: |
+          python3 -m venv .venv
+          source .venv/bin/activate
+          pip install black
+          ./fmt.sh
+          git diff --exit-code
+
   spelling:
     name: Spelling
     runs-on: macos-26
