@@ -321,6 +321,18 @@ def run_helper(
 def arp_resolve(h, sock, timeout=1.0):
     """
     Send ARP request to gateway and return gateway MAC address.
+
+    This serves two purposes:
+    1. We learn the gateway's MAC so we can address Ethernet frames to it.
+    2. The gateway learns our MAC and IP so it can route replies back to us.
+       Without this step, the gateway drops our ICMP packets since it has
+       no ARP entry for our IP.
+
+    We use the last IP in the subnet (vmnet_end_address) and assume no VM
+    is using it. We don't check for address conflicts since RFC 5227
+    requires sending 3 ARP probes over ~3 seconds, which would make the
+    tests too slow. A conflict is very unlikely since we use the last
+    address in the subnet.
     """
     gateway_ip = find_gateway_ip(h.interface)
     my_mac = h.interface[VMNET_MAC_ADDRESS]
@@ -423,8 +435,9 @@ def find_my_ip(interface):
     """
     Return usable IP for this client, supporting both modes.
 
-    NOTE: works in CI when the network is empty, may not work locally if the
-    address is used by a VM, but this is very unlikely.
+    Uses the last IP in the subnet. This assumes no VM is using this address,
+    which works in CI when the network is empty. May conflict locally if a VM
+    happens to use the same address, but this is very unlikely.
     """
     if VMNET_END_ADDRESS in interface:
         return interface[VMNET_END_ADDRESS]
