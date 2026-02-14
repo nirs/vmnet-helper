@@ -10,6 +10,7 @@ import socket
 import subprocess
 import uuid
 
+from . import mac
 from . import store
 
 PREFIX = "/opt/vmnet-helper"
@@ -105,6 +106,10 @@ class Helper:
                 raise RuntimeError("No response from helper")
 
             self.interface = json.loads(reply)
+
+            if self.network_name:
+                self.interface[VMNET_MAC_ADDRESS] = mac.address_from(self.vm_name)
+
             logging.debug("interface: %s", self.interface)
         except:
             self.stop()

@@ -34,6 +34,7 @@ import pytest
 from scapy.all import ARP, ICMP, IP, Ether  # type: ignore[import-untyped]
 
 from . import helper
+from . import mac
 from .helper import (
     NET_IPV4_MASK,
     NET_IPV4_SUBNET,
@@ -209,8 +210,9 @@ if MACOS_26:
                 self.check_interface(h.interface)
 
         def check_interface(self, interface):
-            # Address keys are not available in --network mode.
-            assert VMNET_MAC_ADDRESS in interface
+            # In --network mode the MAC address is generated from the VM name.
+            expected_mac = mac.address_from(VM_NAME)
+            assert interface[VMNET_MAC_ADDRESS] == expected_mac
             assert VMNET_MAX_PACKET_SIZE in interface
             # Network info keys
             assert NET_IPV4_SUBNET in interface

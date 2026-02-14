@@ -4,7 +4,7 @@
 import hashlib
 
 
-def mac_address_from(name):
+def address_from(name):
     """
     Return locally administered unicast MAC address generated from the VM name.
     This ensures the same VM always gets the same MAC address.
