@@ -23,7 +23,6 @@ VMNET_OFFLOAD_AUTO = {
 
 
 def main():
-    setup_logging()
     shared_interfaces = vmnet.shared_interfaces()
     p = argparse.ArgumentParser(description="Run virtual machine using vmnet-helper")
 
@@ -144,6 +143,7 @@ def main():
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
 
     args = p.parse_args()
+    setup_logging(args.verbose)
 
     if args.network_name:
         if args.operation_mode:
@@ -188,11 +188,12 @@ class SecondsFormatter(logging.Formatter):
         return super().format(record)
 
 
-def setup_logging():
+def setup_logging(verbose=False):
     formatter = SecondsFormatter("[%(seconds)8.3f] %(levelname)s %(message)s")
     handler = logging.StreamHandler(stream=sys.stdout)
     handler.setFormatter(formatter)
-    logging.basicConfig(handlers=[handler], level=logging.INFO)
+    level = logging.DEBUG if verbose else logging.INFO
+    logging.basicConfig(handlers=[handler], level=level)
 
 
 def run_with_fd(args):
