@@ -185,6 +185,25 @@ class TestConnectivity:
             gateway_mac = arp_resolve(h, sock)
             retry(ping_any, h, sock, gateway_mac, external_ips)
 
+    def test_partial_dhcp_range(self):
+        """
+        Test that vmnet accepts a DHCP range smaller than the full subnet,
+        and that both gateway and NAT traffic work. This allows reserving
+        addresses above --end-address for static assignment via /etc/bootptab.
+        """
+        external_ips = ["1.1.1.1", "8.8.8.8"]
+        with run_helper(
+            operation_mode="shared",
+            start_address="192.168.200.1",
+            end_address="192.168.200.200",
+            subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.200"
+            gateway_mac = arp_resolve(h, sock)
+            gateway_ip = find_gateway_ip(h.interface)
+            ping(h, sock, gateway_mac, gateway_ip)
+            retry(ping_any, h, sock, gateway_mac, external_ips)
+
 
 # On macOS >= 26 we can test also the --network option.
 if MACOS_26:
