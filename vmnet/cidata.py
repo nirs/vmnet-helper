@@ -4,7 +4,6 @@
 import glob
 import logging
 import os
-import platform
 import subprocess
 import uuid
 
@@ -12,13 +11,30 @@ import yaml
 
 from . import store
 
-# The serial console device in the guest, used to communicate the guest ip
-# address.
-# TODO: find a way to detect this programmatically instead of hard coding.
-SERIAL_CONSOLE = {
-    "vfkit": {"arm64": "hvc0", "x86_64": "hvc0"},
-    "krunkit": {"arm64": "hvc0", "x86_64": "hvc0"},
-    "qemu": {"arm64": "ttyAMA0", "x86_64": "ttyS0"},
+# Distro-specific package names and optional enable commands.
+PACKAGES = {
+    "avahi": {
+        # Ubuntu auto-enables and starts daemons on package install.
+        "ubuntu": {"name": "avahi-daemon"},
+        "fedora": {
+            "name": "avahi",
+            "runcmd": ["systemctl enable --now avahi-daemon"],
+        },
+        # Alpine needs dbus in the default runlevel — avahi depends on it
+        # but `apk add avahi` does not enable it. Add both to the default
+        # runlevel for subsequent boots. Start dbus explicitly before avahi
+        # because OpenRC dependency resolution does not work during
+        # cloud-init runcmd.
+        "alpine": {
+            "name": "avahi",
+            "runcmd": [
+                "rc-update add dbus",
+                "rc-update add avahi-daemon",
+                "rc-service dbus start",
+                "rc-service avahi-daemon start",
+            ],
+        },
+    },
 }
 
 
@@ -27,7 +43,7 @@ def create_iso(vm):
     Create cloud-init iso image.
 
     We create a new cidata.iso with new instance id for every run to update the
-    vm network configuration and report the vm ip address.
+    vm network configuration and install avahi for mDNS discovery.
     """
     vm_home = store.vm_path(vm.vm_name)
     cidata = os.path.join(vm_home, "cidata.iso")
@@ -61,24 +77,17 @@ def create_user_data(vm):
     """
     Create cloud-init user-data file.
     """
-    serial_console = f"/dev/{SERIAL_CONSOLE[vm.driver][platform.machine()]}"
+    avahi_pkg = PACKAGES["avahi"][vm.distro]
     data = {
         "password": "password",
         "chpasswd": {
             "expire": False,
         },
         "ssh_authorized_keys": public_keys(),
-        "runcmd": [
-            "ip_address=$(ip -4 -j addr show dev vmnet0 | jq -r '.[0].addr_info[0].local')",
-            f'printf "\n{vm.vm_name} address: %s\n" "$ip_address" > "{serial_console}"',
-        ],
+        "packages": [avahi_pkg["name"]],
     }
-
-    # Skip jq install if posisble to minimize startup time in the CI.
-    if vm.distro != "ubuntu":
-        data["packages"] = ["jq"]
-        data["package_update"] = False
-        data["package_upgrade"] = False
+    if "runcmd" in avahi_pkg:
+        data["runcmd"] = avahi_pkg["runcmd"]
 
     path = store.vm_path(vm.vm_name, "user-data")
     with open(path, "w") as f:
@@ -92,7 +101,7 @@ def create_meta_data(vm):
     """
     data = {
         "instance-id": str(uuid.uuid4()),
-        "local-hostname": vm.vm_name,
+        "local-hostname": vm.hostname(),
     }
     path = store.vm_path(vm.vm_name, "meta-data")
     with open(path, "w") as f:

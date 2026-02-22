@@ -4,8 +4,7 @@
 import logging
 import os
 import platform
-import selectors
-import signal
+import socket
 import subprocess
 import time
 
@@ -111,22 +110,56 @@ class VM:
         with open(path, "w") as f:
             f.write(data)
 
+    def hostname(self):
+        """
+        Return the VM hostname, used as cloud-init local-hostname.
+
+        We use "{name}-vmnet-helper" to avoid collisions with other VMs on
+        the host. Dots cannot be used as separators (e.g. "name.vmnet-helper")
+        because avahi strips everything after the first dot and announces
+        only the short name.
+        """
+        return f"{self.vm_name}-vmnet-helper"
+
+    def fqdn(self):
+        """
+        Return the fully qualified mDNS domain name for this VM.
+        """
+        return f"{self.hostname()}.local"
+
     def wait_for_ip_address(self, timeout=60):
         """
-        Lookup the vm ip address in the serial log and write to
-        vm_home/ip-address.
+        Resolve the VM hostname via mDNS and wait until it is reachable.
         """
-        prefix = f"{self.vm_name} address: "
-        for line in tail(self.serial, timeout):
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
             self.check_running()
-            if line.startswith(prefix):
-                self.ip_address = line[len(prefix) :]
-                logging.info("Virtual machine IP address: %s", self.ip_address)
+            ip = self._connect_to_guest(self.fqdn())
+            if ip:
+                self.ip_address = ip
+                logging.info("Virtual machine IP address: %s", ip)
                 self.write_ip_address()
                 ssh.create_config(self)
                 return
+            time.sleep(1)
         self.check_running()
-        logging.warning("Timeout looking up ip address")
+        logging.warning("Timeout waiting for vm to become reachable")
+
+    def _connect_to_guest(self, hostname, port=22):
+        """
+        Resolve hostname and verify the VM is reachable on the SSH port.
+        """
+        try:
+            ip = socket.gethostbyname(hostname)
+        except socket.gaierror as e:
+            logging.debug("mDNS lookup '%s': %s", hostname, e)
+            return None
+        try:
+            with socket.create_connection((ip, port), timeout=1):
+                return ip
+        except OSError as e:
+            logging.debug("Connect %s:%s: %s", ip, port, e)
+            return None
 
     def check_running(self):
         if self.proc.poll() is not None:
@@ -289,42 +322,3 @@ def qemu_firmware(arch):
         if os.path.exists(path):
             return path
     raise RuntimeError(f"Unable to find firmware: {candidates}")
-
-
-def tail(path, timeout):
-    tail = subprocess.Popen(
-        ["tail", "-F", path],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-    )
-    try:
-        partial = bytearray()
-        for data in stream(tail.stdout, timeout):
-            for line in data.splitlines(keepends=True):
-                if not line.endswith(b"\n"):
-                    partial += line
-                    break
-                if partial:
-                    line = bytes(partial) + line
-                    del partial[:]
-                yield line.rstrip().decode()
-        if partial:
-            yield partial.decode()
-    finally:
-        tail.kill()
-        tail.wait()
-
-
-def stream(file, timeout):
-    deadline = time.monotonic() + timeout
-    with selectors.PollSelector() as sel:
-        sel.register(file, selectors.EVENT_READ)
-        while True:
-            remaining = deadline - time.monotonic()
-            if remaining < 0:
-                break
-            for key, _ in sel.select(remaining):
-                data = os.read(key.fd, 1024)
-                if not data:
-                    break
-                yield data
