@@ -1,0 +1,11 @@
+---
+resources:
+- ../base
+patches:
+  - target:
+      kind: Deployment
+      name: iperf3
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/hostNetwork
+        value: true
