@@ -122,6 +122,12 @@ def create_network_config(vm):
                 "set-name": "vmnet0",
                 "dhcp4": True,
                 "dhcp-identifier": "mac",
+                "dhcp4-overrides": {
+                    "use-dns": False,
+                },
+                "nameservers": {
+                    "addresses": ["8.8.8.8", "1.1.1.1"],
+                },
             },
         },
     }
