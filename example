@@ -138,6 +138,14 @@ def main():
         help=f"Linux distro ({distros[0]})",
     )
 
+    p.add_argument(
+        "--dns-servers",
+        metavar="ADDR",
+        type=ip_list,
+        default=["8.8.8.8", "1.1.1.1"],
+        help="Comma-separated DNS servers for the VM (8.8.8.8,1.1.1.1)",
+    )
+
     # Debugging
 
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")
@@ -259,6 +267,11 @@ def run_with_client(args):
         os.wait()
     finally:
         vm.stop()
+
+
+def ip_list(s):
+    # TODO: validate that values are IP addresses.
+    return s.split(",")
 
 
 def cpus(s):
