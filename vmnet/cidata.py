@@ -126,7 +126,7 @@ def create_network_config(vm):
                     "use-dns": False,
                 },
                 "nameservers": {
-                    "addresses": ["8.8.8.8", "1.1.1.1"],
+                    "addresses": vm.dns_servers,
                 },
             },
         },
