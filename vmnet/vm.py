@@ -201,6 +201,7 @@ class VM:
         return cmd
 
     def krunkit_command(self):
+        log_level = "4" if self.verbose else "3"
         cmd = [
             self.driver_command or "krunkit",
             f"--memory={self.memory}",
@@ -209,7 +210,7 @@ class VM:
             f"--device=virtio-blk,path={self.disk['image']}",
             f"--device=virtio-blk,path={self.cidata}",
             f"--device=virtio-serial,logFilePath={self.serial}",
-            "--krun-log-level=3",
+            f"--krun-log-level={log_level}",
             "--device=virtio-rng",
         ]
 
