@@ -77,22 +77,50 @@ struct network {
 
 struct endpoint {
     dispatch_queue_t queue;
-    struct vmpktdesc packets[MAX_PACKET_COUNT];
-    struct msghdr_x msgs[MAX_PACKET_COUNT];
-    struct iovec iovs[MAX_PACKET_COUNT];
+    struct vmpktdesc *packets;
+    struct msghdr_x *msgs;
+    struct iovec *iovs;
     unsigned char *buffers;
+    int max_packet_count;
+    const char *name;
 };
 
-static void init_endpoint(struct endpoint *e, size_t max_packet_size)
+static void init_endpoint(struct endpoint *e, const char *name, size_t max_packet_size)
 {
-    e->buffers = calloc(MAX_PACKET_COUNT, max_packet_size);
+    e->name = name;
+
+    // When using offloading we have huge packets so we can use fewer buffers.
+    e->max_packet_count = max_packet_size >= 64*1024 ? 16 : MAX_PACKET_COUNT;
+
+    DEBUGF("[main] allocating %d packets of %zu bytes for %s",
+            e->max_packet_count, max_packet_size, e->name);
+
+    e->buffers = calloc(e->max_packet_count, max_packet_size);
     if (e->buffers == NULL) {
         ERRORF("[main] calloc: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
+    e->packets = calloc(e->max_packet_count, sizeof(*e->packets));
+    if (e->packets == NULL) {
+        ERRORF("[main] calloc: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    e->msgs = calloc(e->max_packet_count, sizeof(*e->msgs));
+    if (e->msgs == NULL) {
+        ERRORF("[main] calloc: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    e->iovs = calloc(e->max_packet_count, sizeof(*e->iovs));
+    if (e->iovs == NULL) {
+        ERRORF("[main] calloc: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
     // Bind iovs and buffers to packets and msgs - this can be done once.
-    for (int i = 0; i < MAX_PACKET_COUNT; i++) {
+    for (int i = 0; i < e->max_packet_count; i++) {
         struct iovec *iov = &e->iovs[i];
         iov->iov_base = &e->buffers[i * max_packet_size];
 
@@ -716,18 +744,10 @@ static void setup_socket(void)
     // https://github.com/containers/libkrun/blob/57a5a6bfbe5d2333d88fd88fcedb9c1d1fec9cc2/src/devices/src/virtio/net/gvproxy.rs#L113
 }
 
-static void setup_host_buffers(void)
+static void setup_endpoints(void)
 {
-    DEBUGF("[main] allocating %d packets of %zu bytes for host",
-            MAX_PACKET_COUNT, max_packet_size);
-    init_endpoint(&host, max_packet_size);
-}
-
-static void setup_vm_buffers(void)
-{
-    DEBUGF("[main] allocating %d packets of %zu bytes for vm",
-            MAX_PACKET_COUNT, max_packet_size);
-    init_endpoint(&vm, max_packet_size);
+    init_endpoint(&host, "host", max_packet_size);
+    init_endpoint(&vm, "vm", max_packet_size);
 }
 
 static inline size_t host_packets_size(int count)
@@ -750,7 +770,7 @@ static inline size_t vm_msgs_size(int count)
 
 static int read_from_host(void)
 {
-    int count = MAX_PACKET_COUNT;
+    int count = host.max_packet_count;
 
     // Reset packets and iovs - must be done before reading from vmnet.
     for (int i = 0; i < count; i++) {
@@ -894,7 +914,7 @@ static int read_from_vm(void)
     // Fast path - read multiple packets with one syscall.
 
     if (has_bulk_forwarding) {
-        int max_packets = MAX_PACKET_COUNT;
+        int max_packets = vm.max_packet_count;
 
         // Reset iovs - must be done before reading from vm.  recvmsg_x() reads
         // iov_len but does not modify it.
@@ -1094,8 +1114,7 @@ int main(int argc, char **argv)
     start_host_interface();
     drop_privileges();
     setup_socket();
-    setup_host_buffers();
-    setup_vm_buffers();
+    setup_endpoints();
     start_forwarding_from_host();
     start_forwarding_from_vm();
     wait_for_termination();
