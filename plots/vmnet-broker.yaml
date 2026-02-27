@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+# Compare vmnet-helper to native vment
+---
+name: vmnet-helper vs vmnet-broker
+title: vmnet-helper
+networks: [vmnet-helper, vmnet-broker]
+drivers: [vfkit, krunkit, krunkit:offload, native]
+vms: [2]
+operation-modes: [shared]
+tests: [host-to-vm, vm-to-host, vm-to-vm]
