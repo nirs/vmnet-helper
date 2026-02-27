@@ -111,8 +111,8 @@ def main():
         "--cpus",
         metavar="N",
         type=cpus,
-        default=1,
-        help="Number of vpus (1)",
+        default=2,
+        help="Number of vpus (2)",
     )
     p.add_argument(
         "--memory",
