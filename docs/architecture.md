@@ -66,7 +66,7 @@ For QEMU, vmnet-helper allows using vmnet without root.
 
 vmnet-helper also provides up to an order of magnitude better performance
 compared to existing tools like [socket_vmnet] or [gvproxy]. See the
-[performance](../README.md#performance) section for detailed benchmarks.
+[performance](/docs/performance.md) section for detailed benchmarks.
 
 ## How it works
 
