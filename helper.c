@@ -30,12 +30,10 @@
 #include "version.h"
 #include "vmnet-broker.h"
 
-// vmnet_read() can return up to 256 packets. There is no constant in vmnet for
-// this value. https://developer.apple.com/documentation/vmnet?language=objc
-// sendmsg_x() and recvmsg_x() do not document any value but testing show that
-// we can read or write 64 packets in one call.  Tesiting with iperf3 shows
-// that there is no reason to use more than 64.
-#define MAX_PACKET_COUNT 64
+// vmnet_read() can return up to 200 packets and 256 KiB. There is no constant
+// in vmnet for this value. https://developer.apple.com/documentation/vmnet?language=objc.
+// Tesiting with iperf3 shows that there is no reason to use more than 128.
+#define MAX_PACKET_COUNT 128
 
 #define MICROSECOND 1000
 
