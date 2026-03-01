@@ -8,14 +8,34 @@ SPDX-License-Identifier: Apache-2.0
 ## Setup
 
 ```console
+brew install meson qemu
 python3 -m venv .venv
 source .venv/bin/activate
 pip install pytest scapy pyyaml black matplotlib
 ```
 
-## Tests
+## Building
 
 ```console
+./build.sh build
+```
+
+This creates a universal binary (arm64 + x86_64) at `build/vmnet-helper.tar.gz`.
+
+## Installing
+
+To install from a locally built tarball:
+
+```console
+./install.sh build/vmnet-helper.tar.gz
+```
+
+## Tests
+
+To run the tests, activate the virtual environment first:
+
+```console
+source .venv/bin/activate
 pytest -v
 ```
 
@@ -26,6 +46,12 @@ pytest -v
 ```
 
 ## Benchmarking
+
+Activate the virtual environment first:
+
+```console
+source .venv/bin/activate
+```
 
 Create vms for benchmarking:
 
