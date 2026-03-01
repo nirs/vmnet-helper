@@ -29,14 +29,14 @@ pytest -v
 
 Create vms for benchmarking:
 
-```
+```console
 ./bench create
 ```
 
 To run all benchmarks with all drivers and all operation modes and store
 iperf3 results in json format use:
 
-```
+```console
 ./bench run benchmarks/full.yaml
 ```
 
@@ -46,7 +46,7 @@ See the [benchmarks](/benchmarks) directory for additional configurations.
 
 When done you can delete the vms using:
 
-```
+```console
 ./bench delete
 ```
 
@@ -54,7 +54,7 @@ When done you can delete the vms using:
 
 To create plots from benchmark results run:
 
-```
+```console
 ./bench plot -o out plots/drivers.yaml
 ```
 
@@ -78,6 +78,6 @@ test/perf.sh run
 To include socket_vmnet results in the plots copy the test results to
 the output directory:
 
-```
+```console
 cp ~/src/socket_vmnet/test/perf.out/socket_vmnet out/bench/
 ```
