@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Integration
 
-## Starting the interface by passing a file descriptor
+## Starting the helper with a file descriptor
 
 > [!NOTE]
 > This is the most secure way, connecting the vmnet helper and the
@@ -105,7 +105,7 @@ INFO  [main] waiting for termination
 > If you want to recover from failures, restart the helper to create a
 > new unix socket and reconnect.
 
-### Using vmnet-client
+## Starting the helper with vmnet-client
 
 To use the helper from a shell script without using a bound unix socket, you
 can use *vmnet-client*. The client creates a socketpair, and starts the helper
