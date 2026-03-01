@@ -53,7 +53,8 @@ Activate the virtual environment first:
 source .venv/bin/activate
 ```
 
-Create vms for benchmarking:
+Create VMs for benchmarking (see [examples](/docs/examples.md) for
+details on the example tool):
 
 ```console
 ./bench create
