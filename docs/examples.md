@@ -6,7 +6,8 @@ SPDX-License-Identifier: Apache-2.0
 # Examples
 
 The example tool shows how to integrate vmnet-helper with *vfkit* or
-*qemu*.
+*qemu*. See the [integration guide](/docs/integration.md) for all
+available options.
 
 To install the requirements for creating virtual machine using *vfkit*
 *krunkit*, and *qemu* run:

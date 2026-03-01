@@ -10,7 +10,9 @@ all operation modes supported by the vmnet framework (shared, bridged,
 host), in 3 directions (host to vm, vm to host, vm to vm), on 2 machines
 (iMac M3, MacBook Pro M2 Max) running macOS 15.6.1.
 
-See the [performance](/performance) directory for full test results.
+See the [performance](/performance) directory for full test results and
+the [development guide](/docs/development.md#benchmarking) for running
+your own benchmarks.
 
 ## Comparing to socket_vmnet
 
@@ -18,7 +20,8 @@ Comparing to [socket_vmnet](https://github.com/lima-vm/socket_vmnet)
 with [lima](https://github.com/lima-vm/lima) using VZ and qemu vm types,
 vmnet-helper with [vfkit](https://github.com/crc-org/vfkit) is up to *10
 times faster*, and vmnet-helper with [qemu](https://www.qemu.org/) is up
-to *3 times faster*.
+to *3 times faster*. See [similar tools](/docs/similar-tools.md) for a
+detailed comparison.
 
 ![vmnet-helper vs socket_vmnet - shared network](/performance/2025-08/M3/plot/vmnet-helper-vs-socket_vmnet/shared.png)
 ![vmnet-helper vs socket_vmnet - bridged network](/performance/2025-08/M3/plot/vmnet-helper-vs-socket_vmnet/bridged.png)
