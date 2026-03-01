@@ -47,7 +47,7 @@ Example run using jq to pretty print the response:
 > the mac address specified by "vmnet_mac_address". Testing shows that
 > this is not required and any mac address works.
 
-The interface-id option is optional. It ensures that you get the same
+The `--interface-id` option is optional. It ensures that you get the same
 MAC address on every run.
 
 ## Starting the helper with a unix socket
@@ -199,7 +199,7 @@ cases and much worse performance in other cases. See the
   the interface may generate large (64K) TCP frames. It must also be prepared to
   accept large TCP frames as well.
 
-- **-enable-checksum-offload**: Enable checksum offload for this interface. The
+- **--enable-checksum-offload**: Enable checksum offload for this interface. The
   checksums that are offloaded are: IPv4 header checksum, UDP checksum (IPv4 and
   IPv6), and TCP checksum (IPv4 and IPv6).
 
