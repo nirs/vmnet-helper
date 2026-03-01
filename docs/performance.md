@@ -34,7 +34,7 @@ Performance depends on VM type and transfer direction.
 
 ## Offloading
 
-With krunkit we can the vmnet framework offloading options to dramatically
+With krunkit we can use the vmnet framework offloading options to dramatically
 increase performance for vm-to-host and vm-to-vm cases. However using offloading
 also dramatically reduces performance in host-to-vm case. If you have a workload
 that use mostly vm to vm traffic you may benefit from offloading.

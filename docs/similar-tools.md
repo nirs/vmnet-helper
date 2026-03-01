@@ -40,7 +40,7 @@ Detailed list of differences:
   machine.
 - More secure: dropping privileges after starting the vmnet interface
   and running as the real user and group id.
-- Eliminating the need to managed daemons and sockets files shared by
+- Eliminating the need to manage daemons and sockets files shared by
   multiple virtual machines.
 - Works with [vfkit](https://github.com/crc-org/vfkit) using
   `--device=virtio-net,fd=` device.
@@ -55,8 +55,8 @@ Detailed list of differences:
 same vmnet network features, using the same process model - one helper
 process and vmnet interface per virtual machine.
 
-softnet support network isolation and tweaking DHCP server lease
+softnet supports network isolation and tweaking DHCP server lease
 timeout, which are not in scope for vmnet-helper.
 
-sofntnet is released under AGPL license which may be harder to adopt in
+softnet is released under AGPL license which may be harder to adopt in
 your organization.

@@ -48,7 +48,7 @@ Example run using jq to pretty print the response:
 > this is not required and any mac address works.
 
 The interface-id option is optional. It ensures that you get the same
-MAC address on the every run.
+MAC address on every run.
 
 ## Starting the helper with a unix socket
 
@@ -71,7 +71,7 @@ INFO  [main] waiting for client on "/tmp/example/vm/vmnet.sock"
 ```
 
 The helper created a unix datagram socket and waits until a client
-connects and send the first packet.
+connects and sends the first packet.
 
 You can get the mac address for the vm from the vmnet.json:
 
@@ -85,7 +85,7 @@ To connect to the helper from a client, you need to:
 
 1. Create a unix datagram socket
 1. Bind the socket to allow the helper to send packets to your socket
-1. Connect the socket the helper socket
+1. Connect the socket to the helper socket
 
 > [!TIP]
 > In Go the last 2 steps can be done using:
@@ -124,7 +124,7 @@ Example run with *vfkit*:
 > [!IMPORTANT]
 > The command run by *vmnet-client* must use file descriptor 4.
 
-See the [examples](/examples/) for more examples for using *vmnet-client*.
+See the [examples](/examples/) for more examples of using *vmnet-client*.
 
 > [!TIP]
 > On macOS 26 and later, use the `--unprivileged` option to run the
@@ -180,7 +180,7 @@ using this mode you must specify the interface name using
 Required options:
 - **--shared-interface**: The name of the interface to use.
 
-You can find the physical interfaces that can be used in bridged more
+You can find the physical interfaces that can be used in bridged mode
 using the **--list-shared-interfaces** option.
 
 ```console
