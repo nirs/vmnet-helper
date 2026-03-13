@@ -11,10 +11,13 @@ the `com.apple.vm.networking` entitlement.
 
 On macOS 15 and earlier, the helper requires root only to start the
 vmnet interface, then immediately drops privileges and runs as the
-unprivileged user.
+unprivileged user. On macOS 26 and later, root is not required at all.
 
-> [!NOTE]
-> On macOS 26 and later, the helper does not require root privileges.
+> [!TIP]
+> On macOS 26 and later, consider using [vmnet-broker] for native vmnet
+> networking — [up to 9 times faster][native-perf] than vmnet-helper.
+> vmnet-helper is the first VM tool to support vmnet-broker. See the
+> [architecture guide][native-vmnet] for details.
 
 <!-- IMPORTANT: Do not change this heading - external links depend on it -->
 ## Installation
@@ -60,3 +63,7 @@ vmnet-helper without a password. See [sudoers.d](sudoers.d) for more info.
 ## License
 
 vmnet-helper is under the [Apache 2.0 license](/LICENSES/Apache-2.0.txt)
+
+[native-perf]: docs/performance.md#native-vmnet-via-vmnet-broker
+[native-vmnet]: docs/architecture.md#native-vmnet-on-macos-26
+[vmnet-broker]: https://github.com/nirs/vmnet-broker
