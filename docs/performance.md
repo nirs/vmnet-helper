@@ -56,3 +56,17 @@ Tested on iMac M3.
 
 ![vmnet-helper offloading - shared network](/performance/2025-08/M3/plot/offloading/shared.png)
 ![vmnet-helper offloading - bridged network](/performance/2025-08/M3/plot/offloading/bridged.png)
+
+## Native vmnet via vmnet-broker
+
+On macOS 26 and later, VMs using the Virtualization framework can use
+vmnet natively via [vmnet-broker], without vmnet-helper in the data path.
+Native vmnet is up to *2 times faster* compared to krunkit with
+offloading, and up to *9 times faster* compared to krunkit without
+offloading. Only shared network is supported in native vmnet mode.
+
+![vmnet-helper vs vmnet-broker - shared network](/performance/2026-02/M3/plot/vmnet-helper%20vs%20vmnet-broker/shared.png)
+
+Tested on iMac M3 and macOS 26.3.0.
+
+[vmnet-broker]: https://github.com/nirs/vmnet-broker
