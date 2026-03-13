@@ -189,6 +189,44 @@ en10
 en0
 ```
 
+## Network mode (macOS 26)
+
+On macOS 26 and later, vmnet-helper can join a network managed by
+[vmnet-broker] instead of creating its own. This lets VMs using
+vmnet-helper share the same network as VMs using native vmnet via the
+Virtualization framework. See the
+[architecture guide][native-vmnet] for details.
+
+- **--network NAME**: Join the named network managed by vmnet-broker
+  (e.g. "shared"). The broker creates the network on first use and
+  shares it with all requesting processes.
+
+The `--network` option is mutually exclusive with `--operation-mode`,
+`--shared-interface`, `--start-address`, `--end-address`, and
+`--subnet-mask` — the network configuration is owned by the broker.
+The `--interface-id` option is ignored in this mode.
+
+Example using vmnet-helper directly:
+
+```console
+% /opt/vmnet-helper/bin/vmnet-helper \
+       --fd 3 \
+       --network shared
+```
+
+Example using vmnet-client:
+
+```console
+/opt/vmnet-helper/bin/vmnet-client --network shared --unprivileged -- \
+    vfkit \
+    --bootloader=efi,variable-store=efi-variable-store,create \
+    "--device=virtio-blk,path=disk.img" \
+    "--device=virtio-net,fd=4,mac=92:c9:52:b7:6c:08"
+```
+
+> [!NOTE]
+> [vmnet-broker] must be installed and running before using `--network`.
+
 ## Offloading options
 
 These options can be used with krunkit to get much better performance in some
@@ -230,3 +268,6 @@ signal and wait until child process terminates.
 
 The vmnet helper logs to stderr. You can read the logs and integrate
 them in your application logs or redirect them to a file.
+
+[native-vmnet]: /docs/architecture.md#native-vmnet-on-macos-26
+[vmnet-broker]: https://github.com/nirs/vmnet-broker
