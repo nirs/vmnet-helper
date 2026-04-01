@@ -27,7 +27,7 @@ jobs:
           echo "Commit SHA: ${{ github.sha }}"
 
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
