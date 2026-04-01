@@ -3,7 +3,7 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Example for using vmnet-client with vfkit.
+# Example for using vmnet-run with vfkit.
 
 MAC_ADDRESS="92:c9:52:b7:6c:08"
 DISK_IMAGE="disk.img"
@@ -18,7 +18,7 @@ if [ ! -f "$CIDATA_ISO" ]; then
 fi
 
 # Start vfkit and vmnet-helper connected via unix datagram sockets.
-/opt/vmnet-helper/bin/vmnet-client -- \
+/opt/vmnet-helper/bin/vmnet-run -- \
     vfkit \
     --memory=1024 \
     --cpus=1 \

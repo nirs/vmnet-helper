@@ -20,7 +20,7 @@ jobs:
       fail-fast: false
       matrix:
         driver: [vfkit, qemu]
-        connection: [fd, socket, client]
+        connection: [fd, socket, runner]
         exclude:
           - driver: qemu
             connection: socket

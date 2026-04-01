@@ -1,7 +1,7 @@
 # Examples
 
 This directory contains examples for using *vmnet-helper* and
-*vmnet-client*:
+*vmnet-run*:
 
 - [qemu.sh](#qemu.sh)
 - [vfkit.sh](#vfkit.sh)
@@ -12,7 +12,7 @@ This directory contains examples for using *vmnet-helper* and
 ## qemu.sh
 
 This example shows how to start a *QEMU* virtual machine connected to a vmnet
-network interface using the vmnet-client wrapper.
+network interface using the vmnet-run wrapper.
 
 To start the example virtual machine run:
 
@@ -26,7 +26,7 @@ iso image, and starts a *QEMU* virtual machine with both images.
 ## vfkit.sh
 
 This example shows how to start a *vfkit* virtual machine connected to a vmnet
-network interface using the vmnet-client wrapper.
+network interface using the vmnet-run wrapper.
 
 To start the example virtual machine run:
 

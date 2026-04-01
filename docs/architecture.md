@@ -77,9 +77,9 @@ process and the vmnet network.
 
 The program that starts vmnet-helper and the VM connects them using a pair of
 unix datagram sockets. Some programs like [minikube] do this internally. For
-programs that don't, **vmnet-client** is a small supervisor that starts
+programs that don't, **vmnet-run** is a small supervisor that starts
 vmnet-helper and the VM, connects them using a socketpair, and terminates both
-when the client exits.
+when it exits.
 
 ```mermaid
 flowchart TB
@@ -94,7 +94,7 @@ flowchart TB
     fd1 <--> fd2
   end
 
-  subgraph vmnet-client
+  subgraph vmnet-run
     subgraph vm2["QEMU vm 192.168.105.3"]
       fd3["fd"]
     end
@@ -119,7 +119,7 @@ flowchart TB
 ```
 
 - **minikube**: Starts vfkit and vmnet-helper internally, connecting them via a socketpair.
-- **vmnet-client**: A small supervisor that starts QEMU and vmnet-helper, connecting them via a socketpair.
+- **vmnet-run**: A small supervisor that starts QEMU and vmnet-helper, connecting them via a socketpair.
 - **vmnet1, vmnet2**: vmnet interfaces (one per helper), attached to the bridge.
 - **bridge100**: Host bridge for the subnet; typically has the subnet’s gateway IP (e.g. 192.168.105.1).
 
@@ -164,7 +164,7 @@ flowchart TB
   subgraph vm1["vfkit vm 192.168.64.2"]
   end
 
-  subgraph vmnet-client1
+  subgraph vmnet-run1
     subgraph vm2["libkrun vm 192.168.64.3"]
       fd1["fd"]
     end

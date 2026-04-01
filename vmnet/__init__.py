@@ -3,7 +3,7 @@
 
 from .disks import IMAGES
 from .helper import (
-    CLIENT,
+    RUNNER,
     Helper,
     NET_IPV4_MASK,
     NET_IPV4_SUBNET,

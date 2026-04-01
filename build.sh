@@ -12,7 +12,7 @@ for arch in arm64 x86_64; do
     meson compile -C "$build_dir/$arch"
 done
 
-for prog in vmnet-helper vmnet-client; do
+for prog in vmnet-helper vmnet-run; do
     lipo -create "$build_dir/x86_64/$prog" "$build_dir/arm64/$prog" -output "$build_dir/$prog"
 done
 
@@ -28,7 +28,7 @@ rm -rf "$root_dir"
 bin_dir="$root_dir$prefix/bin"
 
 install -v -d -m 0755 "$bin_dir"
-for prog in vmnet-helper vmnet-client; do
+for prog in vmnet-helper vmnet-run; do
     install -v -m 0755 $build_dir/$prog $bin_dir
 done
 

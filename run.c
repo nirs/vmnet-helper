@@ -70,7 +70,7 @@ enum {
 static const char *short_options = ":vh";
 
 static struct option long_options[] = {
-    // vmnet-helper options that can be specified via vmnet-client.
+    // vmnet-helper options that can be specified via vmnet-run.
     {"interface-id",            required_argument,  0,  OPT_INTERFACE_ID},
     {"operation-mode",          required_argument,  0,  OPT_OPERATION_MODE},
     {"shared-interface",        required_argument,  0,  OPT_SHARED_INTERFACE},
@@ -93,12 +93,12 @@ static void usage(int code)
 "\n"
 "Run command with vmnet-helper\n"
 "\n"
-"    vmnet-client [--interface-id UUID] [--operation-mode shared|bridged|host]\n"
-"                 [--start-address ADDR] [--end-address ADDR]\n"
-"                 [--subnet-mask MASK] [--shared-interface NAME]\n"
-"                 [--enable-isolation] [--network NAME] [--unprivileged]\n"
-"                 [-v|--verbose] [--version] [-h|--help]\n"
-"                 -- command ...\n"
+"    vmnet-run [--interface-id UUID] [--operation-mode shared|bridged|host]\n"
+"              [--start-address ADDR] [--end-address ADDR]\n"
+"              [--subnet-mask MASK] [--shared-interface NAME]\n"
+"              [--enable-isolation] [--network NAME] [--unprivileged]\n"
+"              [-v|--verbose] [--version] [-h|--help]\n"
+"              -- command ...\n"
 "\n"
 "Modes:\n"
 "    By default, vmnet-helper creates a new network using the specified options.\n"
