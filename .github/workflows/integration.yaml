@@ -131,3 +131,24 @@ jobs:
           done
           echo "timeout terminating example" >&2
           exit 1
+      - name: Collect logs
+        if: always()
+        run: |
+          vm="$HOME/.vmnet-helper/vms/test"
+          find "$vm" -maxdepth 1 -type f \
+              -not -name "*.img" \
+              -not -name "*.iso" \
+              -not -name "kernel" \
+              -not -name "initrd" \
+              > artifacts.txt
+          test -f /var/db/dhcpd_leases && echo /var/db/dhcpd_leases >> artifacts.txt
+          sudo tar --create --gzip \
+              --file vmnet-helper-integration-${{ matrix.driver }}-${{ matrix.connection }}.tar.gz \
+              --files-from artifacts.txt
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: vmnet-helper-integration-${{ matrix.driver }}-${{ matrix.connection }}
+          path: vmnet-helper-integration-${{ matrix.driver }}-${{ matrix.connection }}.tar.gz
+          compression-level: 0
