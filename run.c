@@ -27,6 +27,8 @@ struct client_options {
     char *subnet_mask;
     char *shared_interface;
     char *network_name;
+    bool enable_tso;
+    bool enable_checksum_offload;
     bool enable_isolation;
 
     // Client options.
@@ -61,6 +63,8 @@ enum {
     OPT_START_ADDRESS,
     OPT_END_ADDRESS,
     OPT_SUBNET_MASK,
+    OPT_ENABLE_TSO,
+    OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
     OPT_NETWORK,
     OPT_UNPRIVILEGED,
@@ -77,6 +81,8 @@ static struct option long_options[] = {
     {"start-address",           required_argument,  0,  OPT_START_ADDRESS},
     {"end-address",             required_argument,  0,  OPT_END_ADDRESS},
     {"subnet-mask",             required_argument,  0,  OPT_SUBNET_MASK},
+    {"enable-tso",              no_argument,        0,  OPT_ENABLE_TSO},
+    {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
     {"network",                 required_argument,  0,  OPT_NETWORK},
     {"verbose",                 no_argument,        0,  'v'},
@@ -96,6 +102,7 @@ static void usage(int code)
 "    vmnet-run [--interface-id UUID] [--operation-mode shared|bridged|host]\n"
 "              [--start-address ADDR] [--end-address ADDR]\n"
 "              [--subnet-mask MASK] [--shared-interface NAME]\n"
+"              [--enable-tso] [--enable-checksum-offload]\n"
 "              [--enable-isolation] [--network NAME] [--unprivileged]\n"
 "              [-v|--verbose] [--version] [-h|--help]\n"
 "              -- command ...\n"
@@ -167,6 +174,14 @@ static void build_helper_argv(void)
     if (options.shared_interface) {
         append_helper_arg("--shared-interface");
         append_helper_arg(options.shared_interface);
+    }
+
+    if (options.enable_tso) {
+        append_helper_arg("--enable-tso");
+    }
+
+    if (options.enable_checksum_offload) {
+        append_helper_arg("--enable-checksum-offload");
     }
 
     if (options.enable_isolation) {
@@ -267,6 +282,12 @@ static void parse_options(int argc, char **argv)
         case OPT_SUBNET_MASK:
             validate_address(optarg, optname);
             options.subnet_mask = optarg;
+            break;
+        case OPT_ENABLE_TSO:
+            options.enable_tso = true;
+            break;
+        case OPT_ENABLE_CHECKSUM_OFFLOAD:
+            options.enable_checksum_offload = true;
             break;
         case OPT_ENABLE_ISOLATION:
             options.enable_isolation = true;

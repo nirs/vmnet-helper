@@ -173,10 +173,6 @@ def main():
         if args.start_address or args.end_address or args.subnet_mask:
             p.error("--operation-mode required when using address options")
 
-    if args.connection == "runner":
-        if args.enable_offloading:
-            p.error("--enable-offloading not supported with --connection=runner")
-
     signal.signal(signal.SIGTERM, terminate)
     signal.signal(signal.SIGINT, terminate)
 
