@@ -77,13 +77,16 @@ jobs:
       - name: Inspect VM host data
         if: always()
         run: |
-          tree -h ~/.vmnet-helper
+          tree -h -D --timefmt '%Y-%m-%d %H:%M:%S' ~/.vmnet-helper
           vm="$HOME/.vmnet-helper/vms/test"
           vm_files=$(find "$vm" -name "*.command" -or -name "*.log")
-          for f in $vm_files /var/db/dhcpd_leases; do
+          for f in $vm_files; do
             echo "==> $f <=="
-            head -n 500 "$f" || true
+            sudo head -n 500 "$f" || true
           done
+          echo "==> /var/db/dhcpd_leases <=="
+          ls -l /var/db/dhcpd_leases || true
+          sudo head -n 500 /var/db/dhcpd_leases || true
       - name: Inspect VM guest data
         run: |
           vm_ip=$(cat $HOME/.vmnet-helper/vms/test/ip-address)
