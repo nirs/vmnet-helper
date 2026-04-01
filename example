@@ -174,8 +174,6 @@ def main():
             p.error("--operation-mode required when using address options")
 
     if args.connection == "runner":
-        if args.driver == "krunkit":
-            p.error("--driver=krunkit not supported with --connection=runner")
         if args.enable_offloading:
             p.error("--enable-offloading not supported with --connection=runner")
 
