@@ -50,7 +50,7 @@ jobs:
 
       - name: Checkout source (pull request only)
         if: github.event_name == 'pull_request'
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Get latest release info
         id: release

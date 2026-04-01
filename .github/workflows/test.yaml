@@ -34,7 +34,7 @@ jobs:
           uname -a
           sw_vers
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Ensure tag
         # Archiving requires a tag, but we checkout only the last commit.
         run: git describe --tags 2>/dev/null || git tag devel
@@ -70,7 +70,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Ensure tag
         run: git describe --tags 2>/dev/null || git tag devel
       - name: Install requirements
@@ -87,7 +87,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Check formatting
         run: |
           python3 -m venv .venv
@@ -101,7 +101,7 @@ jobs:
     runs-on: macos-26
     steps:
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Install requirements
         run: brew install meson codespell
       - name: Setup

@@ -41,7 +41,7 @@ jobs:
         if: matrix.driver == 'vfkit'
         run: brew install vfkit
       - name: Checkout source
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
       - name: Build vmnet-helper
         run: ./build.sh build
       - name: Install vmnet-helper
