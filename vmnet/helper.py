@@ -15,7 +15,7 @@ from . import store
 
 PREFIX = "/opt/vmnet-helper"
 HELPER = os.path.join(PREFIX, "bin/vmnet-helper")
-CLIENT = os.path.join(PREFIX, "bin/vmnet-client")
+RUNNER = os.path.join(PREFIX, "bin/vmnet-run")
 OPERATION_MODES = ["shared", "bridged", "host"]
 
 # Apple recommends sizing the receive buffer at 4 times the size of the send

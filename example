@@ -31,7 +31,7 @@ def main():
     p.add_argument("vm_name", help="VM name")
     p.add_argument(
         "--connection",
-        choices=["fd", "socket", "client"],
+        choices=["fd", "socket", "runner"],
         default="fd",
         help="How to connect the helper and vm (fd)",
     )
@@ -173,11 +173,11 @@ def main():
         if args.start_address or args.end_address or args.subnet_mask:
             p.error("--operation-mode required when using address options")
 
-    if args.connection == "client":
+    if args.connection == "runner":
         if args.driver == "krunkit":
-            p.error("--driver=krunkit not supported with --connection=client")
+            p.error("--driver=krunkit not supported with --connection=runner")
         if args.enable_offloading:
-            p.error("--enable-offloading not supported with --connection=client")
+            p.error("--enable-offloading not supported with --connection=runner")
 
     signal.signal(signal.SIGTERM, terminate)
     signal.signal(signal.SIGINT, terminate)
@@ -186,8 +186,8 @@ def main():
         run_with_fd(args)
     elif args.connection == "socket":
         run_with_socket(args)
-    elif args.connection == "client":
-        run_with_client(args)
+    elif args.connection == "runner":
+        run_with_runner(args)
 
 
 class SecondsFormatter(logging.Formatter):
@@ -256,11 +256,11 @@ def run_with_socket(args):
         helper.stop()
 
 
-def run_with_client(args):
+def run_with_runner(args):
     """
-    Use vmnet-client to run a vm with fd.
+    Use vmnet-run to run a vm with fd.
     """
-    vm = vmnet.VM(args, vmnet.mac_address_from(args.vm_name), fd=4, client=vmnet.CLIENT)
+    vm = vmnet.VM(args, vmnet.mac_address_from(args.vm_name), fd=4, runner=vmnet.RUNNER)
     vm.start()
     try:
         vm.wait_for_ip_address(timeout=args.timeout)

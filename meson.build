@@ -45,9 +45,9 @@ vmnet_helper = executable(
   ],
 )
 
-vmnet_client = executable(
-  'vmnet-client',
-  'client.c',
+vmnet_run = executable(
+  'vmnet-run',
+  'run.c',
   install: true,
   dependencies: [
     version_h_dep,

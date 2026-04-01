@@ -28,13 +28,13 @@ QEMU_CONFIG = {
 
 
 class VM:
-    def __init__(self, args, mac_address, fd=None, socket=None, client=None):
+    def __init__(self, args, mac_address, fd=None, socket=None, runner=None):
         # Configuration
         self.args = args
         self.mac_address = mac_address
         self.fd = fd
         self.socket = socket
-        self.client = client
+        self.runner = runner
         self.vm_name = args.vm_name
         self.verbose = args.verbose
         self.driver = args.driver
@@ -83,8 +83,8 @@ class VM:
         stdout = None
         logfile = store.vm_path(self.vm_name, f"{self.driver}.log")
         with open(logfile, "w") as log:
-            if self.client:
-                cmd = self.client_command(cmd)
+            if self.runner:
+                cmd = self.runner_command(cmd)
                 stdout = log
             elif self.fd is not None:
                 pass_fds = [self.fd]
@@ -292,8 +292,8 @@ class VM:
 
         return cmd
 
-    def client_command(self, vm_command):
-        cmd = [self.client]
+    def runner_command(self, vm_command):
+        cmd = [self.runner]
         if self.args.network_name:
             cmd.append(f"--network={self.args.network_name}")
         elif self.args.operation_mode:

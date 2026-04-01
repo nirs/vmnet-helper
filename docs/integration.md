@@ -105,16 +105,19 @@ INFO  [main] waiting for termination
 > If you want to recover from failures, restart the helper to create a
 > new unix socket and reconnect.
 
-## Starting the helper with vmnet-client
+## Starting the helper with vmnet-run
+
+> [!NOTE]
+> *vmnet-run* was called *vmnet-client* in versions before v0.11.0.
 
 To use the helper from a shell script without using a bound unix socket, you
-can use *vmnet-client*. The client creates a socketpair, and starts the helper
+can use *vmnet-run*. It creates a socketpair, and starts the helper
 with one socket, and the command provided by the user with the other socket.
 
 Example run with *vfkit*:
 
 ```console
-/opt/vmnet-helper/bin/vmnet-client -- \
+/opt/vmnet-helper/bin/vmnet-run -- \
     vfkit \
     --bootloader=efi,variable-store=efi-variable-store,create \
     "--device=virtio-blk,path=disk.img" \
@@ -122,9 +125,9 @@ Example run with *vfkit*:
 ```
 
 > [!IMPORTANT]
-> The command run by *vmnet-client* must use file descriptor 4.
+> The command run by *vmnet-run* must use file descriptor 4.
 
-See the [examples](/examples/) for more examples of using *vmnet-client*.
+See the [examples](/examples/) for more examples of using *vmnet-run*.
 
 > [!TIP]
 > On macOS 26 and later, use the `--unprivileged` option to run the
@@ -214,10 +217,10 @@ Example using vmnet-helper directly:
        --network shared
 ```
 
-Example using vmnet-client:
+Example using vmnet-run:
 
 ```console
-/opt/vmnet-helper/bin/vmnet-client --network shared --unprivileged -- \
+/opt/vmnet-helper/bin/vmnet-run --network shared --unprivileged -- \
     vfkit \
     --bootloader=efi,variable-store=efi-variable-store,create \
     "--device=virtio-blk,path=disk.img" \
