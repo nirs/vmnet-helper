@@ -302,6 +302,8 @@ class VM:
                 cmd.append(f"--shared-interface={self.args.shared_interface}")
             elif self.args.operation_mode == "host" and self.args.enable_isolation:
                 cmd.append("--enable-isolation")
+        if self.enable_offloading:
+            cmd.extend(["--enable-tso", "--enable-checksum-offload"])
         if self.args.verbose:
             cmd.append("--verbose")
         if not self.args.privileged:
