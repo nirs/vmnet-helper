@@ -127,7 +127,7 @@ static void usage(int code)
 static void append_helper_arg(char *arg)
 {
     if (helper_next == sizeof(helper_argv) - 1) {
-        ERROR("[client] too many arguments");
+        ERROR("[runner] too many arguments");
         exit(EXIT_FAILURE);
     }
 
@@ -228,7 +228,7 @@ static void validate_interface_id(const char *arg)
 {
     uuid_t uuid;
     if (uuid_parse(arg, uuid) < 0) {
-        ERRORF("[client] invalid interface-id: \"%s\"", arg);
+        ERRORF("[runner] invalid interface-id: \"%s\"", arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -236,7 +236,7 @@ static void validate_interface_id(const char *arg)
 static void validate_operation_mode(const char *arg)
 {
     if (!is_shared(arg) && !is_host(arg) && !is_bridged(arg)) {
-        ERRORF("[client] invalid operation-mode: \"%s\"", arg);
+        ERRORF("[runner] invalid operation-mode: \"%s\"", arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -245,7 +245,7 @@ static void validate_address(const char *arg, const char *name)
 {
     struct in_addr addr;
     if (inet_aton(arg, &addr) == 0) {
-        ERRORF("[client] invalid %s: \"%s\"]", name, arg);
+        ERRORF("[runner] invalid %s: \"%s\"]", name, arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -316,11 +316,11 @@ static void parse_options(int argc, char **argv)
             printf("version: %s\ncommit: %s\n", GIT_VERSION, GIT_COMMIT);
             exit(0);
         case ':':
-            ERRORF("[client] option %s requires an argument", optname);
+            ERRORF("[runner] option %s requires an argument", optname);
             exit(EXIT_FAILURE);
         case '?':
         default:
-            ERRORF("[client] invalid option: %s", optname);
+            ERRORF("[runner] invalid option: %s", optname);
             exit(EXIT_FAILURE);
         }
     }
@@ -328,35 +328,35 @@ static void parse_options(int argc, char **argv)
     if (options.network_name != NULL) {
         // Check for conflicts with --network option.
         if (options.operation_mode != NULL) {
-            ERROR("[client] conflicting arguments: --network cannot be used with --operation-mode");
+            ERROR("[runner] conflicting arguments: --network cannot be used with --operation-mode");
             exit(EXIT_FAILURE);
         }
         if (options.shared_interface != NULL) {
-            ERROR("[client] conflicting arguments: --network cannot be used with --shared-interface");
+            ERROR("[runner] conflicting arguments: --network cannot be used with --shared-interface");
             exit(EXIT_FAILURE);
         }
         if (options.start_address != NULL) {
-            ERROR("[client] conflicting arguments: --network cannot be used with --start-address");
+            ERROR("[runner] conflicting arguments: --network cannot be used with --start-address");
             exit(EXIT_FAILURE);
         }
         if (options.end_address != NULL) {
-            ERROR("[client] conflicting arguments: --network cannot be used with --end-address");
+            ERROR("[runner] conflicting arguments: --network cannot be used with --end-address");
             exit(EXIT_FAILURE);
         }
         if (options.subnet_mask != NULL) {
-            ERROR("[client] conflicting arguments: --network cannot be used with --subnet-mask");
+            ERROR("[runner] conflicting arguments: --network cannot be used with --subnet-mask");
             exit(EXIT_FAILURE);
         }
     } else {
         if (is_bridged(options.operation_mode) && options.shared_interface == NULL) {
-            ERROR("[client] missing argument: shared-interface is required for operation-mode=bridged");
+            ERROR("[runner] missing argument: shared-interface is required for operation-mode=bridged");
             exit(EXIT_FAILURE);
         }
 
         // TODO: Validate that isolation doesn't work with shared and bridged modes.
         // https://github.com/nirs/vmnet-helper/issues/148
         if (options.enable_isolation && !is_host(options.operation_mode)) {
-            ERROR("[client] conflicting arguments: enable-isolation requires operation-mode=host");
+            ERROR("[runner] conflicting arguments: enable-isolation requires operation-mode=host");
             exit(EXIT_FAILURE);
         }
     }
@@ -365,7 +365,7 @@ static void parse_options(int argc, char **argv)
     command_argv = &argv[optind];
 
     if (command_argv[0] == NULL) {
-        ERROR("[client] no command specified");
+        ERROR("[runner] no command specified");
         usage(1);
     }
 }
@@ -377,12 +377,12 @@ static void set_socket_buffers(int fd)
 
     const int sndbuf_size = SEND_BUFFER_SIZE;
     if (setsockopt(fd, SOL_SOCKET, SO_SNDBUF, &sndbuf_size, sizeof(sndbuf_size)) < 0) {
-        WARNF("[client] setsockopt: %s", strerror(errno));
+        WARNF("[runner] setsockopt: %s", strerror(errno));
     }
 
     const int rcvbuf_size = RECV_BUFFER_SIZE;
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) < 0) {
-        WARNF("[client] setsockopt: %s", strerror(errno));
+        WARNF("[runner] setsockopt: %s", strerror(errno));
     }
 }
 
@@ -395,7 +395,7 @@ static void create_socketpair(void)
 
     int fds[2];
     if (socketpair(PF_LOCAL, SOCK_DGRAM, 0, fds) < 0) {
-        ERRORF("[client] socketpair: %s", strerror(errno));
+        ERRORF("[runner] socketpair: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -405,12 +405,12 @@ static void create_socketpair(void)
     // fds[0]. If the descriptors are already in place dup2 does nothing.
 
     if (dup2(fds[1], COMMAND_FD) < 0) {
-        ERRORF("[client] dup2: %s", strerror(errno));
+        ERRORF("[runner] dup2: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     if (dup2(fds[0], HELPER_FD) < 0) {
-        ERRORF("[client] dup2: %s", strerror(errno));
+        ERRORF("[runner] dup2: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -425,16 +425,16 @@ static void become_process_group_leader(void)
     }
 
     if (setpgid(0, 0) == -1) {
-        ERRORF("[client] setpgid: %s", strerror(errno));
+        ERRORF("[runner] setpgid: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
-    DEBUGF("[client] created new process group (pgid %d)", getpgid(0));
+    DEBUGF("[runner] created new process group (pgid %d)", getpgid(0));
 }
 
 static void terminate_process_group(void)
 {
-    DEBUGF("[client] terminating process group (pgid %d)", getpgid(0));
+    DEBUGF("[runner] terminating process group (pgid %d)", getpgid(0));
 
     signal(SIGTERM, SIG_IGN);
 
@@ -443,17 +443,17 @@ static void terminate_process_group(void)
         return;
     }
 
-    DEBUG("[client] waiting for children");
+    DEBUG("[runner] waiting for children");
 
     while(wait(NULL) > 0);
 
-    DEBUG("[client] children terminated");
+    DEBUG("[runner] children terminated");
 }
 
 static void defer_terminate_process_group(void)
 {
     if (atexit(terminate_process_group) == -1) {
-        ERRORF("[client] atexit: %s", strerror(errno));
+        ERRORF("[runner] atexit: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 }
@@ -462,7 +462,7 @@ static void start_helper(void)
 {
     helper_pid = fork();
     if (helper_pid < 0) {
-        ERRORF("[client] fork: %s", strerror(errno));
+        ERRORF("[runner] fork: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -471,7 +471,7 @@ static void start_helper(void)
         close(COMMAND_FD);
 
         if (execvp(helper_argv[0], helper_argv) < 0) {
-            ERRORF("[client] execvp: %s", strerror(errno));
+            ERRORF("[runner] execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
@@ -479,14 +479,14 @@ static void start_helper(void)
     // Forget the helper socket.
     close(HELPER_FD);
 
-    DEBUGF("[client] started helper (pid %d)", helper_pid);
+    DEBUGF("[runner] started helper (pid %d)", helper_pid);
 }
 
 static void start_command(void)
 {
     command_pid = fork();
     if (command_pid < 0) {
-        ERRORF("[client] fork: %s", strerror(errno));
+        ERRORF("[runner] fork: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
@@ -495,7 +495,7 @@ static void start_command(void)
         close(HELPER_FD);
 
         if (execvp(command_argv[0], command_argv) < 0) {
-            ERRORF("[client] execvp: %s", strerror(errno));
+            ERRORF("[runner] execvp: %s", strerror(errno));
             exit(EXIT_FAILURE);
         }
     }
@@ -503,7 +503,7 @@ static void start_command(void)
     // Forget the command socket.
     close(COMMAND_FD);
 
-    DEBUGF("[client] started command (pid %d)", command_pid);
+    DEBUGF("[runner] started command (pid %d)", command_pid);
 }
 
 static int wait_for_command(void)
@@ -516,7 +516,7 @@ static int wait_for_command(void)
 
         if (result == -1) {
             if (errno != EINTR) {
-                ERRORF("[client] waitpid: %s", strerror(errno));
+                ERRORF("[runner] waitpid: %s", strerror(errno));
                 exit(EXIT_FAILURE);
             }
             if (terminated) {
@@ -526,14 +526,14 @@ static int wait_for_command(void)
 
         if (WIFEXITED(status)) {
             int exit_status = WEXITSTATUS(status);
-            DEBUGF("[client] command terminated with exit status %d", exit_status);
+            DEBUGF("[runner] command terminated with exit status %d", exit_status);
             command_pid = -1;
             return exit_status;
         }
 
         if (WIFSIGNALED(status)) {
             int term_signal = WTERMSIG(status);
-            DEBUGF("[client] command terminated by signal %d", term_signal);
+            DEBUGF("[runner] command terminated by signal %d", term_signal);
             command_pid = -1;
             return 128 + term_signal;
         }
@@ -555,12 +555,12 @@ static void setup_signals(void)
     sa.sa_flags = 0;
 
     if (sigaction(SIGTERM, &sa, NULL) == -1) {
-        ERRORF("[client] signal: %s", strerror(errno));
+        ERRORF("[runner] signal: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 
     if (sigaction(SIGINT, &sa, NULL) == -1) {
-        ERRORF("[client] signal: %s", strerror(errno));
+        ERRORF("[runner] signal: %s", strerror(errno));
         exit(EXIT_FAILURE);
     }
 }
