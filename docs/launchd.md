@@ -155,6 +155,10 @@ from vmnet across restarts:
 INTERFACE_ID=$(uuidgen)
 ```
 
+> [!NOTE]
+> On macOS 15, replace the vmnet-run path in the plist with
+> `/opt/vmnet-helper/bin/vmnet-run`.
+
 Create the plist:
 
 ```console
