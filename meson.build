@@ -32,6 +32,7 @@ vmnet_helper = executable(
   'vmnet-helper',
   'helper.c',
   'options.c',
+  'os.c',
   install: true,
   dependencies: [
     corefoundation,
@@ -44,6 +45,7 @@ vmnet_helper = executable(
 vmnet_run = executable(
   'vmnet-run',
   'run.c',
+  'os.c',
   install: true,
   dependencies: [
     version_h_dep,

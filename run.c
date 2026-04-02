@@ -17,6 +17,7 @@
 
 #include "common.h"
 #include "log.h"
+#include "os.h"
 #include "version.h"
 
 struct client_options {
@@ -31,9 +32,6 @@ struct client_options {
     bool enable_tso;
     bool enable_checksum_offload;
     bool enable_isolation;
-
-    // Client options.
-    bool unprivileged;
 };
 
 // To keep it simple we always use the same file descriptor for the helper and
@@ -71,7 +69,6 @@ enum {
     OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
     OPT_NETWORK,
-    OPT_UNPRIVILEGED,
     OPT_VERSION
 };
 
@@ -91,7 +88,6 @@ static struct option long_options[] = {
     {"network",                 required_argument,  0,  OPT_NETWORK},
     {"verbose",                 no_argument,        0,  'v'},
     // Client options.
-    {"unprivileged",            no_argument,        0,  OPT_UNPRIVILEGED},
     {"version",                 no_argument,        0,  OPT_VERSION},
     {"help",                    no_argument,        0,  'h'},
     {0,                         0,                  0,  0},
@@ -107,7 +103,7 @@ static void usage(int code)
 "              [--start-address ADDR] [--end-address ADDR]\n"
 "              [--subnet-mask MASK] [--shared-interface NAME]\n"
 "              [--enable-tso] [--enable-checksum-offload]\n"
-"              [--enable-isolation] [--network NAME] [--unprivileged]\n"
+"              [--enable-isolation] [--network NAME]\n"
 "              [-v|--verbose] [--version] [-h|--help]\n"
 "              -- command ...\n"
 "\n"
@@ -118,7 +114,7 @@ static void usage(int code)
 "    --network is mutually exclusive with: --operation-mode, --shared-interface,\n"
 "    --start-address, --end-address, --subnet-mask.\n"
 "\n"
-"    --network and --unprivileged require macOS 26 or later.\n"
+"    --network requires macOS 26 or later.\n"
 "\n";
     fputs(msg, stderr);
     exit(code);
@@ -142,9 +138,21 @@ static void resolve_helper_path(char *runner_path)
     snprintf(helper_path, sizeof(helper_path), "%s/vmnet-helper", dirname(runner_path));
 }
 
+static bool requires_root(void)
+{
+    struct os_version v = {0};
+    if (os_product_version(&v)) {
+        ERROR("[runner] cannot detect macOS version");
+        exit(EXIT_FAILURE);
+    }
+
+    INFOF("[runner] running on macOS %d.%d.%d", v.major, v.minor, v.point);
+    return v.major < 26;
+}
+
 static void build_helper_argv(void)
 {
-    if (!options.unprivileged) {
+    if (requires_root()) {
         // We depend on sudoers configuration to allow vmnet-helper to run
         // without a password and enable the closefrom_override option for this
         // user. See sudoers.d/README.md for more info.
@@ -308,9 +316,6 @@ static void parse_options(int argc, char **argv)
             break;
         case 'v':
             verbose = true;
-            break;
-        case OPT_UNPRIVILEGED:
-            options.unprivileged = true;
             break;
         case OPT_VERSION:
             printf("version: %s\ncommit: %s\n", GIT_VERSION, GIT_COMMIT);

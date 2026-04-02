@@ -14,7 +14,6 @@
 #include <sys/event.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
-#include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/types.h>
 #include <sys/un.h>
@@ -27,6 +26,7 @@
 #include "log.h"
 #include "options.h"
 #include "socket_x.h"
+#include "os.h"
 #include "version.h"
 #include "vmnet-broker.h"
 
@@ -60,11 +60,6 @@ enum {
     STATUS_STOPPED = 2,
 };
 
-struct version {
-    int major;
-    int minor;
-    int point;
-};
 
 struct network {
     char subnet[INET_ADDRSTRLEN];
@@ -1058,32 +1053,9 @@ static void stop_host_interface(void)
     INFO("[main] stopped vmnet interface");
 }
 
-static int os_product_version(struct version *v)
-{
-    char buf[20];
-    size_t len = sizeof(buf);
-
-    if (sysctlbyname("kern.osproductversion", buf, &len, NULL, 0) != 0) {
-        WARNF("sysctlbyname(kern.osproductversion): %s", strerror(errno));
-        return -1;
-    }
-
-    char *s = buf;
-    int *numbers[] = {&v->major, &v->minor, &v->point};
-    for (unsigned i = 0; i < ARRAY_SIZE(numbers); i++) {
-        char *p = strsep(&s, ".");
-        if (p == NULL) {
-            break;
-        }
-        *numbers[i] = atoi(p);
-    }
-
-    return 0;
-}
-
 static void check_os_version(const char *prog)
 {
-    struct version v = {0};
+    struct os_version v = {0};
     if (os_product_version(&v)) {
         return;
     }

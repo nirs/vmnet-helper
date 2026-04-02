@@ -129,10 +129,6 @@ Example run with *vfkit*:
 
 See the [examples](/examples/) for more examples of using *vmnet-run*.
 
-> [!TIP]
-> On macOS 26 and later, use the `--unprivileged` option to run the
-> helper without sudo.
-
 ## Operation modes
 
 The vmnet helper supports all the operation modes provided by the vmnet
@@ -220,7 +216,7 @@ Example using vmnet-helper directly:
 Example using vmnet-run:
 
 ```console
-/opt/vmnet-helper/bin/vmnet-run --network shared --unprivileged -- \
+/opt/vmnet-helper/bin/vmnet-run --network shared -- \
     vfkit \
     --bootloader=efi,variable-store=efi-variable-store,create \
     "--device=virtio-blk,path=disk.img" \

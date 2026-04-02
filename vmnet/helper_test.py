@@ -14,11 +14,7 @@ on any macOS version and architecture.
 Requirements:
 - vmnet-helper installed at /opt/vmnet-helper
 - scapy package installed
-- sudo configured for passwordless vmnet-helper (for privileged mode)
-
-Tests run in two modes:
-- privileged: Uses sudo, skipped if /etc/sudoers.d/vmnet-helper not installed
-- unprivileged: Direct execution, skipped on macOS < 26
+- sudo configured for passwordless vmnet-helper (macOS < 26)
 """
 
 import contextlib
@@ -288,7 +284,6 @@ def run_helper(
     enable_offloading=False,
     generate_interface_id=True,
     verbose=True,
-    privileged=helper.requires_root(),
 ):
     """
     Context manager to run vmnet-helper with a socketpair.
@@ -313,7 +308,6 @@ def run_helper(
         enable_isolation=enable_isolation,
         enable_offloading=enable_offloading,
         verbose=verbose,
-        privileged=privileged,
     )
 
     host_sock, vm_sock = helper.socketpair()
