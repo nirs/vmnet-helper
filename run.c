@@ -5,6 +5,7 @@
 #include <assert.h>
 #include <errno.h>
 #include <getopt.h>
+#include <libgen.h>
 #include <limits.h>
 #include <signal.h>
 #include <stdio.h>
@@ -14,7 +15,7 @@
 #include <unistd.h>
 #include <uuid/uuid.h>
 
-#include "config.h"
+#include "common.h"
 #include "log.h"
 #include "version.h"
 
@@ -44,6 +45,9 @@ bool verbose = false;
 
 // Client options parsed from the command line.
 static struct client_options options;
+
+// Path to vmnet-helper, resolved from argv[0].
+static char helper_path[PATH_MAX];
 
 // vmnet-helper arguments. Built by build_helper_argv().
 static char *helper_argv[32];
@@ -131,6 +135,13 @@ static void append_helper_arg(char *arg)
     helper_next++;
 }
 
+// Resolve path to vmnet-helper relative to our own executable. Both binaries
+// are always installed in the same directory.
+static void resolve_helper_path(char *runner_path)
+{
+    snprintf(helper_path, sizeof(helper_path), "%s/vmnet-helper", dirname(runner_path));
+}
+
 static void build_helper_argv(void)
 {
     if (!options.unprivileged) {
@@ -143,7 +154,7 @@ static void build_helper_argv(void)
         append_helper_arg("--close-from=4");
     }
 
-    append_helper_arg(PREFIX "/bin/vmnet-helper");
+    append_helper_arg(helper_path);
     append_helper_arg("--fd=3");
 
     if (options.interface_id) {
@@ -557,6 +568,7 @@ static void setup_signals(void)
 int main(int argc, char **argv)
 {
     parse_options(argc, argv);
+    resolve_helper_path(argv[0]);
     build_helper_argv();
 
     setup_signals();

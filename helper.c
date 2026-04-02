@@ -23,7 +23,7 @@
 #include <uuid/uuid.h>
 #include <vmnet/vmnet.h>
 
-#include "config.h"
+#include "common.h"
 #include "log.h"
 #include "options.h"
 #include "socket_x.h"

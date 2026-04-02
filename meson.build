@@ -13,10 +13,6 @@ project(
   ],
 )
 
-config = configuration_data()
-config.set('PREFIX', get_option('prefix'))
-configure_file(input: 'config.h.in', output: 'config.h', configuration: config)
-
 gen_version = find_program('gen-version')
 version_h = custom_target(
   'version.h',
