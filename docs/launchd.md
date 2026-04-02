@@ -49,9 +49,12 @@ qemu-img convert -f qcow2 -O raw fedora-43.qcow2 \
 
 ## Creating a VM
 
-Choose a VM name that is a valid hostname (e.g., `my-vm`).
-The name is used as the mDNS hostname for SSH access:
-`ssh fedora@my-vm.local`.
+Choose a VM name that is a valid hostname. The name is used as the
+mDNS hostname for SSH access (e.g., `ssh fedora@my-vm.local`).
+
+```console
+VM_NAME=my-vm
+```
 
 ### VM directory
 
@@ -59,8 +62,6 @@ Create the VM directory, copy the cached image using copy-on-write,
 and resize it:
 
 ```console
-VM_NAME=my-vm
-
 mkdir -p ~/vms/$VM_NAME
 cp -c ~/.cache/vm-images/fedora-43.img ~/vms/$VM_NAME/disk.img
 qemu-img resize -q -f raw ~/vms/$VM_NAME/disk.img 20g
