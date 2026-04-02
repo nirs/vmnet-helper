@@ -53,6 +53,7 @@ vmnet-helper without a password. See [sudoers.d](sudoers.d) for more info.
 ## Documentation
 
 - [Integration guide](docs/integration.md)
+- [Integrating with launchd](docs/launchd.md)
 - [Performance](docs/performance.md)
 - [Examples](docs/examples.md)
 - [Architecture](docs/architecture.md)
