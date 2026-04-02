@@ -1057,7 +1057,8 @@ static void check_os_version(const char *prog)
 {
     struct os_version v = {0};
     if (os_product_version(&v)) {
-        return;
+        ERROR("[main] cannot detect macOS version");
+        exit(EXIT_FAILURE);
     }
 
     INFOF("[main] running %s %s on macOS %d.%d.%d",
