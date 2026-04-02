@@ -63,7 +63,6 @@ class Helper:
         self.enable_isolation = args.enable_isolation
         self.enable_offloading = args.enable_offloading
         self.verbose = args.verbose
-        self.privileged = args.privileged
         self.generate_interface_id = generate_interface_id
 
         # Running state.
@@ -116,7 +115,7 @@ class Helper:
             raise
 
     def _build_command(self, interface_id):
-        if self.privileged:
+        if requires_root():
             cmd = ["sudo", "--non-interactive"]
             if self.fd is not None:
                 cmd.append(f"--close-from={self.fd + 1}")
