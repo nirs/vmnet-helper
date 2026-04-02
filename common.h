@@ -1,10 +1,8 @@
 // SPDX-FileCopyrightText: The vmnet-helper authors
 // SPDX-License-Identifier: Apache-2.0
 
-#ifndef CONFIG_H
-#define CONFIG_H
-
-#define PREFIX "@PREFIX@"
+#ifndef COMMON_H
+#define COMMON_H
 
 // Apple recommends sizing the receive buffer at 4 times the size of the send
 // buffer, and other projects typically use a 1 MiB send buffer and a 4 MiB
@@ -20,4 +18,4 @@
 // queue more packets when using the vmnet_enable_tso option.
 #define RECV_BUFFER_SIZE (4 * 1024 * 1024)
 
-#endif // CONFIG_H
+#endif // COMMON_H
