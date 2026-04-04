@@ -129,6 +129,21 @@ class TestStart:
             self.check_interface(h.interface)
             # If network options are unset, vmnet selects the next available network.
 
+    def test_host_mode_specific_network(self):
+        """
+        Test starting helper with custom subnet configuration
+        """
+        with run_helper(
+            operation_mode="host",
+            start_address="192.168.200.1",
+            end_address="192.168.200.254",
+            subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+
     def test_host_mode_isolated(self):
         """
         Test starting helper in host mode with isolation
