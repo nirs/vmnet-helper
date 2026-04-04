@@ -88,6 +88,10 @@ class TestStart:
         """
         with run_helper() as (h, sock):
             self.check_interface(h.interface)
+            # If network options are unset, the helper uses the default shared network.
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.105.1"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.105.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
 
     def test_shared_mode(self):
         """
@@ -95,8 +99,12 @@ class TestStart:
         """
         with run_helper(operation_mode="shared") as (h, sock):
             self.check_interface(h.interface)
+            # If network options are unset, the helper uses the default shared network.
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.105.1"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.105.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
 
-    def test_shared_mode_custom_subnet(self):
+    def test_shared_mode_specific_network(self):
         """
         Test starting helper with custom subnet configuration
         """
@@ -119,6 +127,7 @@ class TestStart:
             operation_mode="host",
         ) as (h, sock):
             self.check_interface(h.interface)
+            # If network options are unset, vmnet selects the next available network.
 
     def test_host_mode_isolated(self):
         """
