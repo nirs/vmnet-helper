@@ -287,15 +287,15 @@ static void start_interface_with_options(void)
     switch (options.operation_mode) {
     case VMNET_SHARED_MODE:
         DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
-               "enable-tso %s enable-checksum-offload %s "
-               "start-address '%s' end-address '%s' subnet-mask '%s'",
+               "start-address '%s' end-address '%s' subnet-mask '%s' "
+               "enable-tso %s enable-checksum-offload %s",
                mode_name(options.operation_mode),
                interface_id,
-               options.enable_tso ? "true" : "false",
-               options.enable_checksum_offload ? "true" : "false",
                options.start_address,
                options.end_address,
-               options.subnet_mask);
+               options.subnet_mask,
+               options.enable_tso ? "true" : "false",
+               options.enable_checksum_offload ? "true" : "false");
         break;
     case VMNET_BRIDGED_MODE:
         DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
