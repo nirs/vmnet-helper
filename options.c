@@ -178,6 +178,18 @@ static void list_shared_interfaces(void)
     exit(0);
 }
 
+// All three address options must be given together or all omitted.
+// See docs/integration.md.
+static void validate_network_options(struct options *opts)
+{
+    int options_set = (opts->start_address != NULL) + (opts->end_address != NULL) +
+                      (opts->subnet_mask != NULL);
+    if (options_set != 0 && options_set != 3) {
+        ERROR("--start-address, --end-address, and --subnet-mask must be given together, or all omitted");
+        exit(EXIT_FAILURE);
+    }
+}
+
 void parse_options(struct options *opts, int argc, char **argv)
 {
     const char *optname;
@@ -282,8 +294,9 @@ void parse_options(struct options *opts, int argc, char **argv)
 
         switch (opts->operation_mode) {
         case VMNET_SHARED_MODE:
-            // Address defaults only apply to shared mode.
-            // https://github.com/nirs/vmnet-helper/issues/121
+            // TODO:
+            // - Remove defaults: https://github.com/nirs/vmnet-helper/issues/123
+            // - Use validate_network_options()
             if (opts->start_address == NULL) {
                 opts->start_address = "192.168.105.1";
             }
@@ -300,6 +313,9 @@ void parse_options(struct options *opts, int argc, char **argv)
                 ERROR("Conflicting arguments: enable-isolation cannot be used with shared mode");
                 exit(EXIT_FAILURE);
             }
+            break;
+        case VMNET_HOST_MODE:
+            validate_network_options(opts);
             break;
         case VMNET_BRIDGED_MODE:
             if (opts->shared_interface == NULL) {

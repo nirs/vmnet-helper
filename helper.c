@@ -309,10 +309,14 @@ static void start_interface_with_options(void)
         break;
     case VMNET_HOST_MODE:
         DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
+               "start-address '%s' end-address '%s' subnet-mask '%s' "
                "enable-tso %s enable-checksum-offload %s "
                "enable-isolation %s",
                mode_name(options.operation_mode),
                interface_id,
+               options.start_address,
+               options.end_address,
+               options.subnet_mask,
                options.enable_tso ? "true" : "false",
                options.enable_checksum_offload ? "true" : "false",
                options.enable_isolation ? "true" : "false");
@@ -331,11 +335,18 @@ static void start_interface_with_options(void)
         xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);
         break;
     case VMNET_SHARED_MODE:
+        // In shared mode all network options have defaults.
         xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
         xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
         xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
         break;
     case VMNET_HOST_MODE:
+        // In host mode all network options are set or NULL.
+        if (options.start_address != NULL) {
+            xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
+            xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
+            xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
+        }
         xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
         break;
     default:
