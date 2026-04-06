@@ -50,10 +50,14 @@ vmnet-helper without a password. See [sudoers.d](sudoers.d) for more info.
 > vmnet-helper requires root privileges. Installing via Homebrew would allow
 > malware to replace the executable and gain root access.
 
+## Tutorials
+
+- [Integrating with launchd](docs/launchd.md)
+- [Run podman faster with vmnet-run](docs/podman.md)
+
 ## Documentation
 
 - [Integration guide](docs/integration.md)
-- [Integrating with launchd](docs/launchd.md)
 - [Performance](docs/performance.md)
 - [Examples](docs/examples.md)
 - [Architecture](docs/architecture.md)
