@@ -18,7 +18,7 @@ up. No PID files or wrapper scripts are needed.
 By the end of this guide you will have a Fedora VM managed by
 launchd that you can start and stop with `launchctl`.
 
-## Prerequisites
+## Requirements
 
 Install using [Homebrew](https://brew.sh/):
 
