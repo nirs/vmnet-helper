@@ -50,6 +50,16 @@ vmnet-helper without a password. See [sudoers.d](sudoers.d) for more info.
 > vmnet-helper requires root privileges. Installing via Homebrew would allow
 > malware to replace the executable and gain root access.
 
+## Compatible VM drivers
+
+vmnet-helper is integrated and tested with the following VM drivers.
+
+| Driver    |       ★ | Description |
+|-----------|--------:|-------------|
+| [QEMU]    |  12,972 | Open-source machine emulator and virtualizer |
+| [vfkit]   |     350 | macOS VM manager wrapping Apple's Virtualization.framework |
+| [krunkit] |     266 | macOS wrapper for [libkrun] |
+
 ## Documentation
 
 - [Integration guide](docs/integration.md)
@@ -65,6 +75,9 @@ vmnet-helper without a password. See [sudoers.d](sudoers.d) for more info.
 
 vmnet-helper is under the [Apache 2.0 license](/LICENSES/Apache-2.0.txt)
 
+[QEMU]: https://gitlab.com/qemu-project/qemu
+[krunkit]: https://github.com/containers/krunkit
 [native-perf]: docs/performance.md#native-vmnet-via-vmnet-broker
 [native-vmnet]: docs/architecture.md#native-vmnet-on-macos-26
 [vmnet-broker]: https://github.com/nirs/vmnet-broker
+[vfkit]: https://github.com/crc-org/vfkit
