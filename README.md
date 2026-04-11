@@ -60,6 +60,33 @@ vmnet-helper is integrated and tested with the following VM drivers.
 | [vfkit]   |     350 | macOS VM manager wrapping Apple's Virtualization.framework |
 | [krunkit] |     266 | macOS wrapper for [libkrun] |
 
+## Projects using vmnet-helper
+
+The following projects use vment-helper to connect VMs to the vment network.
+
+| Project          |       ★ | Description |
+|------------------|--------:|-------------|
+| [minikube]       |  31,668 | Local Kubernetes for development and CI |
+| [renode]         |   2,383 | Embedded systems simulator |
+| [anylinuxfs]     |   1,153 | Mounts Linux-supported filesystems on macOS via a microVM |
+| [vibe]           |     848 | Linux VM sandbox for LLM agents on macOS |
+| [nerdbox]        |     103 | containerd sandbox runtime using vms using libkrun on macOS |
+| [ec1]            |       5 | Go-based VM orchestration |
+
+## Compatible projects
+
+The following projects use libkrun's unixgram API, can work with vmnet-helper.
+
+| Project       |      ★ | Description |
+|---------------|-------:|-------------|
+| [microvm.nix] |  2,457 | NixOS MicroVMs |
+| [libkrun]     |  1,793 | Library for running workloads in isolated VMs |
+| [boxlite]     |  1,730 | Embeddable sandboxes for AI agents using libkrun |
+| [libkrun-go]  |     47 | Go bindings for libkrun |
+| [Box]         |     36 | MicroVM runtime using libkrun |
+| [bux]         |      3 | Embedded micro-VM sandbox for AI agents using libkrun |
+| [krun-api]    |      0 | Go wrapper for libkrun |
+
 ## Documentation
 
 - [Integration guide](docs/integration.md)
@@ -75,9 +102,22 @@ vmnet-helper is integrated and tested with the following VM drivers.
 
 vmnet-helper is under the [Apache 2.0 license](/LICENSES/Apache-2.0.txt)
 
+[Box]: https://github.com/A3S-Lab/Box
 [QEMU]: https://gitlab.com/qemu-project/qemu
+[anylinuxfs]: https://github.com/nohajc/anylinuxfs
+[boxlite]: https://github.com/boxlite-ai/boxlite
+[bux]: https://github.com/qntx/bux
+[ec1]: https://github.com/walteh/ec1
+[krun-api]: https://github.com/CGA1123/krun-api
 [krunkit]: https://github.com/containers/krunkit
+[libkrun-go]: https://github.com/mishushakov/libkrun-go
+[libkrun]: https://github.com/containers/libkrun
+[microvm.nix]: https://github.com/microvm-nix/microvm.nix
+[minikube]: https://github.com/kubernetes/minikube
 [native-perf]: docs/performance.md#native-vmnet-via-vmnet-broker
 [native-vmnet]: docs/architecture.md#native-vmnet-on-macos-26
-[vmnet-broker]: https://github.com/nirs/vmnet-broker
+[nerdbox]: https://github.com/containerd/nerdbox
+[renode]: https://github.com/renode/renode
 [vfkit]: https://github.com/crc-org/vfkit
+[vibe]: https://github.com/lynaghk/vibe
+[vmnet-broker]: https://github.com/nirs/vmnet-broker
