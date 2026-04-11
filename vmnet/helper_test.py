@@ -115,9 +115,7 @@ class TestStart:
             subnet_mask="255.255.255.0",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
-            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+            self.check_specific_network(h)
 
     def test_shared_mode_specific_network_8(self):
         """
@@ -130,9 +128,7 @@ class TestStart:
             subnet_mask="255.255.255.0",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "10.200.0.1"
-            assert h.interface[VMNET_END_ADDRESS] == "10.200.0.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+            self.check_specific_network(h)
 
     def test_shared_mode_specific_network_12(self):
         """
@@ -145,9 +141,7 @@ class TestStart:
             subnet_mask="255.255.255.0",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "172.16.200.1"
-            assert h.interface[VMNET_END_ADDRESS] == "172.16.200.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+            self.check_specific_network(h)
 
     def test_shared_mode_specific_network_30(self):
         """
@@ -161,9 +155,7 @@ class TestStart:
             subnet_mask="255.255.255.252",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
-            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.2"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
+            self.check_specific_network(h)
 
     def test_shared_mode_specific_network_30_last(self):
         """
@@ -176,9 +168,7 @@ class TestStart:
             subnet_mask="255.255.255.252",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.253"
-            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
+            self.check_specific_network(h)
 
     def test_host_mode(self):
         """
@@ -201,9 +191,7 @@ class TestStart:
             subnet_mask="255.255.255.0",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
-            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+            self.check_specific_network(h)
 
     def test_host_mode_specific_network_8(self):
         """
@@ -216,9 +204,7 @@ class TestStart:
             subnet_mask="255.255.255.0",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "10.200.0.1"
-            assert h.interface[VMNET_END_ADDRESS] == "10.200.0.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+            self.check_specific_network(h)
 
     def test_host_mode_specific_network_12(self):
         """
@@ -231,9 +217,7 @@ class TestStart:
             subnet_mask="255.255.255.0",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "172.16.200.1"
-            assert h.interface[VMNET_END_ADDRESS] == "172.16.200.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+            self.check_specific_network(h)
 
     def test_host_mode_specific_network_30(self):
         """
@@ -246,9 +230,7 @@ class TestStart:
             subnet_mask="255.255.255.252",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
-            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.2"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
+            self.check_specific_network(h)
 
     def test_host_mode_specific_network_30_last(self):
         """
@@ -261,9 +243,7 @@ class TestStart:
             subnet_mask="255.255.255.252",
         ) as (h, sock):
             self.check_interface(h.interface)
-            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.253"
-            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
-            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
+            self.check_specific_network(h)
 
     def test_host_mode_isolated(self):
         """
@@ -293,6 +273,11 @@ class TestStart:
         assert VMNET_END_ADDRESS in interface
         assert VMNET_SUBNET_MASK in interface
         assert VMNET_MAX_PACKET_SIZE in interface
+
+    def check_specific_network(self, h):
+        assert h.interface[VMNET_START_ADDRESS] == h.start_address
+        assert h.interface[VMNET_END_ADDRESS] == h.end_address
+        assert h.interface[VMNET_SUBNET_MASK] == h.subnet_mask
 
 
 class TestConnectivity:
