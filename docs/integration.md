@@ -33,8 +33,8 @@ Example run using jq to pretty print the response:
 {
   "vmnet_subnet_mask": "255.255.255.0",
   "vmnet_mtu": 1500,
-  "vmnet_end_address": "192.168.105.254",
-  "vmnet_start_address": "192.168.105.1",
+  "vmnet_end_address": "192.168.64.254",
+  "vmnet_start_address": "192.168.64.1",
   "vmnet_interface_id": "2835E074-9892-4A79-AFFB-7E41D2605678",
   "vmnet_max_packet_size": 1514,
   "vmnet_nat66_prefix": "fd9b:5a14:ba57:e3d3::",
@@ -145,10 +145,8 @@ Options:
   isolation ensures that network communication between multiple vmnet
   interface instances is not possible.
 
-- **--start-address**, **--end-address**, **--subnet-mask**: Optional DHCP
-  pool for the host network. All three must be given together, or all three
-  omitted. When omitted, vmnet selects the next available network. See
-  [Network selection and conflicts](#network-selection-and-conflicts).
+The network can be configured using the
+[network address options](#network-address-options).
 
 ### --operation-mode=shared
 
@@ -157,27 +155,8 @@ Internet through a network address translator (NAT). The vmnet interface
 can also communicate with the native host. By default, the vmnet
 interface is able to communicate with other shared mode interfaces.
 
-Options:
-
-- **--start-address**: The starting IPv4 address to use for the interface.
-  This address is used as the gateway address. The subsequent address up
-  to and including **--end-address** are placed in the DHCP pool.
-  All other addresses are available for static assignment.  The address
-  must be in the private IP range (RFC 1918).  Must be specified along
-  with **--end-address** and **--subnet-mask** (default "192.168.105.1").
-
-- **--end-address**: The DHCP IPv4 range end address (string) to use for
-  the interface.  The address must be in the private IP range (RFC
-  1918).  Must be specified with **--start-address** and
-  **--subnet-mask** (default "192.168.105.254").
-
-- **--subnet-mask**: The IPv4 subnet mask to use on the interface.  Must
-  also specify **--start-address** and **--end-address** (default
-  "255.255.255.0").
-
-See [Network selection and conflicts](#network-selection-and-conflicts) for
-how the default shared subnet relates to host mode and other vmnet users on
-the host.
+The network can be configured using the
+[network address options](#network-address-options).
 
 ### --operation-mode=bridged
 
@@ -197,49 +176,61 @@ en10
 en0
 ```
 
-## Network selection and conflicts
+## Network address options
 
-How vmnet-helper picks an IPv4 subnet depends on the operation mode and on
-what other vmnet users are already running on the machine.
+The IPv4 subnet can be specified using the address options, or omitted to
+let vmnet select the next available network automatically. These options
+apply to shared and host modes.
 
-### Shared mode
+> [!IMPORTANT]
+> All three options must be given together, or all three omitted.
 
-When `--start-address`, `--end-address`, and `--subnet-mask` are omitted,
-vmnet-helper currently supplies fixed defaults (192.168.105.1,
-192.168.105.254, and 255.255.255.0). That matches the historical default
-shared subnet, but it does **not** match leaving options unset when using
-vmnet directly (vmnet would choose a subnet). The plan is to stop
-injecting these defaults and let vmnet select the network instead.
+- **--start-address**: The starting IPv4 address to use for the interface.
+  This address is used as the gateway address. The subsequent addresses up
+  to and including **--end-address** are placed in the DHCP pool.
+  All other addresses are available for static assignment. The address
+  must be in the private IP range (RFC 1918).
 
-### Host mode
+- **--end-address**: The DHCP IPv4 range end address to use for the
+  interface. The address must be in the private IP range (RFC 1918).
 
-When all three address options are omitted, vmnet selects the next
-available network (for example 192.168.128.0/24 when that range is still
-free). If another program has already reserved the default host subnet,
-vmnet allocates a different free range, similar to [vmnet-broker] shared
-and host networks when no explicit subnet is configured.
+- **--subnet-mask**: The IPv4 subnet mask to use on the interface.
 
-### Conflicts between shared and host networks and other programs
+### Automatic network selection
 
-The same IPv4 subnet cannot be used for both a shared-mode vmnet network
-and a host-mode vmnet network: whichever process creates the network
-first owns that range. Other software using vmnet (for example another
-vmnet-helper, [socket_vmnet], or [vmnet-broker]) may already have created
-`a.b.c.d/24`. Starting a second program with overlapping DHCP options for
-a different mode can hang or fail.
+When all three address options are omitted, vmnet selects the next available
+network; the defaults are 192.168.64.0/24 for shared mode, and 192.168.128.0/24
+for host mode. If another program has already reserved the default network,
+vmnet allocates the next network (e.g. 192.168.65.0/24). This is similar to
+[vmnet-broker] shared and host networks when no explicit network is configured.
 
-For example, if socket_vmnet runs as a launch daemon and creates
-192.168.105.0/24 at boot, running vmnet-helper in host mode with explicit
-options for that same subnet conflicts with it. Omitting the address
-options for host mode lets vmnet pick a different subnet (often
-192.168.128.0/24) when it is still available.
+This is the most reliable way to start vmnet-helper since it avoids conflicts
+with other vmnet users. However, the network address is not known until
+vmnet-helper starts, so hard-coded addresses cannot be used in the VM
+configuration.
+
+> [!NOTE]
+> Before v0.12.0, shared mode used 192.168.105.0/24 when address options
+> were omitted. If you depend on a specific network, specify all three
+> address options explicitly.
+
+### Network conflicts
+
+The same IPv4 subnet cannot be used for both a shared-mode vmnet network and a
+host-mode vmnet network: whichever process creates the network first owns that
+range. If another program using vmnet has already created the same network
+in a different mode, vmnet-helper will fail.
+
+For example, if socket_vmnet runs as a launchd daemon and creates the network
+192.168.105.0/24 at boot, running vmnet-helper with explicit options for that
+same subnet conflicts with it. Omitting the address options lets vmnet select
+the next network (typically 192.168.65.0/24).
 
 ## Network mode (macOS 26)
 
-On macOS 26 and later, vmnet-helper can join a network managed by
-[vmnet-broker] instead of creating its own. This lets VMs using
-vmnet-helper share the same network as VMs using native vmnet via the
-Virtualization framework. See the
+On macOS 26 and later, vmnet-helper can join a network managed by [vmnet-broker]
+instead of creating its own. This lets VMs using vmnet-helper share the same
+network as VMs using native vmnet via the Virtualization framework. See the
 [architecture guide][native-vmnet] for details.
 
 - **--network NAME**: Join the named network managed by vmnet-broker

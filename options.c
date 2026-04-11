@@ -294,18 +294,7 @@ void parse_options(struct options *opts, int argc, char **argv)
 
         switch (opts->operation_mode) {
         case VMNET_SHARED_MODE:
-            // TODO:
-            // - Remove defaults: https://github.com/nirs/vmnet-helper/issues/123
-            // - Use validate_network_options()
-            if (opts->start_address == NULL) {
-                opts->start_address = "192.168.105.1";
-            }
-            if (opts->end_address == NULL) {
-                opts->end_address = "192.168.105.254";
-            }
-            if (opts->subnet_mask == NULL) {
-                opts->subnet_mask = "255.255.255.0";
-            }
+            validate_network_options(opts);
 
             // TODO: Validate that isolation doesn't work with shared mode.
             // https://github.com/nirs/vmnet-helper/issues/148

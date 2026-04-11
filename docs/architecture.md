@@ -25,12 +25,12 @@ between the VM and vmnet internally.
 ```mermaid
 flowchart TB
   subgraph qemu["QEMU"]
-    vm1["vm 192.168.105.2"]
+    vm1["vm 192.168.64.2"]
   end
 
   subgraph vmnet
     vmnet0
-    bridge["bridge100 192.168.105.1"]
+    bridge["bridge100 192.168.64.1"]
 
     vmnet0 <--> bridge
   end
@@ -84,7 +84,7 @@ when it exits.
 ```mermaid
 flowchart TB
   subgraph minikube
-    subgraph vm1["vfkit vm 192.168.105.2"]
+    subgraph vm1["vfkit vm 192.168.64.2"]
       fd1["fd"]
     end
     subgraph helper1["vmnet-helper 1"]
@@ -95,7 +95,7 @@ flowchart TB
   end
 
   subgraph vmnet-run
-    subgraph vm2["QEMU vm 192.168.105.3"]
+    subgraph vm2["QEMU vm 192.168.64.3"]
       fd3["fd"]
     end
     subgraph helper2["vmnet-helper 2"]
@@ -108,7 +108,7 @@ flowchart TB
   subgraph vmnet
     vmnet1
     vmnet2
-    bridge["bridge100 192.168.105.1"]
+    bridge["bridge100 192.168.64.1"]
 
     vmnet1 <--> bridge
     vmnet2 <--> bridge
@@ -121,7 +121,7 @@ flowchart TB
 - **minikube**: Starts vfkit and vmnet-helper internally, connecting them via a socketpair.
 - **vmnet-run**: A small supervisor that starts QEMU and vmnet-helper, connecting them via a socketpair.
 - **vmnet1, vmnet2**: vmnet interfaces (one per helper), attached to the bridge.
-- **bridge100**: Host bridge for the subnet; typically has the subnet’s gateway IP (e.g. 192.168.105.1).
+- **bridge100**: Host bridge for the subnet; typically has the subnet’s gateway IP (e.g. 192.168.64.1).
 
 Use the same subnet options for all VMs that should be on the same network.
 Use a stable `--interface-id` per VM so the MAC (and thus DHCP-assigned IP)
