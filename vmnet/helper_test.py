@@ -151,7 +151,7 @@ class TestStart:
 
     def test_shared_mode_specific_network_30(self):
         """
-        Test starting helper with /30 subnet (2 usable addresses).
+        Test starting helper with /30 subnet (1 usable address).
         anylinuxfs uses this to isolate the VM from other VMs on the network.
         """
         with run_helper(
@@ -163,6 +163,21 @@ class TestStart:
             self.check_interface(h.interface)
             assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
             assert h.interface[VMNET_END_ADDRESS] == "192.168.200.2"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
+
+    def test_shared_mode_specific_network_30_last(self):
+        """
+        Test starting helper with the last /30 subnet (1 usable address).
+        """
+        with run_helper(
+            operation_mode="shared",
+            start_address="192.168.200.253",
+            end_address="192.168.200.254",
+            subnet_mask="255.255.255.252",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.253"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
             assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
 
     def test_host_mode(self):
@@ -222,7 +237,7 @@ class TestStart:
 
     def test_host_mode_specific_network_30(self):
         """
-        Test starting helper with /30 subnet (2 usable addresses).
+        Test starting helper with /30 subnet (1 usable address).
         """
         with run_helper(
             operation_mode="host",
@@ -233,6 +248,21 @@ class TestStart:
             self.check_interface(h.interface)
             assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
             assert h.interface[VMNET_END_ADDRESS] == "192.168.200.2"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
+
+    def test_host_mode_specific_network_30_last(self):
+        """
+        Test starting helper with the last /30 subnet (1 usable address).
+        """
+        with run_helper(
+            operation_mode="host",
+            start_address="192.168.200.253",
+            end_address="192.168.200.254",
+            subnet_mask="255.255.255.252",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.253"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
             assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
 
     def test_host_mode_isolated(self):
