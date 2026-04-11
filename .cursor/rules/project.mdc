@@ -41,6 +41,11 @@ alwaysApply: true
 
 - Check existing code for error handling conventions
 
+## Fact checking
+
+- Verify facts before commenting — do not suggest names, links, handles,
+  versions, APIs, or command line options without checking that they exist.
+
 ## Git workflow
 
 - NEVER commit directly to main branch.
