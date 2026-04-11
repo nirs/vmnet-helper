@@ -104,9 +104,9 @@ class TestStart:
             assert h.interface[VMNET_END_ADDRESS] == "192.168.105.254"
             assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
 
-    def test_shared_mode_specific_network(self):
+    def test_shared_mode_specific_network_16(self):
         """
-        Test starting helper with custom subnet configuration
+        Test starting helper with 192.168.0.0/16 network (RFC 1918).
         """
         with run_helper(
             operation_mode="shared",
@@ -119,6 +119,52 @@ class TestStart:
             assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
             assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
 
+    def test_shared_mode_specific_network_8(self):
+        """
+        Test starting helper with 10.0.0.0/8 network (RFC 1918).
+        """
+        with run_helper(
+            operation_mode="shared",
+            start_address="10.200.0.1",
+            end_address="10.200.0.254",
+            subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "10.200.0.1"
+            assert h.interface[VMNET_END_ADDRESS] == "10.200.0.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+
+    def test_shared_mode_specific_network_12(self):
+        """
+        Test starting helper with 172.16.0.0/12 network (RFC 1918).
+        """
+        with run_helper(
+            operation_mode="shared",
+            start_address="172.16.200.1",
+            end_address="172.16.200.254",
+            subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "172.16.200.1"
+            assert h.interface[VMNET_END_ADDRESS] == "172.16.200.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+
+    def test_shared_mode_specific_network_30(self):
+        """
+        Test starting helper with /30 subnet (2 usable addresses).
+        anylinuxfs uses this to isolate the VM from other VMs on the network.
+        """
+        with run_helper(
+            operation_mode="shared",
+            start_address="192.168.200.1",
+            end_address="192.168.200.2",
+            subnet_mask="255.255.255.252",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.2"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
+
     def test_host_mode(self):
         """
         Test starting helper in host mode
@@ -129,9 +175,9 @@ class TestStart:
             self.check_interface(h.interface)
             # If network options are unset, vmnet selects the next available network.
 
-    def test_host_mode_specific_network(self):
+    def test_host_mode_specific_network_16(self):
         """
-        Test starting helper with custom subnet configuration
+        Test starting helper with 192.168.0.0/16 network (RFC 1918).
         """
         with run_helper(
             operation_mode="host",
@@ -143,6 +189,51 @@ class TestStart:
             assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
             assert h.interface[VMNET_END_ADDRESS] == "192.168.200.254"
             assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+
+    def test_host_mode_specific_network_8(self):
+        """
+        Test starting helper with 10.0.0.0/8 network (RFC 1918).
+        """
+        with run_helper(
+            operation_mode="host",
+            start_address="10.200.0.1",
+            end_address="10.200.0.254",
+            subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "10.200.0.1"
+            assert h.interface[VMNET_END_ADDRESS] == "10.200.0.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+
+    def test_host_mode_specific_network_12(self):
+        """
+        Test starting helper with 172.16.0.0/12 network (RFC 1918).
+        """
+        with run_helper(
+            operation_mode="host",
+            start_address="172.16.200.1",
+            end_address="172.16.200.254",
+            subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "172.16.200.1"
+            assert h.interface[VMNET_END_ADDRESS] == "172.16.200.254"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.0"
+
+    def test_host_mode_specific_network_30(self):
+        """
+        Test starting helper with /30 subnet (2 usable addresses).
+        """
+        with run_helper(
+            operation_mode="host",
+            start_address="192.168.200.1",
+            end_address="192.168.200.2",
+            subnet_mask="255.255.255.252",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+            assert h.interface[VMNET_START_ADDRESS] == "192.168.200.1"
+            assert h.interface[VMNET_END_ADDRESS] == "192.168.200.2"
+            assert h.interface[VMNET_SUBNET_MASK] == "255.255.255.252"
 
     def test_host_mode_isolated(self):
         """
