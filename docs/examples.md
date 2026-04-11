@@ -31,7 +31,7 @@ Resizing image to 20g
 Creating disk '/Users/nir/.vmnet-helper/vms/vm/disk.img'
 Creating cloud-init iso '/Users/nir/.vmnet-helper/vms/vm/cidata.iso'
 Starting 'vfkit' virtual machine 'vm' with mac address 'a2:89:b2:31:d7:fb'
-Virtual machine IP address:  192.168.105.2
+Virtual machine IP address:  192.168.64.2
 ```
 
 To stop the virtual machine and the vmnet-helper press *Control+C*.

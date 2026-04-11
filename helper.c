@@ -335,13 +335,13 @@ static void start_interface_with_options(void)
         xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);
         break;
     case VMNET_SHARED_MODE:
-        // In shared mode all network options have defaults.
-        xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
-        xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
-        xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
+        if (options.start_address != NULL) {
+            xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
+            xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
+            xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
+        }
         break;
     case VMNET_HOST_MODE:
-        // In host mode all network options are set or NULL.
         if (options.start_address != NULL) {
             xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
             xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
