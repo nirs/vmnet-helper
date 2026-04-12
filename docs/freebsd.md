@@ -9,8 +9,9 @@ This guide shows how to run a FreeBSD VM connected to vmnet with
 vmnet-helper.
 
 FreeBSD 15.0 cloud images ship with [nuageinit], a lightweight Lua-based
-cloud-init implementation. It supports NoCloud cidata ISOs with
-network-config version 2, which is what we use here.
+cloud-init implementation. It supports NoCloud cidata ISOs for SSH key
+provisioning. The VM obtains its IP address via DHCP from vmnet's
+built-in DHCP server.
 
 ## Requirements
 
@@ -70,32 +71,23 @@ instance-id: $(uuidgen)
 local-hostname: $VM_NAME
 EOF
 
-cat > ~/vms/$VM_NAME/network-config << EOF
-version: 2
-ethernets:
-  vtnet0:
-    addresses:
-      - 192.168.240.2/30
-    gateway4: 192.168.240.1
-EOF
-
 (
     cd ~/vms/$VM_NAME
     mkisofs -output cidata.iso -volid cidata -joliet -rock \
-        user-data meta-data network-config
+        user-data meta-data
 )
 ```
 
 ## Run the VM
 
-We use a /30 subnet with a static IP configured in the cloud-init
-network-config:
+The VM obtains its IP address via DHCP from vmnet's built-in DHCP
+server:
 
 ```console
 $(brew --prefix vmnet-helper)/libexec/vmnet-run \
     --start-address 192.168.240.1 \
-    --end-address 192.168.240.2 \
-    --subnet-mask 255.255.255.252 \
+    --end-address 192.168.240.254 \
+    --subnet-mask 255.255.255.0 \
     -- \
     qemu-system-aarch64 \
     -m 2048 \
@@ -125,7 +117,19 @@ Press *Control+C* to stop the VM.
 
 ## Connect with SSH
 
-In another terminal:
+Find the DHCP-assigned IP address in the serial log:
+
+```console
+grep 'bound to' ~/vms/freebsd/serial.log
+```
+
+Example output:
+
+```
+bound to 192.168.240.2 -- renewal in 300 seconds.
+```
+
+Then connect in another terminal:
 
 ```console
 ssh freebsd@192.168.240.2
@@ -176,8 +180,8 @@ iperf3 -s
 Run iperf3 from the host in another terminal:
 
 ```console
-iperf3 -c 192.168.240.2 --time 30
-iperf3 -c 192.168.240.2 --time 30 -R
+iperf3 -c freebsd.local --time 30
+iperf3 -c freebsd.local --time 30 -R
 ```
 
 ### Results
@@ -197,9 +201,13 @@ QEMU with HVF acceleration on MacBook Pro M2 Max:
 
 ## Cleanup
 
+> [!NOTE]
+> Update 192.168.240.2 if you got another IP from the DHCP server.
+
 ```console
 rm -r ~/vms/freebsd
 ssh-keygen -R 192.168.240.2
+ssh-keygen -R freebsd.local
 ```
 
 ## nuageinit limitations
@@ -212,9 +220,11 @@ FreeBSD's [nuageinit] is lighter than Linux cloud-init. It supports:
 - Network-config version 2 (static addresses only)
 
 It does **not** support `password`, `chpasswd`, `packages`, `runcmd`,
-`write_files`, or network-config version 1. DHCP in network-config
-does not work with vmnet. Install packages manually after the first
-boot.
+`write_files`, or network-config version 1. Install packages manually
+after the first boot.
+
+This guide does not use network-config since FreeBSD defaults to DHCP,
+which works with vmnet's built-in DHCP server.
 
 > [!NOTE]
 > FreeBSD aarch64 does not work with vfkit (hangs at "No valid
