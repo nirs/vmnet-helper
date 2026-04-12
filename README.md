@@ -87,10 +87,14 @@ The following projects use libkrun's unixgram API and can work with vmnet-helper
 | [bux]         |      3 | Embedded micro-VM sandbox for AI agents using libkrun |
 | [krun-api]    |      0 | Go wrapper for libkrun |
 
+## Tutorials
+
+- [Integrating with launchd](docs/launchd.md)
+- [FreeBSD VM with vmnet](docs/freebsd.md)
+
 ## Documentation
 
 - [Integration guide](docs/integration.md)
-- [Integrating with launchd](docs/launchd.md)
 - [Performance](docs/performance.md)
 - [Examples](docs/examples.md)
 - [Architecture](docs/architecture.md)
