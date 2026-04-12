@@ -16,8 +16,10 @@ built-in DHCP server.
 ## Requirements
 
 > [!NOTE]
-> This tutorial requires macOS 26 or later. On older versions,
-> vmnet-helper must be [installed manually][installing].
+> - This tutorial requires macOS 26 or later. On older versions,
+>   vmnet-helper must be [installed manually][installing].
+> - FreeBSD aarch64 does not work with vfkit or krunkit. Use QEMU
+>   with HVF acceleration instead.
 
 ```console
 brew tap nirs/vmnet-helper
@@ -209,27 +211,6 @@ rm -r ~/vms/freebsd
 ssh-keygen -R 192.168.240.2
 ssh-keygen -R freebsd.local
 ```
-
-## nuageinit limitations
-
-FreeBSD's [nuageinit] is lighter than Linux cloud-init. It supports:
-
-- `ssh_authorized_keys`
-- `users` with `groups`, `shell`, `sudo`
-- `hostname`, `fqdn`
-- Network-config version 2 (static addresses only)
-
-It does **not** support `password`, `chpasswd`, `packages`, `runcmd`,
-`write_files`, or network-config version 1. Install packages manually
-after the first boot.
-
-This guide does not use network-config since FreeBSD defaults to DHCP,
-which works with vmnet's built-in DHCP server.
-
-> [!NOTE]
-> FreeBSD aarch64 does not work with vfkit (hangs at "No valid
-> device tree blob found") or krunkit (virtio-console and virtio-rng
-> issues). Use QEMU with HVF acceleration instead.
 
 [mDNSResponder]: https://www.freshports.org/net/mDNSResponder/
 [nuageinit]: https://man.freebsd.org/cgi/man.cgi?query=nuageinit&sektion=7
