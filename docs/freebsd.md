@@ -134,6 +134,35 @@ ssh freebsd@192.168.240.2
 The default user is `freebsd`, authenticated by the SSH key configured
 in user-data.
 
+## Setting up mDNS
+
+To access the VM by hostname instead of IP address, install
+[mDNSResponder] inside the VM:
+
+```console
+su -
+pkg install -y mDNSResponder
+
+cat > /usr/local/etc/mdnsresponderposix.conf << EOF
+freebsd
+_workstation._tcp
+9
+EOF
+
+sysrc mdnsresponderposix_enable=YES
+sysrc mdnsresponderposix_flags="-f /usr/local/etc/mdnsresponderposix.conf"
+service mdnsresponderposix start
+```
+
+The configuration file lists one service per block: service name,
+service type, and port, separated by newlines.
+
+After this you can connect using:
+
+```console
+ssh freebsd@freebsd.local
+```
+
 ## Benchmarking with iperf3
 
 Install iperf3 inside the VM:
@@ -192,6 +221,7 @@ boot.
 > device tree blob found") or krunkit (virtio-console and virtio-rng
 > issues). Use QEMU with HVF acceleration instead.
 
+[mDNSResponder]: https://www.freshports.org/net/mDNSResponder/
 [nuageinit]: https://man.freebsd.org/cgi/man.cgi?query=nuageinit&sektion=7
 [installing]: /README.md#installing
 [mirrors]: https://docs.freebsd.org/en/books/handbook/mirrors/
