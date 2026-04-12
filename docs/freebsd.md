@@ -5,6 +5,9 @@ SPDX-License-Identifier: Apache-2.0
 
 # FreeBSD VM with vmnet
 
+<picture><img src="/media/beastie-vmnet.svg" alt="Beastie with vmnet"></picture><br>
+<sub>Based on the BSD Daemon by <a href="https://github.com/freebsd/freebsd-src/tree/main/share/examples/BSD_daemon">Poul-Henning Kamp</a></sub>
+
 This guide shows how to run a FreeBSD VM connected to vmnet with
 vmnet-helper.
 
