@@ -33,6 +33,12 @@ jobs:
         run: |
           uname -a
           sw_vers
+      - name: Disable spotlight indexing
+        run: |
+          # Disable indexing globally
+          sudo mdutil -a -i off
+          # Erase Existing Indexes
+          sudo mdutil -E /
       - name: Checkout source
         uses: actions/checkout@v6
       - name: Ensure tag
