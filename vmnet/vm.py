@@ -127,6 +127,9 @@ class VM:
         """
         return f"{self.hostname()}.local"
 
+    def supports_kernel_boot(self):
+        return self.driver == "qemu"
+
     def wait_until_ready(self, timeout=60):
         """
         Wait until the VM is reachable via mDNS on the SSH port.

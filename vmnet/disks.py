@@ -58,20 +58,21 @@ def create_disk(vm):
         image = create_image(image_info["image"], format="raw", size="20g")
         logging.info("Creating image '%s'", disk["image"])
         clone(image, disk["image"])
-    if "kernel" in image_info:
-        disk["kernel"] = store.vm_path(vm.vm_name, "kernel")
-        if not os.path.isfile(disk["kernel"]):
-            kernel = create_image(image_info["kernel"])
-            logging.info("Creating kernel '%s'", disk["kernel"])
-            clone(kernel, disk["kernel"])
-    if "initrd" in image_info:
-        disk["initrd"] = store.vm_path(vm.vm_name, "initrd")
-        if not os.path.isfile(disk["initrd"]):
-            initrd = create_image(image_info["initrd"])
-            logging.info("Creating initrd '%s'", disk["initrd"])
-            clone(initrd, disk["initrd"])
-    if "kernel_parameters" in image_info:
-        disk["kernel_parameters"] = image_info["kernel_parameters"]
+    if vm.supports_kernel_boot():
+        if "kernel" in image_info:
+            disk["kernel"] = store.vm_path(vm.vm_name, "kernel")
+            if not os.path.isfile(disk["kernel"]):
+                kernel = create_image(image_info["kernel"])
+                logging.info("Creating kernel '%s'", disk["kernel"])
+                clone(kernel, disk["kernel"])
+        if "initrd" in image_info:
+            disk["initrd"] = store.vm_path(vm.vm_name, "initrd")
+            if not os.path.isfile(disk["initrd"]):
+                initrd = create_image(image_info["initrd"])
+                logging.info("Creating initrd '%s'", disk["initrd"])
+                clone(initrd, disk["initrd"])
+        if "kernel_parameters" in image_info:
+            disk["kernel_parameters"] = image_info["kernel_parameters"]
     return disk
 
 
