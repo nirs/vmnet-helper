@@ -50,7 +50,6 @@ class VM:
         self.disk = None
         self.cidata = None
         self.proc = None
-        self.ip_address = None
 
     def start(self):
         """
@@ -76,6 +75,7 @@ class VM:
             self.mac_address,
         )
         store.silent_remove(self.serial)
+        ssh.create_config(self)
         self._start_process(cmd)
 
     def _start_process(self, cmd):
@@ -97,7 +97,6 @@ class VM:
             )
 
     def stop(self):
-        self.delete_ip_address()
         ssh.delete_config(self)
         self.proc.terminate()
         self.proc.wait()
@@ -128,54 +127,32 @@ class VM:
         """
         return f"{self.hostname()}.local"
 
-    def wait_for_ip_address(self, timeout=60):
+    def wait_until_ready(self, timeout=60):
         """
-        Resolve the VM hostname via mDNS and wait until it is reachable.
+        Wait until the VM is reachable via mDNS on the SSH port.
         """
         deadline = time.monotonic() + timeout
+        address = self.fqdn()
+        logging.debug("Waiting until VM is ready at %s", address)
+
         while time.monotonic() < deadline:
-            self.check_running()
-            ip = self._connect_to_guest(self.fqdn())
-            if ip:
-                self.ip_address = ip
-                logging.info("Virtual machine IP address: %s", ip)
-                self.write_ip_address()
-                ssh.create_config(self)
-                return
-            time.sleep(1)
+            try:
+                # mDNS resolution times out in 5 seconds if the name is unknown.
+                with socket.create_connection((address, 22), timeout=5):
+                    logging.info("VM is ready at %s", address)
+                    return
+            except OSError as e:
+                self.check_running()
+                logging.debug("Connect %s: %s", address, e)
+
         self.check_running()
         logging.warning("Timeout waiting for vm to become reachable")
-
-    def _connect_to_guest(self, hostname, port=22):
-        """
-        Resolve hostname and verify the VM is reachable on the SSH port.
-        """
-        try:
-            ip = socket.gethostbyname(hostname)
-        except socket.gaierror as e:
-            logging.debug("mDNS lookup '%s': %s", hostname, e)
-            return None
-        try:
-            with socket.create_connection((ip, port), timeout=1):
-                return ip
-        except OSError as e:
-            logging.debug("Connect %s:%s: %s", ip, port, e)
-            return None
 
     def check_running(self):
         if self.proc.poll() is not None:
             raise RuntimeError(
                 f"Virtual machine terminated (exitcode {self.proc.returncode})"
             )
-
-    def write_ip_address(self):
-        path = store.vm_path(self.vm_name, "ip-address")
-        with open(path, "w") as f:
-            f.write(self.ip_address)
-
-    def delete_ip_address(self):
-        path = store.vm_path(self.vm_name, "ip-address")
-        store.silent_remove(path)
 
     def vfkit_command(self):
         efi_store = store.vm_path(self.vm_name, "efi-variable-store")
