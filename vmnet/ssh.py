@@ -14,7 +14,7 @@ Host {vm.vm_name}
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null
   User {vm.distro}
-  Hostname {vm.ip_address}
+  Hostname {vm.fqdn()}
 """
     path = config_path(vm)
     with open(path, "w") as f:
