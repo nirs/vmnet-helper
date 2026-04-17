@@ -308,9 +308,9 @@ class VM:
             cmd.append("--enable-isolation")
         if self.args.shared_interface:
             cmd.append(f"--shared-interface={self.args.shared_interface}")
-        if self.args.enable_offloading:
+        if self.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
-        if self.args.verbose:
+        if self.verbose:
             cmd.append("--verbose")
         cmd.append("--")
         cmd.extend(vm_command)
