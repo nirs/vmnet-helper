@@ -206,7 +206,7 @@ def run_with_fd(args):
         )
         vm.start()
         try:
-            vm.wait_for_ip_address(timeout=args.timeout)
+            vm.wait_until_ready(timeout=args.timeout)
             os.wait()
         finally:
             vm.stop()
@@ -231,7 +231,7 @@ def run_with_socket(args):
         vm = vmnet.VM(args, helper.interface[vmnet.VMNET_MAC_ADDRESS], socket=socket)
         vm.start()
         try:
-            vm.wait_for_ip_address(timeout=args.timeout)
+            vm.wait_until_ready(timeout=args.timeout)
             os.wait()
         finally:
             vm.stop()
@@ -246,7 +246,7 @@ def run_with_runner(args):
     vm = vmnet.VM(args, vmnet.mac_address_from(args.vm_name), fd=4, runner=vmnet.RUNNER)
     vm.start()
     try:
-        vm.wait_for_ip_address(timeout=args.timeout)
+        vm.wait_until_ready(timeout=args.timeout)
         os.wait()
     finally:
         vm.stop()
