@@ -42,11 +42,16 @@ def create_iso(vm):
     """
     Create cloud-init iso image.
 
-    We create a new cidata.iso with new instance id for every run to update the
-    vm network configuration and install avahi for mDNS discovery.
+    The iso is created on first run and reused on subsequent runs so
+    cloud-init skips re-provisioning. Delete the iso to force recreation.
     """
     vm_home = store.vm_path(vm.vm_name)
     cidata = os.path.join(vm_home, "cidata.iso")
+
+    if os.path.exists(cidata):
+        logging.debug("Reusing cloud-init iso '%s'", cidata)
+        return cidata
+
     create_user_data(vm)
     create_meta_data(vm)
     create_network_config(vm)
