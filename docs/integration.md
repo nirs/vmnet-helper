@@ -139,12 +139,6 @@ framework, using the **--operation-mode** option.
 Allows the vmnet interface to communicate with other vmnet interfaces
 that are in host mode and also with the native host.
 
-Options:
-
-- **--enable-isolation**: Enable isolation for this interface. Interface
-  isolation ensures that network communication between multiple vmnet
-  interface instances is not possible.
-
 The network can be configured using the
 [network address options](#network-address-options).
 
@@ -175,6 +169,12 @@ using the **--list-shared-interfaces** option.
 en10
 en0
 ```
+
+## Interface isolation
+
+The **--enable-isolation** option ensures that network communication
+between multiple vmnet interface instances is not possible. This option
+is available for shared and host modes.
 
 ## Network address options
 

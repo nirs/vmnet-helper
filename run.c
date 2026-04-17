@@ -352,16 +352,15 @@ static void parse_options(int argc, char **argv)
             ERROR("[runner] conflicting arguments: --network cannot be used with --subnet-mask");
             exit(EXIT_FAILURE);
         }
-    } else {
-        if (is_bridged(options.operation_mode) && options.shared_interface == NULL) {
+    } else if (is_bridged(options.operation_mode)) {
+        if (options.shared_interface == NULL) {
             ERROR("[runner] missing argument: shared-interface is required for operation-mode=bridged");
             exit(EXIT_FAILURE);
         }
 
-        // TODO: Validate that isolation doesn't work with shared and bridged modes.
-        // https://github.com/nirs/vmnet-helper/issues/148
-        if (options.enable_isolation && !is_host(options.operation_mode)) {
-            ERROR("[runner] conflicting arguments: enable-isolation requires operation-mode=host");
+        // TODO: Validate that isolation doesn't work with bridged mode.
+        if (options.enable_isolation) {
+            ERROR("[runner] conflicting arguments: enable-isolation not compatible with operation-mode=bridged");
             exit(EXIT_FAILURE);
         }
     }

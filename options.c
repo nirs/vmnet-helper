@@ -294,15 +294,6 @@ void parse_options(struct options *opts, int argc, char **argv)
 
         switch (opts->operation_mode) {
         case VMNET_SHARED_MODE:
-            validate_network_options(opts);
-
-            // TODO: Validate that isolation doesn't work with shared mode.
-            // https://github.com/nirs/vmnet-helper/issues/148
-            if (opts->enable_isolation) {
-                ERROR("Conflicting arguments: enable-isolation cannot be used with shared mode");
-                exit(EXIT_FAILURE);
-            }
-            break;
         case VMNET_HOST_MODE:
             validate_network_options(opts);
             break;
@@ -313,7 +304,6 @@ void parse_options(struct options *opts, int argc, char **argv)
             }
 
             // TODO: Validate that isolation doesn't work with bridged mode.
-            // https://github.com/nirs/vmnet-helper/issues/148
             if (opts->enable_isolation) {
                 ERROR("Conflicting arguments: enable-isolation cannot be used with bridged mode");
                 exit(EXIT_FAILURE);
