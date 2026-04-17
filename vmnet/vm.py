@@ -296,13 +296,19 @@ class VM:
         cmd = [self.runner]
         if self.args.network_name:
             cmd.append(f"--network={self.args.network_name}")
-        elif self.args.operation_mode:
+        if self.args.operation_mode:
             cmd.append(f"--operation-mode={self.args.operation_mode}")
-            if self.args.operation_mode == "bridged":
-                cmd.append(f"--shared-interface={self.args.shared_interface}")
-            elif self.args.operation_mode == "host" and self.args.enable_isolation:
-                cmd.append("--enable-isolation")
-        if self.enable_offloading:
+        if self.args.start_address:
+            cmd.append(f"--start-address={self.args.start_address}")
+        if self.args.end_address:
+            cmd.append(f"--end-address={self.args.end_address}")
+        if self.args.subnet_mask:
+            cmd.append(f"--subnet-mask={self.args.subnet_mask}")
+        if self.args.enable_isolation:
+            cmd.append("--enable-isolation")
+        if self.args.shared_interface:
+            cmd.append(f"--shared-interface={self.args.shared_interface}")
+        if self.args.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
         if self.args.verbose:
             cmd.append("--verbose")
