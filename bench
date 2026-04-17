@@ -8,6 +8,7 @@ import glob
 import json
 import os
 import shutil
+import socket
 import subprocess
 import sys
 import time
@@ -55,8 +56,8 @@ def do_create(args):
     try:
         client.start()
         try:
-            server.wait_for_ip_address()
-            client.wait_for_ip_address()
+            server.wait_until_ready()
+            client.wait_until_ready()
             install_iperf3(server)
             install_iperf3(client)
             enable_iperf3_service(server)
@@ -185,6 +186,9 @@ class VM:
         self.proc = None
         self.ip_address = None
 
+    def fqdn(self):
+        return f"{self.name}-vmnet-helper.local"
+
     def start(self):
         print(f"Starting {self.name}")
         cmd = [
@@ -203,22 +207,23 @@ class VM:
         print(f"Starting process {cmd}")
         self.proc = subprocess.Popen(cmd)
 
-    def wait_for_ip_address(self, timeout=60):
-        print(f"Waiting for {self.name} ip address")
+    def wait_until_ready(self, timeout=60):
+        print(f"Waiting for {self.name} to become ready")
         deadline = time.monotonic() + timeout
-        path = vmnet.vm_path(self.name, "ip-address")
-        while True:
-            if os.path.exists(path):
-                with open(path) as f:
-                    self.ip_address = f.readline().strip()
-                break
-            if time.monotonic() > deadline:
-                raise RuntimeError(f"Timeout waiting for {self.name} ip address")
+        fqdn = self.fqdn()
+        while time.monotonic() < deadline:
             if self.proc.poll() is not None:
                 raise RuntimeError(
                     f"{self.name} terminated (exitcode={self.proc.returncode})"
                 )
+            try:
+                with socket.create_connection((fqdn, 22), timeout=1):
+                    self.ip_address = socket.gethostbyname(fqdn)
+                    return
+            except OSError:
+                pass
             time.sleep(1)
+        raise RuntimeError(f"Timeout waiting for {self.name}")
 
     def stop(self):
         print(f"Stopping {self.name}")
@@ -274,10 +279,10 @@ def run(operation_mode, driver, config):
         # an ip address before starting the client avoids this.  TODO: Until we
         # find a real fix, try to wait until the server helper is ready or a
         # short sleep.
-        server.wait_for_ip_address()
+        server.wait_until_ready()
         client.start()
         try:
-            client.wait_for_ip_address()
+            client.wait_until_ready()
             for test in config["tests"]:
                 run_test(config_name, test, server, client, config)
         finally:
