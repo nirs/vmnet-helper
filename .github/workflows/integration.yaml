@@ -37,7 +37,7 @@ jobs:
           # Erase Existing Indexes
           sudo mdutil -E /
       - name: Install requirements
-        run: brew install meson qemu cdrtools coreutils tree
+        run: brew install qemu cdrtools coreutils tree
       - name: Inspect qemu
         # Looking up both prefixes to make it eaier to port to arm64 in the future.
         run: |
@@ -48,10 +48,14 @@ jobs:
         run: brew install vfkit
       - name: Checkout source
         uses: actions/checkout@v6
-      - name: Build vmnet-helper
-        run: ./build.sh build
+      - name: Download build artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: vmnet-helper.tar.gz
       - name: Install vmnet-helper
-        run: VMNET_INTERACTIVE=0 ./install.sh build/vmnet-helper.tar.gz
+        run: VMNET_INTERACTIVE=0 ./install.sh vmnet-helper.tar.gz
+      - name: Print version
+        run: /opt/vmnet-helper/bin/vmnet-helper --version
       - name: Ensure public key
         run: |
           ssh-keygen -q -N "" </dev/zero

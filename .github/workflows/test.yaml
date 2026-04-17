@@ -40,7 +40,17 @@ jobs:
         uses: actions/checkout@v6
       - name: Ensure tag
         # Archiving requires a tag, but we checkout only the last commit.
-        run: git describe --tags 2>/dev/null || git tag devel
+        run: |
+          if ! git describe --tags 2>/dev/null; then
+            pr_number="${{ github.event.pull_request.number }}"
+            run_id="${{ github.run_id }}"
+            attempt="${{ github.run_attempt }}"
+            if [ -n "$pr_number" ]; then
+              git tag "pr-${pr_number}-${run_id}-${attempt}"
+            else
+              git tag "scheduled-${run_id}-${attempt}"
+            fi
+          fi
       - name: Install requirements
         run: brew install meson
       - name: Build
@@ -62,6 +72,13 @@ jobs:
         run: |
           source .venv/bin/activate
           pytest -v --log-cli-level=debug
+      - name: Upload build artifact
+        if: matrix.os == 'macos-26'
+        uses: actions/upload-artifact@v7
+        with:
+          name: vmnet-helper.tar.gz
+          path: build/vmnet-helper.tar.gz
+          compression-level: 0
 
   integration:
     needs: test
