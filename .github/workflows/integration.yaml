@@ -30,6 +30,12 @@ jobs:
           uname -a
           sw_vers
           ifconfig
+      - name: Disable spotlight indexing
+        run: |
+          # Disable indexing globally
+          sudo mdutil -a -i off
+          # Erase Existing Indexes
+          sudo mdutil -E /
       - name: Install requirements
         run: brew install meson qemu cdrtools coreutils tree
       - name: Inspect qemu
