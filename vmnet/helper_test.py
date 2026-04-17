@@ -164,6 +164,16 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
+    def test_shared_mode_isolated(self):
+        """
+        Test starting helper in shared mode with isolation
+        """
+        with run_helper(
+            operation_mode="shared",
+            enable_isolation=True,
+        ) as (h, sock):
+            self.check_interface(h.interface)
+
     def test_host_mode(self):
         """
         Test starting helper in host mode

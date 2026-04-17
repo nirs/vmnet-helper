@@ -286,27 +286,6 @@ static void start_interface_with_options(void)
 
     switch (options.operation_mode) {
     case VMNET_SHARED_MODE:
-        DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
-               "start-address '%s' end-address '%s' subnet-mask '%s' "
-               "enable-tso %s enable-checksum-offload %s",
-               mode_name(options.operation_mode),
-               interface_id,
-               options.start_address,
-               options.end_address,
-               options.subnet_mask,
-               options.enable_tso ? "true" : "false",
-               options.enable_checksum_offload ? "true" : "false");
-        break;
-    case VMNET_BRIDGED_MODE:
-        DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
-               "enable-tso %s enable-checksum-offload %s "
-               "shared-interface '%s'",
-               mode_name(options.operation_mode),
-               interface_id,
-               options.enable_tso ? "true" : "false",
-               options.enable_checksum_offload ? "true" : "false",
-               options.shared_interface);
-        break;
     case VMNET_HOST_MODE:
         DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
                "start-address '%s' end-address '%s' subnet-mask '%s' "
@@ -321,6 +300,16 @@ static void start_interface_with_options(void)
                options.enable_checksum_offload ? "true" : "false",
                options.enable_isolation ? "true" : "false");
         break;
+    case VMNET_BRIDGED_MODE:
+        DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
+               "enable-tso %s enable-checksum-offload %s "
+               "shared-interface '%s'",
+               mode_name(options.operation_mode),
+               interface_id,
+               options.enable_tso ? "true" : "false",
+               options.enable_checksum_offload ? "true" : "false",
+               options.shared_interface);
+        break;
     }
 
     xpc_object_t desc = xpc_dictionary_create(NULL, NULL, 0);
@@ -331,16 +320,7 @@ static void start_interface_with_options(void)
     xpc_dictionary_set_uint64(desc, vmnet_operation_mode_key, options.operation_mode);
 
     switch (options.operation_mode) {
-    case VMNET_BRIDGED_MODE:
-        xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);
-        break;
     case VMNET_SHARED_MODE:
-        if (options.start_address != NULL) {
-            xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
-            xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
-            xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
-        }
-        break;
     case VMNET_HOST_MODE:
         if (options.start_address != NULL) {
             xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
@@ -348,6 +328,9 @@ static void start_interface_with_options(void)
             xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
         }
         xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
+        break;
+    case VMNET_BRIDGED_MODE:
+        xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);
         break;
     default:
         assert(0);
