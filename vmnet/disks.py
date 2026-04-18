@@ -37,7 +37,7 @@ IMAGES = {
     },
     "alpine": {
         "arm64": {
-            "image": "https://dl-cdn.alpinelinux.org/alpine/v3.21/releases/cloud/nocloud_alpine-3.21.2-aarch64-uefi-cloudinit-r0.qcow2",
+            "image": "https://dl-cdn.alpinelinux.org/alpine/v3.23/releases/cloud/nocloud_alpine-3.23.3-aarch64-uefi-cloudinit-r0.qcow2",
         },
     },
     "fedora": {
