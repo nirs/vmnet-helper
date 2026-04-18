@@ -11,29 +11,31 @@ import yaml
 
 from . import store
 
-# Distro-specific package names and optional enable commands.
-PACKAGES = {
-    "avahi": {
-        # Ubuntu auto-enables and starts daemons on package install.
-        "ubuntu": {"name": "avahi-daemon"},
-        "fedora": {
-            "name": "avahi",
-            "runcmd": ["systemctl enable --now avahi-daemon"],
-        },
+# Distro-specific cloud-init user-data configuration. Keys match
+# cloud-init module names so the dict can be merged directly into the
+# user-data.
+DISTROS = {
+    # Ubuntu auto-enables and starts daemons on package install.
+    "ubuntu": {
+        "packages": ["avahi-daemon"],
+    },
+    "fedora": {
+        "packages": ["avahi"],
+        "runcmd": ["systemctl enable --now avahi-daemon"],
+    },
+    "alpine": {
+        "packages": ["avahi"],
         # Alpine needs dbus in the default runlevel — avahi depends on it
         # but `apk add avahi` does not enable it. Add both to the default
         # runlevel for subsequent boots. Start dbus explicitly before avahi
         # because OpenRC dependency resolution does not work during
         # cloud-init runcmd.
-        "alpine": {
-            "name": "avahi",
-            "runcmd": [
-                "rc-update add dbus",
-                "rc-update add avahi-daemon",
-                "rc-service dbus start",
-                "rc-service avahi-daemon start",
-            ],
-        },
+        "runcmd": [
+            "rc-update add dbus",
+            "rc-update add avahi-daemon",
+            "rc-service dbus start",
+            "rc-service avahi-daemon start",
+        ],
     },
 }
 
@@ -82,17 +84,14 @@ def create_user_data(vm):
     """
     Create cloud-init user-data file.
     """
-    avahi_pkg = PACKAGES["avahi"][vm.distro]
     data = {
         "password": "password",
         "chpasswd": {
             "expire": False,
         },
         "ssh_authorized_keys": public_keys(),
-        "packages": [avahi_pkg["name"]],
     }
-    if "runcmd" in avahi_pkg:
-        data["runcmd"] = avahi_pkg["runcmd"]
+    data.update(DISTROS[vm.distro])
 
     path = store.vm_path(vm.vm_name, "user-data")
     with open(path, "w") as f:
