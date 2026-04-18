@@ -1,6 +1,9 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
+import logging
+import os
+
 from . import store
 
 
@@ -9,6 +12,11 @@ def config_path(vm):
 
 
 def create_config(vm):
+    path = config_path(vm)
+    if os.path.exists(path):
+        logging.debug("Reusing ssh config '%s'", path)
+        return
+
     data = f"""
 Host {vm.vm_name}
   StrictHostKeyChecking no
@@ -16,11 +24,6 @@ Host {vm.vm_name}
   User {vm.distro}
   Hostname {vm.fqdn()}
 """
-    path = config_path(vm)
+    logging.info("Creating ssh config '%s'", path)
     with open(path, "w") as f:
         f.write(data)
-
-
-def delete_config(vm):
-    path = config_path(vm)
-    store.silent_remove(path)

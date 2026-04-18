@@ -97,7 +97,6 @@ class VM:
             )
 
     def stop(self):
-        ssh.delete_config(self)
         self.proc.terminate()
         self.proc.wait()
 
