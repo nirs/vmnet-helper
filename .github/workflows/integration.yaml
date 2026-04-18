@@ -59,6 +59,9 @@ jobs:
       - name: Ensure public key
         run: |
           ssh-keygen -q -N "" </dev/zero
+      - name: Configure ssh
+        run: |
+          echo "Include ~/.vmnet-helper/vms/*/ssh.config" >> ~/.ssh/config
       - name: Create virtual env
         run: |
           python3 -m venv .venv
@@ -98,17 +101,15 @@ jobs:
           sudo head -n 500 /var/db/dhcpd_leases || true
       - name: Inspect VM guest data
         run: |
-          ssh_cmd="ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR -l ubuntu test-vmnet-helper.local"
-          echo "uname: $($ssh_cmd uname -a)"
-          echo "cmdline: $($ssh_cmd cat /proc/cmdline)"
+          echo "uname: $(ssh test -- uname -a)"
+          echo "cmdline: $(ssh test -- cat /proc/cmdline)"
       - name: Prepare example VM
         run: |
-          ssh_cmd="ssh -o StrictHostKeyChecking=no -o LogLevel=ERROR -l ubuntu test-vmnet-helper.local"
-          $ssh_cmd sudo apt-get update -y
-          $ssh_cmd sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iperf3
-          $ssh_cmd sudo systemctl start iperf3.service
+          ssh test -- sudo apt-get update -y
+          ssh test -- sudo DEBIAN_FRONTEND=noninteractive apt-get install -y iperf3
+          ssh test -- sudo systemctl start iperf3.service
           echo "Waiting for iperf3 server ..."
-          $ssh_cmd bash -s << EOF
+          ssh test -- bash -s << EOF
             if ! timeout 10s bash -c "until ss -tln | grep -q :5201; do sleep 1; done"; then
               echo >&2 "Timeout waiting for iperf3 port"
               exit 1
