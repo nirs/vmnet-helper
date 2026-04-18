@@ -5,6 +5,40 @@ SPDX-License-Identifier: Apache-2.0
 
 # Integration
 
+## Install location
+
+On **macOS 26** and later, vmnet-helper is installed via Homebrew.
+Use `brew --prefix vmnet-helper` to get the install prefix:
+
+```console
+$(brew --prefix vmnet-helper)/libexec/vmnet-helper
+$(brew --prefix vmnet-helper)/libexec/vmnet-run
+```
+
+On **macOS 15** and earlier, vmnet-helper is installed at a fixed
+location by the install script:
+
+```
+/opt/vmnet-helper/bin/vmnet-helper
+/opt/vmnet-helper/bin/vmnet-run
+```
+
+> [!NOTE]
+> The examples in this guide use macOS 26 with Homebrew paths.
+
+## Running with sudo
+
+On **macOS 26** and later, vmnet-helper runs as a regular user — do
+not use `sudo`.
+
+On **macOS 15** and earlier, vmnet-helper requires root privileges.
+See the [sudo guide](/docs/sudo.md) for details on using `sudo` with
+vmnet-helper.
+
+> [!NOTE]
+> The examples in this guide do not use `sudo`. Add `sudo` when
+> running on macOS 15 and earlier.
+
 ## Starting the helper with a file descriptor
 
 > [!NOTE]
