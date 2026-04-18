@@ -24,20 +24,20 @@ virtual machine.
 Example run using jq to pretty print the response:
 
 ```console
-% sudo --non-interactive \
-       --close-from 4 \
-       /opt/vmnet-helper/bin/vmnet-helper \
-       --fd 3 \
-       --interface-id 2835E074-9892-4A79-AFFB-7E41D2605678 \
-       2>/dev/null | jq
+% $(brew --prefix vmnet-helper)/libexec/vmnet-helper \
+    --fd 3 \
+    --interface-id 2835E074-9892-4A79-AFFB-7E41D2605678 \
+    2>/dev/null | jq
 {
+  "vmnet_write_max_packets": 256,
+  "vmnet_read_max_packets": 256,
   "vmnet_subnet_mask": "255.255.255.0",
   "vmnet_mtu": 1500,
-  "vmnet_end_address": "192.168.64.254",
-  "vmnet_start_address": "192.168.64.1",
+  "vmnet_end_address": "192.168.105.254",
+  "vmnet_start_address": "192.168.105.1",
   "vmnet_interface_id": "2835E074-9892-4A79-AFFB-7E41D2605678",
   "vmnet_max_packet_size": 1514,
-  "vmnet_nat66_prefix": "fd9b:5a14:ba57:e3d3::",
+  "vmnet_nat66_prefix": "fd2d:1b24:620:47::",
   "vmnet_mac_address": "0a:d6:36:c1:ea:f3"
 }
 ```
@@ -58,25 +58,25 @@ support passing a file descriptor, you can use a bound unix socket.
 Example run with a unix socket, redirecting the helper stdout to file:
 
 ```console
-% sudo --non-interactive \
-       /opt/vmnet-helper/bin/vmnet-helper \
-       --socket /tmp/example/vm/vmnet.sock \
-       --interface-id 2835E074-9892-4A79-AFFB-7E41D2605678 \
-       >/tmp/example/vm/vmnet.json
-INFO  [main] running /opt/vmnet-helper/bin/vmnet-helper v0.2.0-4-ga1b610b on macOS 15.2.0
+% $(brew --prefix vmnet-helper)/libexec/vmnet-helper \
+    --socket /tmp/vmnet-helper.sock \
+    --interface-id 2835E074-9892-4A79-AFFB-7E41D2605678 \
+    >/tmp/vmnet-helper.json
+INFO  [main] running /opt/homebrew/opt/vmnet-helper/libexec/vmnet-helper v0.11.0 on macOS 26.4.0
+INFO  [main] running as uid: 501 gid: 20
 INFO  [main] enabling bulk forwarding
 INFO  [main] started vmnet interface
-INFO  [main] running as uid: 501 gid: 20
-INFO  [main] waiting for client on "/tmp/example/vm/vmnet.sock"
+INFO  [main] waiting for client on "/tmp/vmnet-helper.sock"
 ```
 
 The helper created a unix datagram socket and waits until a client
 connects and sends the first packet.
 
-You can get the mac address for the vm from the vmnet.json:
+You can get the mac address for the vm from the JSON file:
 
 ```console
-jq -r .vmnet_mac_address </tmp/example/vm/vmnet.json
+% jq -r .vmnet_mac_address </tmp/vmnet-helper.json
+0a:d6:36:c1:ea:f3
 ```
 
 ### Connecting to the helper unix socket
@@ -94,7 +94,7 @@ To connect to the helper from a client, you need to:
 When your client sends the first packet, the helper will start serving:
 
 ```console
-INFO  [main] serving client "/tmp/example/vm/vfkit-1262-6e38.sock"
+INFO  [main] serving client "/tmp/vfkit-1262-6e38.sock"
 INFO  [main] host forwarding started
 INFO  [main] vm forwarding started
 INFO  [main] waiting for termination
@@ -117,7 +117,7 @@ with one socket, and the command provided by the user with the other socket.
 Example run with *vfkit*:
 
 ```console
-/opt/vmnet-helper/bin/vmnet-run -- \
+$(brew --prefix vmnet-helper)/libexec/vmnet-run -- \
     vfkit \
     --bootloader=efi,variable-store=efi-variable-store,create \
     "--device=virtio-blk,path=disk.img" \
@@ -165,7 +165,7 @@ You can find the physical interfaces that can be used in bridged mode
 using the **--list-shared-interfaces** option.
 
 ```console
-% /opt/vmnet-helper/bin/vmnet-helper --list-shared-interfaces
+% $(brew --prefix vmnet-helper)/libexec/vmnet-helper --list-shared-interfaces
 en10
 en0
 ```
@@ -245,15 +245,15 @@ The `--interface-id` option is ignored in this mode.
 Example using vmnet-helper directly:
 
 ```console
-% /opt/vmnet-helper/bin/vmnet-helper \
-       --fd 3 \
-       --network shared
+% $(brew --prefix vmnet-helper)/libexec/vmnet-helper \
+    --fd 3 \
+    --network shared
 ```
 
 Example using vmnet-run:
 
 ```console
-/opt/vmnet-helper/bin/vmnet-run --network shared -- \
+$(brew --prefix vmnet-helper)/libexec/vmnet-run --network shared -- \
     vfkit \
     --bootloader=efi,variable-store=efi-variable-store,create \
     "--device=virtio-blk,path=disk.img" \
