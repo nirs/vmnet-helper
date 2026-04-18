@@ -19,8 +19,7 @@ def create_config(vm):
 
     data = f"""
 Host {vm.vm_name}
-  StrictHostKeyChecking no
-  UserKnownHostsFile /dev/null
+  StrictHostKeyChecking accept-new
   User {vm.distro}
   Hostname {vm.fqdn()}
 """
