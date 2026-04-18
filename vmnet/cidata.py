@@ -25,12 +25,18 @@ DISTROS = {
     },
     "alpine": {
         "packages": ["avahi"],
-        # Alpine needs dbus in the default runlevel — avahi depends on it
-        # but `apk add avahi` does not enable it. Add both to the default
-        # runlevel for subsequent boots. Start dbus explicitly before avahi
-        # because OpenRC dependency resolution does not work during
-        # cloud-init runcmd.
         "runcmd": [
+            # Fix dhcpcd to use MAC client identifier instead of
+            # DUID+IAID, and restart to release the bad first boot
+            # lease. https://github.com/nirs/vmnet-helper/issues/54
+            "sed -i 's/^duid/clientid/' /etc/dhcpcd.conf",
+            "dhcpcd --release eth0",
+            "rc-service dhcpcd restart",
+            # Enable and start avahi-daemon. dbus must be added
+            # explicitly — avahi depends on it but `apk add avahi`
+            # does not enable it. Start dbus before avahi because
+            # OpenRC dependency resolution does not work during
+            # cloud-init runcmd.
             "rc-update add dbus",
             "rc-update add avahi-daemon",
             "rc-service dbus start",
