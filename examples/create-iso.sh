@@ -26,7 +26,6 @@ ethernets:
   eth0:
     match:
       macaddress: $MAC_ADDRESS
-    set-name: eth0
     dhcp4: true
     dhcp-identifier: mac
 EOF
