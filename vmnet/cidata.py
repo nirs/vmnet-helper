@@ -119,11 +119,10 @@ def create_network_config(vm):
     data = {
         "version": 2,
         "ethernets": {
-            "vmnet0": {
+            "eth0": {
                 "match": {
                     "macaddress": vm.mac_address,
                 },
-                "set-name": "vmnet0",
                 "dhcp4": True,
                 "dhcp-identifier": "mac",
                 "dhcp4-overrides": {
