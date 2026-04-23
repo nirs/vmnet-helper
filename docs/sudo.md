@@ -3,7 +3,7 @@ SPDX-FileCopyrightText: The vmnet-helper authors
 SPDX-License-Identifier: Apache-2.0
 -->
 
-# Running vment-helper with sudo
+# Running vmnet-helper with sudo
 
 On **macOS 26** and later, vmnet-helper runs as a regular user — do
 not use `sudo`.
