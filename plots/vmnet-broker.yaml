@@ -1,7 +1,7 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Compare vmnet-helper to native vment
+# Compare vmnet-helper to native vmnet
 ---
 name: vmnet-helper vs vmnet-broker
 title: vmnet-helper
