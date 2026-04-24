@@ -13,7 +13,7 @@ import os
 import signal
 import sys
 
-import vmnet
+import testing
 
 VMNET_OFFLOAD_AUTO = {
     "vfkit": "off",
@@ -23,7 +23,7 @@ VMNET_OFFLOAD_AUTO = {
 
 
 def main():
-    shared_interfaces = vmnet.shared_interfaces()
+    shared_interfaces = testing.shared_interfaces()
     p = argparse.ArgumentParser(description="Run virtual machine using vmnet-helper")
 
     # Main arguments
@@ -40,7 +40,7 @@ def main():
 
     p.add_argument(
         "--operation-mode",
-        choices=vmnet.OPERATION_MODES,
+        choices=testing.OPERATION_MODES,
         help="vmnet operation mode",
     )
     p.add_argument(
@@ -91,9 +91,9 @@ def main():
     p.add_argument(
         "--driver",
         metavar="NAME",
-        choices=vmnet.DRIVERS,
-        default=vmnet.DRIVERS[0],
-        help=f"VM driver ({vmnet.DRIVERS[0]})",
+        choices=testing.DRIVERS,
+        default=testing.DRIVERS[0],
+        help=f"VM driver ({testing.DRIVERS[0]})",
     )
     p.add_argument(
         "--driver-command",
@@ -122,7 +122,7 @@ def main():
         help="Time to wait for VM IP address (60 seconds)",
     )
 
-    distros = list(vmnet.IMAGES.keys())
+    distros = list(testing.IMAGES.keys())
     p.add_argument(
         "--distro",
         metavar="NAME",
@@ -193,16 +193,16 @@ def run_with_fd(args):
     """
     # Create a socketpair for the child processes. The vm_sock will be used by
     # the vm, and the host_sock will be used by the helper.
-    vm_sock, helper_sock = vmnet.socketpair()
+    vm_sock, helper_sock = testing.socketpair()
 
     # Start vmnet-helper first, since we need the MAC address before starting
     # the VM.
-    helper = vmnet.Helper(args, fd=helper_sock.fileno())
+    helper = testing.Helper(args, fd=helper_sock.fileno())
     helper.start()
     try:
         # Start the VM with the MAC address and the second socket.
-        vm = vmnet.VM(
-            args, helper.interface[vmnet.VMNET_MAC_ADDRESS], fd=vm_sock.fileno()
+        vm = testing.VM(
+            args, helper.interface[testing.VMNET_MAC_ADDRESS], fd=vm_sock.fileno()
         )
         vm.start()
         try:
@@ -220,15 +220,17 @@ def run_with_socket(args):
     """
     # The helper will create a unix datagram socket at this path and wait for
     # client connection.
-    socket = vmnet.vm_path(args.vm_name, "vmnet.sock")
+    socket = testing.vm_path(args.vm_name, "vmnet.sock")
 
     # Start vmnet-helper first, since we need the MAC address before starting
     # the VM.
-    helper = vmnet.Helper(args, socket=socket)
+    helper = testing.Helper(args, socket=socket)
     helper.start()
     try:
         # Start the VM with the MAC address and the socket path.
-        vm = vmnet.VM(args, helper.interface[vmnet.VMNET_MAC_ADDRESS], socket=socket)
+        vm = testing.VM(
+            args, helper.interface[testing.VMNET_MAC_ADDRESS], socket=socket
+        )
         vm.start()
         try:
             vm.wait_until_ready(timeout=args.timeout)
@@ -243,7 +245,9 @@ def run_with_runner(args):
     """
     Use vmnet-run to run a vm with fd.
     """
-    vm = vmnet.VM(args, vmnet.mac_address_from(args.vm_name), fd=4, runner=vmnet.RUNNER)
+    vm = testing.VM(
+        args, testing.mac_address_from(args.vm_name), fd=4, runner=testing.RUNNER
+    )
     vm.start()
     try:
         vm.wait_until_ready(timeout=args.timeout)

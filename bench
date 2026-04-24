@@ -17,7 +17,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import yaml
 
-import vmnet
+import testing
 
 SERVER = "server"
 CLIENT = "client"
@@ -84,9 +84,9 @@ def enable_iperf3_service(vm):
 
 def do_delete(args):
     print(f"Deleting benchmark vms")
-    server_home = vmnet.vm_path(SERVER)
+    server_home = testing.vm_path(SERVER)
     shutil.rmtree(server_home, ignore_errors=True)
-    client_home = vmnet.vm_path(CLIENT)
+    client_home = testing.vm_path(CLIENT)
     shutil.rmtree(client_home, ignore_errors=True)
 
 
@@ -134,19 +134,19 @@ def load_benchfile(filename):
     with open(filename) as f:
         config = yaml.safe_load(f)
 
-    if set(config.get("operation-modes", [])) - set(vmnet.OPERATION_MODES):
+    if set(config.get("operation-modes", [])) - set(testing.OPERATION_MODES):
         raise ValueError(f"Unknown operation-modes: {config['operation-modes']}")
     if set(config.get("tests", [])) - set(TESTS):
         raise ValueError(f"Unknown tests: {config['tests']}")
 
     drivers_names = [d["name"] for d in config.get("drivers", [])]
-    if set(drivers_names) - set(vmnet.DRIVERS):
+    if set(drivers_names) - set(testing.DRIVERS):
         raise ValueError(f"Unknown operation-modes: {config['drivers']}")
 
     # Set defaults to minimize the configuration for benchmarks.
-    config.setdefault("operation-modes", vmnet.OPERATION_MODES)
+    config.setdefault("operation-modes", testing.OPERATION_MODES)
     config.setdefault("tests", TESTS)
-    config.setdefault("drivers", [{"name": name} for name in vmnet.DRIVERS])
+    config.setdefault("drivers", [{"name": name} for name in testing.DRIVERS])
 
     return config
 
