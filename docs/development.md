@@ -64,7 +64,7 @@ To run all benchmarks with all drivers and all operation modes and store
 iperf3 results in json format use:
 
 ```console
-./bench run benchmarks/full.yaml
+./bench run performance/benchmarks/full.yaml
 ```
 
 The benchmark results are stored under `out/bench/vmnet-helper`.
@@ -82,7 +82,7 @@ When done you can delete the vms using:
 To create plots from benchmark results run:
 
 ```console
-./bench plot -o out plots/drivers.yaml
+./bench plot -o out performance/plots/drivers.yaml
 ```
 
 The plots use the results stored under `out/bench` and created under

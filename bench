@@ -416,7 +416,7 @@ def result_name(result, config):
 
 
 def plot(data, config, args):
-    plt.style.use(["plots/web.mplstyle"])
+    plt.style.use(["performance/plots/web.mplstyle"])
 
     fig, ax = plt.subplots(layout="constrained")
 

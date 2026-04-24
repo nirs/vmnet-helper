@@ -23,8 +23,8 @@ times faster*, and vmnet-helper with [qemu](https://www.qemu.org/) is up
 to *3 times faster*. See [similar tools](/docs/similar-tools.md) for a
 detailed comparison.
 
-![vmnet-helper vs socket_vmnet - shared network](/performance/2025-08/M3/plot/vmnet-helper-vs-socket_vmnet/shared.png)
-![vmnet-helper vs socket_vmnet - bridged network](/performance/2025-08/M3/plot/vmnet-helper-vs-socket_vmnet/bridged.png)
+![vmnet-helper vs socket_vmnet - shared network](/performance/results/2025-08/M3/plot/vmnet-helper-vs-socket_vmnet/shared.png)
+![vmnet-helper vs socket_vmnet - bridged network](/performance/results/2025-08/M3/plot/vmnet-helper-vs-socket_vmnet/bridged.png)
 
 Tested on iMac M3 and macOS 15.6.1.
 
@@ -34,8 +34,8 @@ Performance depends on VM type and transfer direction.
 [vfkit](https://github.com/crc-org/vfkit) performs better in all tests.
 [qemu](https://www.qemu.org/) is up to *5 times slower* than vfkit.
 
-![vmnet-helper drivers - shared network](/performance/2026-02/M3/plot/drivers/shared.png)
-![vmnet-helper drivers - bridged network](/performance/2026-02/M3/plot/drivers/bridged.png)
+![vmnet-helper drivers - shared network](/performance/results/2026-02/M3/plot/drivers/shared.png)
+![vmnet-helper drivers - bridged network](/performance/results/2026-02/M3/plot/drivers/bridged.png)
 
 Tested on iMac M3 and macOS 26.3.0.
 
@@ -49,13 +49,13 @@ Tested on iMac M3.
 
 ### macOS 26.3
 
-![vmnet-helper offloading - shared network](/performance/2026-02/M3/plot/offloading/shared.png)
-![vmnet-helper offloading - bridged network](/performance/2026-02/M3/plot/offloading/bridged.png)
+![vmnet-helper offloading - shared network](/performance/results/2026-02/M3/plot/offloading/shared.png)
+![vmnet-helper offloading - bridged network](/performance/results/2026-02/M3/plot/offloading/bridged.png)
 
 ### macOS 15.6
 
-![vmnet-helper offloading - shared network](/performance/2025-08/M3/plot/offloading/shared.png)
-![vmnet-helper offloading - bridged network](/performance/2025-08/M3/plot/offloading/bridged.png)
+![vmnet-helper offloading - shared network](/performance/results/2025-08/M3/plot/offloading/shared.png)
+![vmnet-helper offloading - bridged network](/performance/results/2025-08/M3/plot/offloading/bridged.png)
 
 ## Native vmnet via vmnet-broker
 
@@ -65,7 +65,7 @@ Native vmnet is up to *2 times faster* compared to krunkit with
 offloading, and up to *9 times faster* compared to krunkit without
 offloading. Only shared network is supported in native vmnet mode.
 
-![vmnet-helper vs vmnet-broker - shared network](/performance/2026-02/M3/plot/vmnet-helper%20vs%20vmnet-broker/shared.png)
+![vmnet-helper vs vmnet-broker - shared network](/performance/results/2026-02/M3/plot/vmnet-helper%20vs%20vmnet-broker/shared.png)
 
 Tested on iMac M3 and macOS 26.3.0.
 
