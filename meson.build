@@ -23,7 +23,7 @@ version_h = custom_target(
 
 version_h_dep = declare_dependency(sources: [version_h])
 
-subdir('vmnet-broker')
+subdir('broker')
 
 vmnet_framework = dependency('appleframeworks', modules: 'vmnet', required: true)
 corefoundation = dependency('appleframeworks', modules: 'CoreFoundation', required: true)
