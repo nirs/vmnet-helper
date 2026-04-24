@@ -192,7 +192,7 @@ class VM:
     def start(self):
         print(f"Starting {self.name}")
         cmd = [
-            "./example",
+            "./run",
             self.name,
             f"--driver={self.driver['name']}",
             f"--operation-mode={self.operation_mode}",
