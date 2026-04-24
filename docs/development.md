@@ -54,7 +54,7 @@ source .venv/bin/activate
 ```
 
 Create VMs for benchmarking (see [examples](/docs/examples.md) for
-details on the example tool):
+details on the run tool):
 
 ```console
 ./bench create

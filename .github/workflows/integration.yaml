@@ -75,7 +75,7 @@ jobs:
           # NOTE: Run as root to allow mDNS resolution and checking guest
           # connectivity.  macOS Local Network Privacy blocks local network
           # access for non-root processes outside Terminal.
-          sudo --preserve-env HOME=$HOME .venv/bin/python3 ./example test \
+          sudo --preserve-env HOME=$HOME .venv/bin/python3 ./run test \
               --driver ${{ matrix.driver }} \
               --connection ${{ matrix.connection }} \
               --timeout 300 \

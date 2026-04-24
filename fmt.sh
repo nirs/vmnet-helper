@@ -6,4 +6,4 @@
 
 set -e
 
-python3 -m black testing/ example bench gen-version
+python3 -m black testing/ run bench gen-version
