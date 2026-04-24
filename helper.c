@@ -139,7 +139,10 @@ static interface_ref interface;
 static size_t max_packet_size;
 static int kq = -1;
 static int status;
-static bool has_bulk_forwarding;
+
+// Enables sendmsg_x()/recvmsg_x() for forwarding multiple packets per
+// syscall. These are private functions that may break in a future release.
+static bool use_bulk_forwarding = true;
 
 // Ensures exclusive access to options.socket. This protects from the user
 // error of creating multiple helpers using the same socket.
@@ -796,7 +799,7 @@ static void write_to_vm(int count)
 
     // Fast path.
 
-    if (has_bulk_forwarding) {
+    if (use_bulk_forwarding) {
         uint64_t retries = 0;
 
         while (1) {
@@ -900,7 +903,7 @@ static int read_from_vm(void)
 {
     // Fast path - read multiple packets with one syscall.
 
-    if (has_bulk_forwarding) {
+    if (use_bulk_forwarding) {
         int max_packets = vm.max_packet_count;
 
         // Reset iovs - must be done before reading from vm.  recvmsg_x() reads
@@ -1064,11 +1067,7 @@ static void check_os_version(const char *prog)
     }
 
     INFOF("[main] running as uid: %d gid: %d", geteuid(), getegid());
-
-    if (v.major > 13) {
-        INFO("[main] enabling bulk forwarding");
-        has_bulk_forwarding = true;
-    }
+    INFOF("[main] using bulk_forwarding: %s", use_bulk_forwarding ? "true" : "false");
 }
 
 int main(int argc, char **argv)
