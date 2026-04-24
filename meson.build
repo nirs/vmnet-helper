@@ -13,7 +13,7 @@ project(
   ],
 )
 
-gen_version = find_program('gen-version')
+gen_version = find_program('building/gen-version')
 version_h = custom_target(
   'version.h',
   output: 'version.h',

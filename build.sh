@@ -8,7 +8,7 @@ set -eu
 build_dir="${1:?Usage: $0 BUILD_DIR}"
 
 for arch in arm64 x86_64; do
-    meson setup "$build_dir/$arch" --cross-file "$arch.ini"
+    meson setup "$build_dir/$arch" --cross-file "building/$arch.ini"
     meson compile -C "$build_dir/$arch"
 done
 
@@ -17,7 +17,7 @@ for prog in vmnet-helper vmnet-run; do
 done
 
 # Ad-hoc signing to allow creation of vmnet interfaces without root.
-codesign --force --verbose --entitlements entitlements.plist --sign - "$build_dir/vmnet-helper"
+codesign --force --verbose --entitlements building/entitlements.plist --sign - "$build_dir/vmnet-helper"
 codesign --display --entitlements - "$build_dir/vmnet-helper"
 
 root_dir="$build_dir/root"
