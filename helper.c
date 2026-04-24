@@ -78,6 +78,11 @@ struct endpoint {
     const char *name;
 };
 
+static inline const char *bool_str(bool b)
+{
+    return b ? "true" : "false";
+}
+
 static void init_endpoint(struct endpoint *e, const char *name, size_t max_packet_size)
 {
     e->name = name;
@@ -299,9 +304,9 @@ static void start_interface_with_options(void)
                options.start_address,
                options.end_address,
                options.subnet_mask,
-               options.enable_tso ? "true" : "false",
-               options.enable_checksum_offload ? "true" : "false",
-               options.enable_isolation ? "true" : "false");
+               bool_str(options.enable_tso),
+               bool_str(options.enable_checksum_offload),
+               bool_str(options.enable_isolation));
         break;
     case VMNET_BRIDGED_MODE:
         DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
@@ -309,8 +314,8 @@ static void start_interface_with_options(void)
                "shared-interface '%s'",
                mode_name(options.operation_mode),
                interface_id,
-               options.enable_tso ? "true" : "false",
-               options.enable_checksum_offload ? "true" : "false",
+               bool_str(options.enable_tso),
+               bool_str(options.enable_checksum_offload),
                options.shared_interface);
         break;
     }
@@ -447,9 +452,9 @@ static void start_interface_with_network(vmnet_network_ref ref)
            net.mask,
            net.ipv6_prefix,
            net.prefix_len,
-           options.enable_tso ? "true" : "false",
-           options.enable_checksum_offload ? "true" : "false",
-           options.enable_isolation ? "true" : "false");
+           bool_str(options.enable_tso),
+           bool_str(options.enable_checksum_offload),
+           bool_str(options.enable_isolation));
 
     // Build interface descriptor with compatible options.
     // NOTE: vmnet_allocate_mac_address_key is ignored on macOS 26.2 and vmnet
@@ -1067,7 +1072,7 @@ static void check_os_version(const char *prog)
     }
 
     INFOF("[main] running as uid: %d gid: %d", geteuid(), getegid());
-    INFOF("[main] using bulk_forwarding: %s", use_bulk_forwarding ? "true" : "false");
+    INFOF("[main] using bulk_forwarding: %s", bool_str(use_bulk_forwarding));
 }
 
 int main(int argc, char **argv)
