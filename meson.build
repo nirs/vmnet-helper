@@ -28,29 +28,7 @@ subdir('vmnet-broker')
 vmnet_framework = dependency('appleframeworks', modules: 'vmnet', required: true)
 corefoundation = dependency('appleframeworks', modules: 'CoreFoundation', required: true)
 
-vmnet_helper = executable(
-  'vmnet-helper',
-  'helper.c',
-  'options.c',
-  'os.c',
-  install: true,
-  dependencies: [
-    corefoundation,
-    vmnet_framework,
-    vmnet_broker_dep,
-    version_h_dep,
-  ],
-)
-
-vmnet_run = executable(
-  'vmnet-run',
-  'run.c',
-  'os.c',
-  install: true,
-  dependencies: [
-    version_h_dep,
-  ],
-)
+subdir('programs')
 
 install_subdir('sudoers.d', install_dir: 'share/doc/vmnet-helper')
 

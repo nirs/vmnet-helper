@@ -13,7 +13,7 @@ for arch in arm64 x86_64; do
 done
 
 for prog in vmnet-helper vmnet-run; do
-    lipo -create "$build_dir/x86_64/$prog" "$build_dir/arm64/$prog" -output "$build_dir/$prog"
+    lipo -create "$build_dir/x86_64/programs/$prog" "$build_dir/arm64/programs/$prog" -output "$build_dir/$prog"
 done
 
 # Ad-hoc signing to allow creation of vmnet interfaces without root.
