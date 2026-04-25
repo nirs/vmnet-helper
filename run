@@ -125,7 +125,6 @@ def main():
     distros = list(testing.IMAGES.keys())
     p.add_argument(
         "--distro",
-        metavar="NAME",
         choices=distros,
         default=distros[0],
         help=f"Linux distro ({distros[0]})",
