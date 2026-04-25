@@ -1,2 +1,5 @@
 # Expand version placeholders in release tarballs (git archive).
 version.json export-subst
+
+# Exclude benchmark tools and results from release tarballs.
+performance/ export-ignore
