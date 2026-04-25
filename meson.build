@@ -5,6 +5,9 @@ project(
   'vmnet-helper',
   'c',
   default_options: [
+    # /opt/vmnet-helper is the canonical install path for the upstream
+    # release, required by sudoers rules on macOS < 26. Override with
+    # --prefix for other installations (e.g. Homebrew).
     'prefix=/opt/vmnet-helper',
     'b_pie=true',
     'buildtype=release',
@@ -18,6 +21,8 @@ version_h = custom_target(
   'version.h',
   output: 'version.h',
   command: [gen_version, '@OUTPUT@', meson.project_source_root()],
+  # Run on every build, but gen-version only updates the file when the
+  # version or commit changes, avoiding unnecessary rebuilds.
   build_always_stale: true,
 )
 
@@ -30,6 +35,8 @@ corefoundation = dependency('appleframeworks', modules: 'CoreFoundation', requir
 
 subdir('programs')
 
+# Sudoers rule and documentation, used by install.sh to configure sudo
+# for running vmnet-helper without a password on macOS < 26.
 install_subdir('sudoers.d', install_dir: 'share/doc/vmnet-helper')
 
 # Disable useless options when testing with external commands.
