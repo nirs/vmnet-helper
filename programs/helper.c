@@ -496,6 +496,33 @@ static void start_interface_with_network(vmnet_network_ref ref)
 
 #endif // __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
 
+static void stop_host_interface(void)
+{
+    if (interface == NULL) {
+        return;
+    }
+
+    DEBUG("[main] stopping vmnet interface");
+
+    dispatch_semaphore_t completed = dispatch_semaphore_create(0);
+    vmnet_return_t status = vmnet_stop_interface(
+            interface, host.queue, ^(vmnet_return_t status) {
+        if (status != VMNET_SUCCESS) {
+            ERRORF("[main] vmnet_stop_interface: %s", host_strerror(status));
+        }
+        dispatch_semaphore_signal(completed);
+    });
+    if (status != VMNET_SUCCESS) {
+        ERRORF("[main] vmnet_stop_interface: %s", host_strerror(status));
+        return;
+    }
+
+    dispatch_semaphore_wait(completed, DISPATCH_TIME_FOREVER);
+    dispatch_release(completed);
+
+    INFO("[main] stopped vmnet interface");
+}
+
 static void start_host_interface(void)
 {
     DEBUG("[main] starting vmnet interface");
@@ -513,6 +540,11 @@ static void start_host_interface(void)
 #endif
     } else {
         start_interface_with_options();
+    }
+
+    if (atexit(stop_host_interface) < 0) {
+        ERRORF("[main] atexit: %s", strerror(errno));
+        exit(EXIT_FAILURE);
     }
 
     INFO("[main] started vmnet interface");
@@ -1027,34 +1059,6 @@ static void wait_for_termination(void)
     }
 }
 
-static void stop_host_interface(void)
-{
-    if (interface == NULL) {
-        return;
-    }
-
-    DEBUG("[main] stopping vmnet interface");
-
-    dispatch_semaphore_t completed = dispatch_semaphore_create(0);
-    vmnet_return_t status = vmnet_stop_interface(
-            interface, host.queue, ^(vmnet_return_t status) {
-        if (status != VMNET_SUCCESS) {
-            ERRORF("[main] vmnet_stop_interface: %s", host_strerror(status));
-            exit(EXIT_FAILURE);
-        }
-        dispatch_semaphore_signal(completed);
-    });
-    if (status != VMNET_SUCCESS) {
-        ERRORF("[main] vmnet_stop_interface: %s", host_strerror(status));
-        exit(EXIT_FAILURE);
-    }
-
-    dispatch_semaphore_wait(completed, DISPATCH_TIME_FOREVER);
-    dispatch_release(completed);
-
-    INFO("[main] stopped vmnet interface");
-}
-
 static void check_os_version(const char *prog)
 {
     struct os_version v = {0};
@@ -1087,7 +1091,6 @@ int main(int argc, char **argv)
     start_forwarding_from_host();
     start_forwarding_from_vm();
     wait_for_termination();
-    stop_host_interface();
 
     return (status == 0 || status & STATUS_STOPPED) ? EXIT_SUCCESS : EXIT_FAILURE;
 }
