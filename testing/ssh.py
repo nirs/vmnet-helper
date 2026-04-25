@@ -22,6 +22,7 @@ Host {vm.vm_name}
   StrictHostKeyChecking accept-new
   User {vm.distro}
   Hostname {vm.fqdn()}
+  SetEnv LC_CTYPE=C.UTF-8
 """
     logging.info("Creating ssh config '%s'", path)
     with open(path, "w") as f:
