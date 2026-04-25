@@ -1,0 +1,2 @@
+# Expand version placeholders in release tarballs (git archive).
+version.json export-subst
