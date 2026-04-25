@@ -17,7 +17,7 @@ gen_version = find_program('building/gen-version')
 version_h = custom_target(
   'version.h',
   output: 'version.h',
-  command: [gen_version, '@OUTPUT@'],
+  command: [gen_version, '@OUTPUT@', meson.project_source_root()],
   build_always_stale: true,
 )
 

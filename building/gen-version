@@ -2,16 +2,60 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
+import json
+import os
 import subprocess
 import sys
 
 
-def run(*args):
+class UnexpandedVersionFile(Exception):
+    """
+    Raised when version.json contains unexpanded values.
+
+    The version.json files contains git placeholders:
+
+        $Format:...$
+
+    They are replaced with the real value by git archive. If we see placeholders
+    the file is not from a release tarball.
+    """
+
+
+class NoGitInfo(Exception):
+    """
+    Raised if git version info is not available.
+
+    - Git binary not found
+    - Not a git repo
+    - Git command failed
+    """
+
+
+def run(*args, env=None):
+    return subprocess.check_output(args, env=env).decode().strip()
+
+
+def git(*args):
+    """
+    Run a git command scoped to source_dir.
+
+    -C source_dir: run git from the source directory, not the build
+    directory. Meson always uses a separate build directory, which may
+    be outside the source tree.
+
+    GIT_CEILING_DIRECTORIES: prevent git from finding a repo in parent
+    directories. Without this, building from a tarball extracted inside
+    a git repo would use the parent repo instead of falling back to
+    version.json.
+    """
+    ceiling = os.path.dirname(os.path.abspath(source_dir))
+    env = {**os.environ, "GIT_CEILING_DIRECTORIES": ceiling}
     try:
-        return subprocess.check_output(args).decode().strip()
+        return run("git", "-C", source_dir, *args, env=env)
+    except FileNotFoundError as e:
+        raise NoGitInfo(f"git is not installed: {e}") from e
     except subprocess.CalledProcessError as e:
-        print(f"Failed: {args}: {e}", file=sys.stderr)
-        return "unknown"
+        raise NoGitInfo(f"git failed: {e}") from e
 
 
 def read_output():
@@ -28,11 +72,48 @@ def write_output(content):
         f.write(content)
 
 
-# meson @OUTPUT@
-output = sys.argv[1]
+def version_from_git():
+    """
+    Return (version, commit) from git.
 
-version = run("git", "describe", "--tags")
-commit = run("git", "rev-parse", "HEAD")
+    Raise NoGitInfo if git is not installed or not running in a git repo.
+    Return "unknown" version if the repo has no tags.
+    """
+    commit = git("rev-parse", "HEAD")
+    try:
+        version = git("describe", "--tags")
+    except NoGitInfo:
+        version = "unknown"
+    return version, commit
+
+
+def version_from_json(path):
+    with open(path) as f:
+        data = json.load(f)
+
+    version = data["version"]
+    commit = data["commit"]
+
+    if version.startswith("$Format:") or commit.startswith("$Format:"):
+        raise UnexpandedVersionFile(path)
+
+    return version, commit
+
+
+if len(sys.argv) != 3:
+    sys.exit(f"Usage: {sys.argv[0]} OUTPUT SOURCE_ROOT")
+
+output = sys.argv[1]
+source_dir = sys.argv[2]
+
+json_path = os.path.join(source_dir, "version.json")
+
+try:
+    version, commit = version_from_git()
+    print(f"version from git: {version} {commit}")
+except NoGitInfo:
+    version, commit = version_from_json(json_path)
+    print(f"version from {json_path}: {version} {commit}")
 
 content = f"""\
 #define GIT_VERSION "{version}"
