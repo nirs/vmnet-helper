@@ -45,6 +45,11 @@ IMAGES = {
             "image": "https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-43-1.6.aarch64.qcow2",
         },
     },
+    "debian": {
+        "arm64": {
+            "image": "https://cloud.debian.org/images/cloud/trixie/latest/debian-13-generic-arm64.qcow2",
+        },
+    },
 }
 
 

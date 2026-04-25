@@ -23,6 +23,9 @@ DISTROS = {
         "packages": ["avahi"],
         "runcmd": ["systemctl enable --now avahi-daemon"],
     },
+    "debian": {
+        "packages": ["avahi-daemon"],
+    },
     "alpine": {
         "packages": ["avahi"],
         "runcmd": [
