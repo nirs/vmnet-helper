@@ -21,13 +21,9 @@ class UnexpandedVersionFile(Exception):
     """
 
 
-class NoGitInfo(Exception):
+class NotInGitRepo(Exception):
     """
-    Raised if git version info is not available.
-
-    - Git binary not found
-    - Not a git repo
-    - Git command failed
+    Raised when source_dir is not a git repository
     """
 
 
@@ -50,12 +46,7 @@ def git(*args):
     """
     ceiling = os.path.dirname(os.path.abspath(source_dir))
     env = {**os.environ, "GIT_CEILING_DIRECTORIES": ceiling}
-    try:
-        return run("git", "-C", source_dir, *args, env=env)
-    except FileNotFoundError as e:
-        raise NoGitInfo(f"git is not installed: {e}") from e
-    except subprocess.CalledProcessError as e:
-        raise NoGitInfo(f"git failed: {e}") from e
+    return run("git", "-C", source_dir, *args, env=env)
 
 
 def read_output():
@@ -76,13 +67,17 @@ def version_from_git():
     """
     Return (version, commit) from git.
 
-    Raise NoGitInfo if git is not installed or not running in a git repo.
+    Raise NotInGitRepo if source_dir is not a git repo.
     Return "unknown" version if the repo has no tags.
     """
+    git_dir = os.path.join(source_dir, ".git")
+    if not os.path.isdir(git_dir):
+        raise NotInGitRepo(f"not a git repo: {source_dir}")
+
     commit = git("rev-parse", "HEAD")
     try:
         version = git("describe", "--tags")
-    except NoGitInfo:
+    except subprocess.CalledProcessError:
         version = "unknown"
     return version, commit
 
@@ -111,7 +106,7 @@ json_path = os.path.join(source_dir, "version.json")
 try:
     version, commit = version_from_git()
     print(f"version from git: {version} {commit}")
-except NoGitInfo:
+except NotInGitRepo:
     version, commit = version_from_json(json_path)
     print(f"version from {json_path}: {version} {commit}")
 
