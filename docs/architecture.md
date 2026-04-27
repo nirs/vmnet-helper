@@ -124,8 +124,6 @@ flowchart TB
 - **bridge100**: Host bridge for the subnet; typically has the subnet’s gateway IP (e.g. 192.168.64.1).
 
 Use the same subnet options for all VMs that should be on the same network.
-Use a stable `--interface-id` per VM so the MAC (and thus DHCP-assigned IP)
-stays the same across restarts.
 
 ## Native vmnet on macOS 26
 
