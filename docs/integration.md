@@ -76,13 +76,13 @@ Example run using jq to pretty print the response:
 }
 ```
 
+The `--interface-id` option is optional but recommended to ensure that
+vmnet allocates the same MAC address for the VM on every run.
+
 > [!TIP]
 > vmnet documentation instructs to configure the virtual interface with
 > the mac address specified by "vmnet_mac_address". Testing shows that
 > this is not required and any mac address works.
-
-The `--interface-id` option is optional. It ensures that you get the same
-MAC address on every run.
 
 ## Starting the helper with a unix socket
 
@@ -160,6 +160,12 @@ $(brew --prefix vmnet-helper)/libexec/vmnet-run -- \
 
 > [!IMPORTANT]
 > The command run by *vmnet-run* must use file descriptor 4.
+
+> [!NOTE]
+> The `--interface-id` option is not needed with vmnet-run. The command
+> passed to vmnet-run specifies its own MAC address (e.g.
+> `--device virtio-net,fd=4,mac=...`), so the MAC address allocated by
+> vmnet is not used.
 
 See the [examples](/examples/) for more examples of using *vmnet-run*.
 

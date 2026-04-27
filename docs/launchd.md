@@ -148,13 +148,6 @@ Create the cloud-init ISO from the files:
 
 ### Creating the plist
 
-Generate a UUID for `--interface-id` to get stable MAC/IP assignments
-from vmnet across restarts:
-
-```console
-INTERFACE_ID=$(uuidgen)
-```
-
 > [!NOTE]
 > On macOS 15, replace the vmnet-run path in the plist with
 > `/opt/vmnet-helper/bin/vmnet-run`.
@@ -172,8 +165,6 @@ cat > ~/Library/LaunchAgents/local.$VM_NAME.plist << EOF
     <key>ProgramArguments</key>
     <array>
         <string>$(brew --prefix vmnet-helper)/libexec/vmnet-run</string>
-        <string>--interface-id</string>
-        <string>$INTERFACE_ID</string>
         <string>--</string>
         <string>$(brew --prefix)/bin/vfkit</string>
         <string>--cpus</string>
