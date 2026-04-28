@@ -42,15 +42,15 @@ brew install vmnet-helper vfkit krunkit cdrtools qemu
 Download a Fedora cloud image and convert to raw:
 
 > [!NOTE]
-> If you already have `~/.cache/vm-images/fedora-43.img` from the
+> If you already have `~/.cache/vm-images/fedora-44.img` from the
 > [launchd guide], skip this step.
 
 ```console
-curl --fail --location --output /tmp/fedora-43.qcow2 \
-    https://download.fedoraproject.org/pub/fedora/linux/releases/43/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-43-1.6.aarch64.qcow2
+curl --fail --location --output /tmp/fedora-44.qcow2 \
+    https://download.fedoraproject.org/pub/fedora/linux/releases/44/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-44-1.7.aarch64.qcow2
 mkdir -p ~/.cache/vm-images
-qemu-img convert -f qcow2 -O raw /tmp/fedora-43.qcow2 \
-    ~/.cache/vm-images/fedora-43.img
+qemu-img convert -f qcow2 -O raw /tmp/fedora-44.qcow2 \
+    ~/.cache/vm-images/fedora-44.img
 ```
 
 ## Creating podman VM with vfkit
@@ -74,7 +74,7 @@ print(':'.join(f'{x:02x}' for x in b))
 ")
 
 mkdir -p ~/vms/$VM_NAME
-cp -c ~/.cache/vm-images/fedora-43.img ~/vms/$VM_NAME/disk.img
+cp -c ~/.cache/vm-images/fedora-44.img ~/vms/$VM_NAME/disk.img
 qemu-img resize -q -f raw ~/vms/$VM_NAME/disk.img $DISK_SIZE
 
 cat > ~/vms/$VM_NAME/user-data << EOF
@@ -247,7 +247,7 @@ print(':'.join(f'{x:02x}' for x in b))
 ")
 
 mkdir -p ~/vms/$VM_NAME
-cp -c ~/.cache/vm-images/fedora-43.img ~/vms/$VM_NAME/disk.img
+cp -c ~/.cache/vm-images/fedora-44.img ~/vms/$VM_NAME/disk.img
 qemu-img resize -q -f raw ~/vms/$VM_NAME/disk.img $DISK_SIZE
 
 cat > ~/vms/$VM_NAME/user-data << EOF
