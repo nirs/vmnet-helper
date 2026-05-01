@@ -9,7 +9,7 @@ import subprocess
 
 from . import store
 
-UBUNTU_RELEASE = "25.04"
+UBUNTU_RELEASE = "26.04"
 
 IMAGES = {
     "ubuntu": {
