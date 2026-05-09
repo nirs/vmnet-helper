@@ -17,3 +17,6 @@ __pycache__
 
 # Clang caches
 /.cache
+
+# Ouput files.
+out/
