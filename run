@@ -64,6 +64,13 @@ def main():
         "--subnet-mask", help="The IPv4 subnet mask (string) to use on the interface."
     )
     p.add_argument(
+        "--network-id",
+        help=(
+            "The identifier (UUID) of the host network to use on the interface "
+            "(host operation-mode only)."
+        ),
+    )
+    p.add_argument(
         "--shared-interface",
         choices=shared_interfaces,
         default=shared_interfaces[0],
@@ -154,6 +161,8 @@ def main():
             p.error("--network cannot be used with --end-address")
         if args.subnet_mask:
             p.error("--network cannot be used with --subnet-mask")
+        if args.network_id:
+            p.error("--network cannot be used with --network-id")
 
     if args.operation_mode == "bridged":
         if not args.shared_interface:
