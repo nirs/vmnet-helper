@@ -335,16 +335,22 @@ static void start_interface_with_options(void)
 
     switch (options.operation_mode) {
     case VMNET_SHARED_MODE:
+        if (options.start_address != NULL) {
+            xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
+            xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
+            xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
+        }
+        xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
     case VMNET_HOST_MODE:
         if (options.start_address != NULL) {
             xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
             xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
             xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
         }
+        xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
         if (!uuid_is_null(options.network_id)) {
             xpc_dictionary_set_uuid(desc, vmnet_network_identifier_key, options.network_id);
         }
-        xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
         break;
     case VMNET_BRIDGED_MODE:
         xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);

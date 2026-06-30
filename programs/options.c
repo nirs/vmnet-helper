@@ -199,11 +199,6 @@ static void validate_network_options(struct options *opts)
         ERROR("--start-address, --end-address, and --subnet-mask must be given together, or all omitted");
         exit(EXIT_FAILURE);
     }
-
-    if (!uuid_is_null(opts->network_id) && opts->operation_mode != VMNET_HOST_MODE) {
-        ERROR("--network-id requires --operation-mode set to 'host'");
-        exit(EXIT_FAILURE);
-    }
 }
 
 void parse_options(struct options *opts, int argc, char **argv)
@@ -317,10 +312,20 @@ void parse_options(struct options *opts, int argc, char **argv)
 
         switch (opts->operation_mode) {
         case VMNET_SHARED_MODE:
+            validate_network_options(opts);
+            if (!uuid_is_null(opts->network_id)) {
+                ERROR("--network-id cannot be used with operation-mode=shared");
+                exit(EXIT_FAILURE);
+            }
+            break;
         case VMNET_HOST_MODE:
             validate_network_options(opts);
             break;
         case VMNET_BRIDGED_MODE:
+            if (!uuid_is_null(opts->network_id)) {
+                ERROR("--network-id cannot be used with operation-mode=bridged");
+                exit(EXIT_FAILURE);
+            }
             if (opts->shared_interface == NULL) {
                 ERROR("Missing argument: shared-interface is required for operation-mode=bridged");
                 exit(EXIT_FAILURE);

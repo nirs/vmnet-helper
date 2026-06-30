@@ -374,15 +374,11 @@ static void parse_options(int argc, char **argv)
             ERROR("[runner] conflicting arguments: --network cannot be used with --subnet-mask");
             exit(EXIT_FAILURE);
         }
-        if (options.subnet_mask != NULL) {
+        if (options.network_id != NULL) {
             ERROR("[runner] conflicting arguments: --network cannot be used with --network-id");
             exit(EXIT_FAILURE);
         }
     } else if (is_bridged(options.operation_mode)) {
-        if (options.subnet_mask != NULL) {
-            ERROR("[runner] conflicting arguments: --network cannot be used with --subnet-mask");
-            exit(EXIT_FAILURE);
-        }
         if (options.shared_interface == NULL) {
             ERROR("[runner] missing argument: shared-interface is required for operation-mode=bridged");
             exit(EXIT_FAILURE);
@@ -395,6 +391,11 @@ static void parse_options(int argc, char **argv)
         // TODO: Validate that isolation doesn't work with bridged mode.
         if (options.enable_isolation) {
             ERROR("[runner] conflicting arguments: enable-isolation not compatible with operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
+    } else if (is_shared(options.operation_mode)) {
+        if (options.network_id != NULL) {
+            ERROR("[runner] conflicting arguments: --network-id cannot be used with operation-mode=shared");
             exit(EXIT_FAILURE);
         }
     }
