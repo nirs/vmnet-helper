@@ -180,7 +180,8 @@ Allows the vmnet interface to communicate with other vmnet interfaces
 that are in host mode and also with the native host.
 
 The network can be configured using the
-[network address options](#network-address-options).
+[network address options](#network-address-options) or the
+[host only options](#host-only-options).
 
 ### --operation-mode=shared
 
@@ -334,6 +335,16 @@ cases and much worse performance in other cases. See the
 > [!IMPORTANT]
 > You must use both **--enable-tso** and **--enable-checksum-offload** when
 > using krunkit **offloading=on** virtio-net option.
+
+## Host only options
+
+- **--network-id**: Takes a UUID to identify the network. The guest can only
+  communicate with other host-mode interfaces with the same network ID. No DHCP
+  service is provided.
+
+> [!WARNING]
+> On macOS < 26, an address is not automatically assigned to the host when
+> `--network-id` is set.
 
 ## Stopping the interface
 

@@ -58,6 +58,7 @@ class Helper:
         self.start_address = args.start_address
         self.end_address = args.end_address
         self.subnet_mask = args.subnet_mask
+        self.network_id = args.network_id
         self.shared_interface = args.shared_interface
         self.network_name = args.network_name
         self.enable_isolation = args.enable_isolation
@@ -148,6 +149,9 @@ class Helper:
 
         if self.subnet_mask:
             cmd.append(f"--subnet-mask={self.subnet_mask}")
+
+        if self.network_id:
+            cmd.append(f"--network-id={self.network_id}")
 
         if self.enable_isolation:
             cmd.append("--enable-isolation")

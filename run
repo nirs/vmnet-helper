@@ -8,10 +8,13 @@ Run a vm with vmnet-helper.
 """
 
 import argparse
+import ipaddress
 import logging
 import os
+import random
 import signal
 import sys
+import uuid
 
 import testing
 
@@ -62,6 +65,18 @@ def main():
     )
     p.add_argument(
         "--subnet-mask", help="The IPv4 subnet mask (string) to use on the interface."
+    )
+    p.add_argument(
+        "--network-id",
+        type=validate_uuid,
+        help=(
+            "The identifier (UUID) of the host network to use on the interface "
+            "(host operation-mode only). The host bits of the IP address assigned "
+            "to the VM are defined using a random number generator seeded from the "
+            "name of the VM. See assign_ip_address for details. Changes to the static "
+            "IP address between runs are not propagated, and you should manually delete "
+            "the disk.img and cidata.iso files for the VM to be reachable."
+        ),
     )
     p.add_argument(
         "--shared-interface",
@@ -154,12 +169,24 @@ def main():
             p.error("--network cannot be used with --end-address")
         if args.subnet_mask:
             p.error("--network cannot be used with --subnet-mask")
+        if args.network_id:
+            p.error("--network cannot be used with --network-id")
 
     if args.operation_mode == "bridged":
         if not args.shared_interface:
             p.error("--shared-interface required for --operation-mode=bridged")
         if args.enable_isolation:
             p.error("--enable-isolation not compatible with --operation-mode=bridged")
+        if args.network_id:
+            p.error("--network-id is not compatible with --operation-mode=bridged")
+    elif args.operation_mode == "shared":
+        if args.network_id:
+            p.error("--network-id is not compatible with --operation-mode=shared")
+
+    if args.network_id and args.connection == "runner":
+        # Without an option to set the host address, --network-id cannot be used with
+        # --connection=runner
+        p.error("--network-id is not compatible with --connection=runner")
 
     signal.signal(signal.SIGTERM, terminate)
     signal.signal(signal.SIGINT, terminate)
@@ -201,7 +228,10 @@ def run_with_fd(args):
     try:
         # Start the VM with the MAC address and the second socket.
         vm = testing.VM(
-            args, helper.interface[testing.VMNET_MAC_ADDRESS], fd=vm_sock.fileno()
+            args,
+            helper.interface[testing.VMNET_MAC_ADDRESS],
+            ip_address=assign_ip_address(helper, args),
+            fd=vm_sock.fileno(),
         )
         vm.start()
         try:
@@ -228,7 +258,10 @@ def run_with_socket(args):
     try:
         # Start the VM with the MAC address and the socket path.
         vm = testing.VM(
-            args, helper.interface[testing.VMNET_MAC_ADDRESS], socket=socket
+            args,
+            helper.interface[testing.VMNET_MAC_ADDRESS],
+            ip_address=assign_ip_address(helper, args),
+            socket=socket,
         )
         vm.start()
         try:
@@ -269,6 +302,50 @@ def cpus(s):
 
 def terminate(signo, frame):
     sys.exit(1)
+
+
+def validate_uuid(arg):
+    parsed = uuid.UUID(arg)
+    if parsed == uuid.NIL:
+        raise ValueError("Nil UUID will be ignored")
+    return parsed
+
+
+def assign_ip_address(helper, args):
+    """
+    Assigns an IP address from the helper's range based on the name of the VM.
+
+    Returns None if --network-id is not set.
+
+    This does not prevent address collisions on its own, but it allows the caller to set VM
+    names that will result in unique addresses being set on a subnet of a known size. Using the
+    repl for example, we can ensure the names "test0" and "test1" result in unique addresses on
+    any network with the subnet mask 255.255.255.0.
+
+    ```
+    >>> import random
+    >>> random.seed("test0")
+    >>> random.randint(2,254)
+    209
+    >>> random.seed("test1")
+    >>> random.randint(2,254)
+    184
+    ```
+    """
+    if not args.network_id:
+        return None
+    subnet_mask = helper.interface[testing.VMNET_SUBNET_MASK]
+    host_address = helper.interface[testing.VMNET_START_ADDRESS]
+    if subnet_mask == "0.0.0.0" and host_address == "0.0.0.0":
+        # This happens on macOS < 15, let's assign a random subnet
+        # This will make tests flaky
+        subnet_mask = "255.255.255.0"
+        host_address = "192.168.55.1"
+    interface = ipaddress.IPv4Interface(f"{host_address}/{subnet_mask}")
+    net_addr = interface.network.network_address
+    random.seed(args.vm_name)
+    vm_offset = random.randint(2, interface.network.num_addresses - 1)
+    return ipaddress.IPv4Interface(f"{net_addr + vm_offset}/{subnet_mask}")
 
 
 if __name__ == "__main__":

@@ -24,6 +24,7 @@ import os
 import platform
 import socket
 import time
+import uuid
 from types import SimpleNamespace
 
 import pytest
@@ -259,6 +260,13 @@ class TestStart:
         ) as (h, sock):
             self.check_interface(h.interface)
 
+    def test_host_mode_network_id(self):
+        """
+        Test starting helper in host mode with network id
+        """
+        with run_helper(operation_mode="host", network_id=uuid.uuid4()) as (h, sock):
+            self.check_interface(h.interface)
+
     def test_no_interface_id(self):
         """
         Test starting helper without --interface-id. vmnet should assign
@@ -305,6 +313,16 @@ class TestConnectivity:
             gateway_mac = arp_resolve(h, sock)
             gateway_ip = find_gateway_ip(h.interface)
             ping(h, sock, gateway_mac, gateway_ip)
+
+    @pytest.mark.skipif(not MACOS_26, reason="host doesn't get an IP on macOS <26")
+    def test_ping_host_network_id(self):
+        """
+        Test ICMP ping to host when --network-id is set
+        """
+        with run_helper(operation_mode="host", network_id=uuid.uuid4()) as (h, sock):
+            host_mac = arp_resolve(h, sock)
+            host_ip = find_gateway_ip(h.interface)
+            ping(h, sock, host_mac, host_ip)
 
     def test_ping_external_via_nat(self):
         """
@@ -412,6 +430,7 @@ def run_helper(
     start_address=None,
     end_address=None,
     subnet_mask=None,
+    network_id=None,
     shared_interface=None,
     network_name=None,
     enable_isolation=False,
@@ -437,6 +456,7 @@ def run_helper(
         start_address=start_address,
         end_address=end_address,
         subnet_mask=subnet_mask,
+        network_id=network_id,
         shared_interface=shared_interface,
         network_name=network_name,
         enable_isolation=enable_isolation,

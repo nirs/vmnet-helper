@@ -100,7 +100,9 @@ def create_user_data(vm):
         },
         "ssh_authorized_keys": public_keys(),
     }
-    data.update(DISTROS[vm.distro])
+    # If using static addresses, don't do mDNS setup
+    if not vm.ip_address:
+        data.update(DISTROS[vm.distro])
 
     path = store.vm_path(vm.vm_name, "user-data")
     with open(path, "w") as f:
@@ -132,7 +134,7 @@ def create_network_config(vm):
                 "match": {
                     "macaddress": vm.mac_address,
                 },
-                "dhcp4": True,
+                "dhcp4": vm.ip_address is None,
                 "dhcp-identifier": "mac",
                 "dhcp4-overrides": {
                     "use-dns": False,
@@ -143,6 +145,8 @@ def create_network_config(vm):
             },
         },
     }
+    if vm.ip_address:
+        data["ethernets"]["eth0"]["addresses"] = [str(vm.ip_address)]
     path = store.vm_path(vm.vm_name, "network-config")
     with open(path, "w") as f:
         yaml.dump(data, f, sort_keys=False)

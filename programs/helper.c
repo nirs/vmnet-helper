@@ -287,6 +287,7 @@ static const char *mode_name(operating_modes_t mode)
 // Start interface with the specified operation mode and options.
 static void start_interface_with_options(void)
 {
+    char network_id[37] = "(unset)";
     char interface_id[37] = "(unset)";
     if (!uuid_is_null(options.interface_id)) {
         uuid_unparse(options.interface_id, interface_id);
@@ -295,8 +296,12 @@ static void start_interface_with_options(void)
     switch (options.operation_mode) {
     case VMNET_SHARED_MODE:
     case VMNET_HOST_MODE:
+        if (!uuid_is_null(options.network_id)) {
+            uuid_unparse(options.network_id, network_id);
+        }
         DEBUGF("[main] starting interface mode '%s' interface-id '%s' "
                "start-address '%s' end-address '%s' subnet-mask '%s' "
+               "network-id '%s' "
                "enable-tso %s enable-checksum-offload %s "
                "enable-isolation %s",
                mode_name(options.operation_mode),
@@ -304,6 +309,7 @@ static void start_interface_with_options(void)
                options.start_address,
                options.end_address,
                options.subnet_mask,
+               network_id,
                bool_str(options.enable_tso),
                bool_str(options.enable_checksum_offload),
                bool_str(options.enable_isolation));
@@ -329,6 +335,12 @@ static void start_interface_with_options(void)
 
     switch (options.operation_mode) {
     case VMNET_SHARED_MODE:
+        if (options.start_address != NULL) {
+            xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
+            xpc_dictionary_set_string(desc, vmnet_end_address_key, options.end_address);
+            xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
+        }
+        xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
     case VMNET_HOST_MODE:
         if (options.start_address != NULL) {
             xpc_dictionary_set_string(desc, vmnet_start_address_key, options.start_address);
@@ -336,6 +348,9 @@ static void start_interface_with_options(void)
             xpc_dictionary_set_string(desc, vmnet_subnet_mask_key, options.subnet_mask);
         }
         xpc_dictionary_set_bool(desc, vmnet_enable_isolation_key, options.enable_isolation);
+        if (!uuid_is_null(options.network_id)) {
+            xpc_dictionary_set_uuid(desc, vmnet_network_identifier_key, options.network_id);
+        }
         break;
     case VMNET_BRIDGED_MODE:
         xpc_dictionary_set_string(desc, vmnet_shared_interface_name_key, options.shared_interface);

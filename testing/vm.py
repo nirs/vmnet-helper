@@ -1,6 +1,8 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
+import errno
+import ipaddress
 import logging
 import os
 import platform
@@ -28,10 +30,13 @@ QEMU_CONFIG = {
 
 
 class VM:
-    def __init__(self, args, mac_address, fd=None, socket=None, runner=None):
+    def __init__(
+        self, args, mac_address, ip_address=None, fd=None, socket=None, runner=None
+    ):
         # Configuration
         self.args = args
         self.mac_address = mac_address
+        self.ip_address = ip_address
         self.fd = fd
         self.socket = socket
         self.runner = runner
@@ -126,6 +131,16 @@ class VM:
         """
         return f"{self.hostname()}.local"
 
+    def address(self):
+        """
+        Return the address used to ssh into this VM.
+        """
+        if self.ip_address:
+            interface = ipaddress.IPv4Interface(self.ip_address)
+            return str(interface.ip)
+        else:
+            return self.fqdn()
+
     def supports_kernel_boot(self):
         return self.driver == "qemu"
 
@@ -134,7 +149,7 @@ class VM:
         Wait until the VM is reachable via mDNS on the SSH port.
         """
         deadline = time.monotonic() + timeout
-        address = self.fqdn()
+        address = self.address()
         logging.debug("Waiting until VM is ready at %s", address)
 
         while time.monotonic() < deadline:
@@ -146,6 +161,12 @@ class VM:
             except OSError as e:
                 self.check_running()
                 logging.debug("Connect %s: %s", address, e)
+                if e.errno in [
+                    errno.EHOSTDOWN,
+                    errno.EHOSTUNREACH,
+                    errno.ECONNREFUSED,
+                ]:
+                    time.sleep(5)
 
         self.check_running()
         logging.warning("Timeout waiting for vm to become reachable")

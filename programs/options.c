@@ -30,6 +30,7 @@ static void usage(int code)
 "    vmnet-helper (--fd FD|--socket SOCKET) [--interface-id UUID]\n"
 "                 [--operation-mode shared|bridged|host] [--shared-interface NAME]\n"
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
+"                 [--network-id UUID]\n"
 "                 [--enable-tso] [--enable-checksum-offload] [--enable-isolation]\n"
 "                 [--network NAME] [--list-shared-interfaces]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
@@ -39,7 +40,7 @@ static void usage(int code)
 "    With --network, vmnet-helper joins a network managed by vmnet-broker.\n"
 "\n"
 "    --network is mutually exclusive with: --operation-mode, --shared-interface,\n"
-"    --start-address, --end-address, --subnet-mask.\n"
+"    --start-address, --end-address, --subnet-mask, --network-id.\n"
 "\n"
 "    --network requires macOS 26 or later.\n"
 "\n";
@@ -53,6 +54,7 @@ enum {
     OPT_START_ADDRESS,
     OPT_END_ADDRESS,
     OPT_SUBNET_MASK,
+    OPT_NETWORK_ID,
     OPT_ENABLE_TSO,
     OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
@@ -72,6 +74,7 @@ static struct option long_options[] = {
     {"start-address",           required_argument,  0,  OPT_START_ADDRESS},
     {"end-address",             required_argument,  0,  OPT_END_ADDRESS},
     {"subnet-mask",             required_argument,  0,  OPT_SUBNET_MASK},
+    {"network-id",              required_argument,  0,  OPT_NETWORK_ID},
     {"enable-tso",              no_argument,        0,  OPT_ENABLE_TSO},
     {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
@@ -135,6 +138,14 @@ static void parse_interface_id(const char *arg, uuid_t uuid)
 {
     if (uuid_parse(arg, uuid) < 0) {
         ERRORF("Invalid interface-id: \"%s\"", arg);
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void parse_network_id(const char *arg, uuid_t uuid)
+{
+    if (uuid_parse(arg, uuid) < 0) {
+        ERRORF("Invalid network-id: \"%s\"", arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -233,6 +244,9 @@ void parse_options(struct options *opts, int argc, char **argv)
         case OPT_SUBNET_MASK:
             parse_address(optarg, optname, &opts->subnet_mask);
             break;
+        case OPT_NETWORK_ID:
+            parse_network_id(optarg, opts->network_id);
+            break;
         case OPT_ENABLE_TSO:
             opts->enable_tso = true;
             break;
@@ -286,6 +300,10 @@ void parse_options(struct options *opts, int argc, char **argv)
             ERROR("Conflicting arguments: --network cannot be used with --subnet-mask");
             exit(EXIT_FAILURE);
         }
+        if (!uuid_is_null(opts->network_id)) {
+            ERROR("Conflicting arguments: --network cannot be used with --network-id");
+            exit(EXIT_FAILURE);
+        }
     } else {
         // Apply defaults and validate when not using vmnet-broker network.
         if (opts->operation_mode == 0) {
@@ -294,10 +312,20 @@ void parse_options(struct options *opts, int argc, char **argv)
 
         switch (opts->operation_mode) {
         case VMNET_SHARED_MODE:
+            validate_network_options(opts);
+            if (!uuid_is_null(opts->network_id)) {
+                ERROR("--network-id cannot be used with operation-mode=shared");
+                exit(EXIT_FAILURE);
+            }
+            break;
         case VMNET_HOST_MODE:
             validate_network_options(opts);
             break;
         case VMNET_BRIDGED_MODE:
+            if (!uuid_is_null(opts->network_id)) {
+                ERROR("--network-id cannot be used with operation-mode=bridged");
+                exit(EXIT_FAILURE);
+            }
             if (opts->shared_interface == NULL) {
                 ERROR("Missing argument: shared-interface is required for operation-mode=bridged");
                 exit(EXIT_FAILURE);
