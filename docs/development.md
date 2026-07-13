@@ -108,3 +108,75 @@ the output directory:
 ```console
 cp ~/src/socket_vmnet/test/perf.out/socket_vmnet out/bench/
 ```
+
+## `run`: start a virtual machine for testing
+
+The `run` script starts vmnet-helper and a Linux virtual machine. It allows
+for quick integration testing with various distributions and helper options.
+All helper options are supported. By default, the script starts a Ubuntu 26.04
+VM on a shared network. To see all options, use `./run -h`.
+
+```console
+% ./run test
+[   0.035] INFO Starting vmnet-helper for 'test' with interface id '83fa1a6e-13ec-408f-ae44-2c26bc31
+7160'
+[   0.115] INFO Creating image '/Users/user/.vmnet-helper/vms/test/disk.img'
+[   0.121] INFO Creating cloud-init iso '/Users/user/.vmnet-helper/vms/test/cidata.iso'
+[   0.128] INFO Starting 'vfkit' virtual machine 'test' with mac address '1a:ad:75:f7:ca:a2'
+[   0.128] INFO Creating ssh config '/Users/user/.vmnet-helper/vms/test/ssh.config'
+[  17.123] INFO VM is ready at test-vmnet-helper.local
+```
+
+Virtual machine resources can be customized. The following example sets 4 vcpus
+and 4 GiB of memory:
+
+```console
+% ./run test --cpus 4 --memory 4096
+```
+
+By default, `run` uses vfkit, connected to the helper using a file descriptor.
+The following example uses the qemu driver, and connects using vmnet-run:
+
+```console
+% ./run test --driver qemu --connection runner
+[   0.031] INFO Starting 'qemu' virtual machine 'test' with mac address '9a:a9:fe:3c:db:46'
+[  16.630] INFO VM is ready at test-vmnet-helper.local
+```
+
+### Storage and debugging
+
+The script downloads cloud images to `~/.vmnet-helper/cache/images`, converts
+them to RAW, and uses APFS reflinks to provision individual VM images. Each
+VM has a directory under `~/.vmnet-helper/vms` for storage, configuration, and
+logs.
+
+For a given VM `$VM` and driver `$DRIVER`, the following logs are available
+for debugging relative to the VM storage directory `~/.vmnet-helper/$VM`:
+- `serial.log`: the output of the VM's serial console
+- `$DRIVER.command`: the driver command used to start the VM
+- `$DRIVER.log`: any logs from the hypervisor driver
+- `vmnet-helper.log`: logs from `vmnet-helper` itself
+
+```console
+% tree ~/.vmnet-helper/vms/test
+/Users/tofugarden/.vmnet-helper/vms/test
+├── cidata.iso
+├── disk.img
+├── efi-variable-store
+├── meta-data
+├── network-config
+├── serial.log
+├── ssh.config
+├── user-data
+├── vfkit.command
+├── vfkit.log
+└── vmnet-helper.log
+```
+
+### Limitations
+
+The `qemu` driver is not compatible with `--connection` set to `socket`.
+
+Multicast DNS setup requires network access. To use mDNS with
+`--operation-mode` set to `host`, create the VM in shared mode, then restart it
+in host mode.
