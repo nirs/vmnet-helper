@@ -57,15 +57,29 @@ def create_iso(vm):
     cloud-init skips re-provisioning. Delete the iso to force recreation.
     """
     vm_home = store.vm_path(vm.vm_name)
+    meta_data_path = os.path.join(vm_home, "meta-data")
+    user_data_path = os.path.join(vm_home, "user-data")
+    network_config_path = os.path.join(vm_home, "network-config")
     cidata = os.path.join(vm_home, "cidata.iso")
 
-    if os.path.exists(cidata):
-        logging.debug("Reusing cloud-init iso '%s'", cidata)
-        return cidata
+    user_data = create_user_data(vm)
+    network_config = create_network_config(vm)
 
-    create_user_data(vm)
-    create_meta_data(vm)
-    create_network_config(vm)
+    if os.path.exists(cidata):
+        user_data_matches = file_matches(user_data, cidata, "user-data")
+        network_config_matches = file_matches(network_config, cidata, "network-config")
+        if user_data_matches and network_config_matches:
+            logging.debug("Reusing cloud-init iso '%s'", cidata)
+            return cidata
+
+    with open(meta_data_path, "w") as f:
+        yaml.dump(create_meta_data(vm), f, sort_keys=False)
+    with open(user_data_path, "w") as f:
+        f.write("#cloud-config\n")
+        yaml.dump(user_data, f, sort_keys=False)
+    with open(network_config_path, "w") as f:
+        yaml.dump(network_config, f, sort_keys=False)
+
     cmd = [
         "mkisofs",
         "-output",
@@ -91,7 +105,7 @@ def create_iso(vm):
 
 def create_user_data(vm):
     """
-    Create cloud-init user-data file.
+    Create cloud-init user-data dict.
     """
     data = {
         "password": "password",
@@ -101,31 +115,24 @@ def create_user_data(vm):
         "ssh_authorized_keys": public_keys(),
     }
     data.update(DISTROS[vm.distro])
-
-    path = store.vm_path(vm.vm_name, "user-data")
-    with open(path, "w") as f:
-        f.write("#cloud-config\n")
-        yaml.dump(data, f, sort_keys=False)
+    return data
 
 
 def create_meta_data(vm):
     """
-    Create cloud-init meta-data file.
+    Create cloud-init meta-data dict.
     """
-    data = {
+    return {
         "instance-id": str(uuid.uuid4()),
         "local-hostname": vm.hostname(),
     }
-    path = store.vm_path(vm.vm_name, "meta-data")
-    with open(path, "w") as f:
-        yaml.dump(data, f, sort_keys=False)
 
 
 def create_network_config(vm):
     """
-    Create cloud-init network-config file.
+    Create cloud-init network-config dict.
     """
-    data = {
+    return {
         "version": 2,
         "ethernets": {
             "eth0": {
@@ -143,9 +150,21 @@ def create_network_config(vm):
             },
         },
     }
-    path = store.vm_path(vm.vm_name, "network-config")
-    with open(path, "w") as f:
-        yaml.dump(data, f, sort_keys=False)
+
+
+def file_matches(data, iso_path, file_path):
+    """
+    Parses the YAML file at 'file_path' in the ISO 'iso_path', and compares it to 'data'.
+
+    Returns True if they match, False otherwise.
+    """
+    extract = subprocess.run(
+        ["bsdtar", "-xf", iso_path, "--to-stdout", file_path],
+        check=True,
+        stdout=subprocess.PIPE,
+    )
+    file_data = yaml.safe_load(extract.stdout)
+    return data == file_data
 
 
 def public_keys():
