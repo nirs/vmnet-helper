@@ -6,6 +6,7 @@ import logging
 import os
 import subprocess
 import uuid
+import tempfile
 
 import yaml
 
@@ -57,9 +58,6 @@ def create_iso(vm):
     cloud-init skips re-provisioning. Delete the iso to force recreation.
     """
     vm_home = store.vm_path(vm.vm_name)
-    meta_data_path = os.path.join(vm_home, "meta-data")
-    user_data_path = os.path.join(vm_home, "user-data")
-    network_config_path = os.path.join(vm_home, "network-config")
     cidata = os.path.join(vm_home, "cidata.iso")
 
     user_data = create_user_data(vm)
@@ -72,34 +70,43 @@ def create_iso(vm):
             logging.debug("Reusing cloud-init iso '%s'", cidata)
             return cidata
 
-    with open(meta_data_path, "w") as f:
-        yaml.dump(create_meta_data(vm), f, sort_keys=False)
-    with open(user_data_path, "w") as f:
-        f.write("#cloud-config\n")
-        yaml.dump(user_data, f, sort_keys=False)
-    with open(network_config_path, "w") as f:
-        yaml.dump(network_config, f, sort_keys=False)
-
-    cmd = [
-        "mkisofs",
-        "-output",
-        "cidata.iso",
-        "-volid",
-        "cidata",
-        "-joliet",
-        "-rock",
-        "user-data",
-        "meta-data",
-        "network-config",
-    ]
     logging.info("Creating cloud-init iso '%s'", cidata)
-    subprocess.run(
-        cmd,
-        check=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        cwd=vm_home,
-    )
+
+    with tempfile.TemporaryDirectory() as tmp:
+        meta_data_path = os.path.join(tmp, "meta-data")
+        user_data_path = os.path.join(tmp, "user-data")
+        network_config_path = os.path.join(tmp, "network-config")
+
+        with open(meta_data_path, "w") as f:
+            yaml.dump(create_meta_data(vm), f, sort_keys=False)
+
+        with open(user_data_path, "w") as f:
+            f.write("#cloud-config\n")
+            yaml.dump(user_data, f, sort_keys=False)
+
+        with open(network_config_path, "w") as f:
+            yaml.dump(network_config, f, sort_keys=False)
+
+        cmd = [
+            "mkisofs",
+            "-output",
+            cidata,
+            "-volid",
+            "cidata",
+            "-joliet",
+            "-rock",
+            "user-data",
+            "meta-data",
+            "network-config",
+        ]
+        subprocess.run(
+            cmd,
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=tmp,
+        )
+
     return cidata
 
 
