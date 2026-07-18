@@ -91,6 +91,7 @@ The following projects use libkrun's unixgram API and can work with vmnet-helper
 
 - [Integrating with launchd](docs/launchd.md)
 - [Flying podman high with vmnet and krunkit](docs/podman.md)
+- [Freeing the whale with vmnet and krunkit](docs/docker.md)
 - [FreeBSD VM with vmnet](docs/freebsd.md)
 
 ## Documentation
