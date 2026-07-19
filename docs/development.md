@@ -143,6 +143,21 @@ The following example uses the qemu driver, and connects using vmnet-run:
 [  16.630] INFO VM is ready at test-vmnet-helper.local
 ```
 
+VMs use DHCP by default. To assign a static IP address, restrict the DHCP range,
+then select an address outside of that range:
+
+```console
+% ./run test \
+    --start-address 192.168.200.1 \
+    --end-address 192.168.200.127 \
+    --subnet-mask 255.255.255.0 \
+    --ip-address 192.168.200.128
+```
+
+> [!NOTE]
+> Setting `--ip-address` to a value inside the DHCP range may work, but may cause
+> conflicts.
+
 ### Storage and debugging
 
 The script downloads cloud images to `~/.vmnet-helper/cache/images`, converts

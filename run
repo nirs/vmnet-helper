@@ -45,6 +45,7 @@ def main():
     )
     p.add_argument(
         "--start-address",
+        type=testing.validate.private_ipv4_address,
         help=(
             "The starting IPv4 address (string) to use for the interface. This "
             "address is used as the gateway address. The subsequent address up "
@@ -55,13 +56,16 @@ def main():
     )
     p.add_argument(
         "--end-address",
+        type=testing.validate.private_ipv4_address,
         help=(
             "The DHCP IPv4 range end address (string) to use for the interface. "
             "The address must be in the private IP range (RFC 1918)."
         ),
     )
     p.add_argument(
-        "--subnet-mask", help="The IPv4 subnet mask (string) to use on the interface."
+        "--subnet-mask",
+        type=testing.validate.subnet_mask,
+        help="The IPv4 subnet mask (string) to use on the interface.",
     )
     p.add_argument(
         "--shared-interface",
@@ -103,7 +107,7 @@ def main():
     p.add_argument(
         "--cpus",
         metavar="N",
-        type=cpus,
+        type=testing.validate.cpus,
         default=2,
         help="Number of vpus (2)",
     )
@@ -133,9 +137,19 @@ def main():
     p.add_argument(
         "--dns-servers",
         metavar="ADDR",
-        type=ip_list,
+        type=testing.validate.ip_list,
         default=["8.8.8.8", "1.1.1.1"],
         help="Comma-separated DNS servers for the VM (8.8.8.8,1.1.1.1)",
+    )
+
+    p.add_argument(
+        "--ip-address",
+        type=testing.validate.private_ipv4_address,
+        help=(
+            "The static IPv4 address to assign to the vm. Requires the --start-address, "
+            "--end-address, --subnet-mask options, and be outside of the requested DHCP "
+            "range. When unset, the vm uses DHCP."
+        ),
     )
 
     # Debugging
@@ -145,21 +159,8 @@ def main():
     args = p.parse_args()
     setup_logging(args.verbose)
 
-    if args.network_name:
-        if args.operation_mode:
-            p.error("--network cannot be used with --operation-mode")
-        if args.start_address:
-            p.error("--network cannot be used with --start-address")
-        if args.end_address:
-            p.error("--network cannot be used with --end-address")
-        if args.subnet_mask:
-            p.error("--network cannot be used with --subnet-mask")
-
-    if args.operation_mode == "bridged":
-        if not args.shared_interface:
-            p.error("--shared-interface required for --operation-mode=bridged")
-        if args.enable_isolation:
-            p.error("--enable-isolation not compatible with --operation-mode=bridged")
+    testing.validate.network_options(p, args)
+    testing.validate.bridged_mode(p, args)
 
     signal.signal(signal.SIGTERM, terminate)
     signal.signal(signal.SIGINT, terminate)
@@ -253,18 +254,6 @@ def run_with_runner(args):
         os.wait()
     finally:
         vm.stop()
-
-
-def ip_list(s):
-    # TODO: validate that values are IP addresses.
-    return s.split(",")
-
-
-def cpus(s):
-    n = int(s)
-    if n < 1:
-        raise ValueError(f"Invalid number of cpus: '{s}'")
-    return n
 
 
 def terminate(signo, frame):
