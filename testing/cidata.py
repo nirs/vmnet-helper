@@ -1,6 +1,7 @@
 # SPDX-FileCopyrightText: The vmnet-helper authors
 # SPDX-License-Identifier: Apache-2.0
 
+import ipaddress
 import glob
 import logging
 import os
@@ -139,14 +140,14 @@ def create_network_config(vm):
     """
     Create cloud-init network-config dict.
     """
-    return {
+    data = {
         "version": 2,
         "ethernets": {
             "eth0": {
                 "match": {
                     "macaddress": vm.mac_address,
                 },
-                "dhcp4": True,
+                "dhcp4": vm.args.ip_address is None,
                 "dhcp-identifier": "mac",
                 "dhcp4-overrides": {
                     "use-dns": False,
@@ -157,6 +158,16 @@ def create_network_config(vm):
             },
         },
     }
+    if vm.args.ip_address:
+        data["ethernets"]["eth0"]["addresses"] = [
+            ipaddress.IPv4Interface(
+                (vm.args.ip_address, vm.args.subnet_mask)
+            ).with_prefixlen
+        ]
+        data["ethernets"]["eth0"]["routes"] = [
+            {"to": "default", "via": str(vm.args.start_address)}
+        ]
+    return data
 
 
 def file_matches(data, iso_path, file_path):
