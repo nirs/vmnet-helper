@@ -51,6 +51,15 @@
 //       13      1  |
 #define VM_RETRY_DELAY (50 * MICROSECOND)
 
+// If the peer stops reading from the socket, waiting longer cannot help; give
+// up and drop the packets like a congested physical network. The bound is the
+// total wait per batch: 100 retries (5 ms) is far above the retry counts seen
+// under load, and far below the stalls that make guest connections time out.
+// All host->vm forwarding runs on one serial queue, so one unbounded wait
+// delays every flow, including latency sensitive frames such as TCP acks and
+// HTTP/2 pings.
+#define VM_MAX_RETRIES 100
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 static const uintptr_t SHUTDOWN_EVENT = 1;
@@ -152,6 +161,11 @@ static bool use_bulk_forwarding = true;
 // Ensures exclusive access to options.socket. This protects from the user
 // error of creating multiple helpers using the same socket.
 static char *socket_lockfile;
+
+// Total packets dropped because the peer receive buffer was full, and the
+// last time we warned about it. Modified only on the host queue.
+static uint64_t vm_dropped_packets;
+static time_t vm_dropped_warn_time;
 
 static const char *host_strerror(vmnet_return_t v)
 {
@@ -826,6 +840,24 @@ static inline void wait_for_buffer_space(void)
     nanosleep(&t, NULL);
 }
 
+// Count dropped packets, warning at most once per second so a stalled peer
+// cannot flood the log.
+static void count_dropped_packets(int dropped)
+{
+    struct timespec now;
+
+    vm_dropped_packets += dropped;
+
+    clock_gettime(CLOCK_MONOTONIC, &now);
+    if (now.tv_sec == vm_dropped_warn_time) {
+        return;
+    }
+    vm_dropped_warn_time = now.tv_sec;
+
+    WARNF("[host->vm] dropped %d packets (%llu total): peer is not reading from the socket",
+            dropped, vm_dropped_packets);
+}
+
 static void write_to_vm(int count)
 {
     for (int i = 0; i < count; i++) {
@@ -834,15 +866,23 @@ static void write_to_vm(int count)
 
     int sent = 0;
 
+    // The ENOBUFS wait budget is shared by the whole batch so a stalled peer
+    // delays forwarding by at most VM_MAX_RETRIES * VM_RETRY_DELAY.
+    uint64_t retries = 0;
+
     // Fast path.
 
     if (use_bulk_forwarding) {
-        uint64_t retries = 0;
-
         while (1) {
             ssize_t n = sendmsg_x(options.fd, &host.msgs[sent], count-sent, 0);
             if (n == -1) {
                 if (errno == ENOBUFS) {
+                    if (retries == VM_MAX_RETRIES) {
+                        // The slow path gives every remaining packet one last
+                        // write() before dropping it; a smaller packet may
+                        // still fit in the peer receive buffer.
+                        break;
+                    }
                     wait_for_buffer_space();
                     retries++;
                     continue;
@@ -865,16 +905,19 @@ static void write_to_vm(int count)
 
     size_t size = host_packets_size(sent);
     int dropped = 0;
+    int enobufs_dropped = 0;
 
     for (int i = sent; i < count; i++) {
         struct vmpktdesc *packet = &host.packets[i];
         ssize_t len;
-        uint64_t retries = 0;
 
         while (1) {
             len = write(options.fd, packet->vm_pkt_iov[0].iov_base,
                     packet->vm_pkt_size);
             if (len == -1 && errno == ENOBUFS) {
+                if (retries == VM_MAX_RETRIES) {
+                    break;
+                }
                 wait_for_buffer_space();
                 retries++;
                 continue;
@@ -883,20 +926,25 @@ static void write_to_vm(int count)
         }
 
         if (len < 0) {
-            // TODO: like socket_vmnet we drop the packet and continue. Maybe trigger shutdown?
-            ERRORF("[host->vm] write: %s", strerror(errno));
+            if (errno == ENOBUFS) {
+                enobufs_dropped++;
+            } else {
+                // TODO: like socket_vmnet we drop the packet and continue. Maybe trigger shutdown?
+                ERRORF("[host->vm] write: %s", strerror(errno));
+            }
             dropped++;
             continue;
         }
 
         sent++;
         size += packet->vm_pkt_size;
-        if (retries > 0) {
-            DEBUGF("[host->vm] write completed after %lld retries", retries);
-        }
 
         // Partial write should not be possible with datagram socket.
         assert((size_t)len == packet->vm_pkt_size);
+    }
+
+    if (enobufs_dropped > 0) {
+        count_dropped_packets(enobufs_dropped);
     }
 
     DEBUGF("[host->vm] forwarded %d packets %zu bytes %d dropped",
