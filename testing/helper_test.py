@@ -31,6 +31,7 @@ from scapy.all import ARP, ICMP, IP, Ether  # type: ignore[import-untyped]
 
 from . import helper
 from . import mac
+from . import store
 from .helper import (
     NET_IPV4_MASK,
     NET_IPV4_SUBNET,
@@ -335,6 +336,68 @@ class TestConnectivity:
             retry(ping_any, h, sock, gateway_mac, external_ips)
 
 
+class TestStalledClient:
+    """
+    Test that a client that stops reading from the socket does not block
+    host->vm forwarding.
+    """
+
+    def test_drop_when_client_stops_reading(self):
+        """
+        Fill our receive buffer by sending pings to the gateway without
+        reading the replies. The helper's writes fail with ENOBUFS since
+        we are not reading, and the helper must drop the packets that do
+        not fit and keep forwarding, instead of retrying forever and
+        delaying every host->vm packet until we read again.
+        """
+        with run_helper(operation_mode="shared") as (h, sock):
+            gateway_mac = arp_resolve(h, sock)
+            gateway_ip = find_gateway_ip(h.interface)
+            my_mac = h.interface[VMNET_MAC_ADDRESS]
+            my_ip = find_my_ip(h.interface)
+
+            # Shrink our receive buffer so a short burst of replies
+            # overflows it.
+            sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
+
+            request = (
+                Ether(dst=gateway_mac, src=my_mac)
+                / IP(src=my_ip, dst=gateway_ip)
+                / ICMP(type=ICMP_ECHO_REQUEST)
+                / (b"x" * 1000)
+            )
+
+            # Send pings without reading the replies until the helper
+            # reports dropped packets. The timeout is generous: the helper
+            # gives up after 5 milliseconds with a full buffer.
+            try:
+                message = "peer is not reading from the socket"
+                deadline = time.monotonic() + 10.0
+                while message not in helper_log(VM_NAME):
+                    if time.monotonic() > deadline:
+                        raise AssertionError(
+                            "No dropped packets warning: helper is blocked "
+                            "writing to a stalled client"
+                        )
+                    for _ in range(20):
+                        try:
+                            sock.send(bytes(request))
+                        except OSError:
+                            # Sending can also fail with ENOBUFS when the
+                            # helper is not reading fast enough.
+                            break
+                    time.sleep(0.1)
+            finally:
+                # Read the backlog: a helper blocked in write_to_vm()
+                # cannot stop while our receive buffer is full, hanging
+                # the helper stop() on failure.
+                sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4 * 1024 * 1024)
+                drain(sock)
+
+            # Forwarding must recover when we read again.
+            retry(ping, h, sock, gateway_mac, gateway_ip)
+
+
 # On macOS >= 26 we can test also the --network option.
 if MACOS_26:
 
@@ -565,6 +628,27 @@ def ping_any(h, sock, gateway_mac, ips):
 
 
 # --- Utilities ---
+
+
+def helper_log(vm_name):
+    """
+    Read the helper log for a vm.
+    """
+    path = store.vm_path(vm_name, "vmnet-helper.log")
+    with open(path) as f:
+        return f.read()
+
+
+def drain(sock, timeout=0.1):
+    """
+    Read packets until the socket is empty.
+    """
+    sock.settimeout(timeout)
+    while True:
+        try:
+            sock.recv(65535)
+        except socket.timeout:
+            return
 
 
 def find_gateway_ip(interface):
