@@ -6,6 +6,7 @@ import json
 import logging
 import os
 import platform
+import re
 import socket
 import subprocess
 import uuid
@@ -207,3 +208,17 @@ def shared_interfaces():
         check=True,
     )
     return cp.stdout.decode().splitlines()
+
+
+_STATS_RE = re.compile(r"\[stats\] (\{.*\})")
+
+
+def parse_stats(logfile):
+    """
+    Yield parsed stats entries from a vmnet-helper log file.
+    """
+    with open(logfile) as f:
+        for line in f:
+            m = _STATS_RE.search(line)
+            if m:
+                yield json.loads(m.group(1))

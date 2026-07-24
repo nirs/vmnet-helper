@@ -173,6 +173,41 @@ for debugging relative to the VM storage directory `~/.vmnet-helper/$VM`:
 └── vmnet-helper.log
 ```
 
+## `stats`: analyze vmnet-helper stats
+
+The `stats` script parses vmnet-helper logs and computes per-interval
+deltas for network counters. It requires the helper to be started with
+`--stats-interval SECONDS`.
+
+Start a VM with stats enabled:
+
+```console
+% ./run test --stats-interval 1
+```
+
+Show human-readable stats (transfer, bitrate, packets, drops):
+
+```console
+% ./stats ~/.vmnet-helper/vms/test/vmnet-helper.log
+- time: 2026-07-25T01:27:25.664+03:00
+  host:
+    transfer: 26.25 GBytes
+    bitrate: 21.00 Gbits/sec
+    packets: 69383 pkt/sec
+    drops: 0
+  vm:
+    transfer: 20.81 GBytes
+    bitrate: 16.65 Gbits/sec
+    packets: 52335 pkt/sec
+    drops: 0
+```
+
+Show raw JSON deltas for programmatic processing:
+
+```console
+% ./stats -o json ~/.vmnet-helper/vms/test/vmnet-helper.log | jq .
+```
+
 ### Limitations
 
 The `qemu` driver is not compatible with `--connection` set to `socket`.

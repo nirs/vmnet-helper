@@ -1,0 +1,108 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: The vmnet-helper authors
+# SPDX-License-Identifier: Apache-2.0
+
+"""
+Compute per-interval stats from vmnet-helper logs.
+"""
+
+import argparse
+import json
+import sys
+from datetime import datetime
+
+import testing
+
+COUNTER_FIELDS = ["packets", "bytes", "drops"]
+
+KiB = 1024
+MiB = 1024 * KiB
+GiB = 1024 * MiB
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("logfile", help="vmnet-helper log file")
+    parser.add_argument(
+        "-o",
+        "--output",
+        choices=["yaml", "json"],
+        default="yaml",
+        help="output format (yaml, json)",
+    )
+    args = parser.parse_args()
+
+    prev = None
+
+    for curr in testing.helper.parse_stats(args.logfile):
+        # Skip the first sample since we need two samples to compute
+        # the interval duration for rate calculation.
+        if prev is not None:
+            if args.output == "json":
+                print_json(prev, curr)
+            else:
+                print_yaml(prev, curr)
+
+        prev = curr
+
+
+def print_json(prev, curr):
+    delta = {"time": curr["time"], **compute_delta(prev, curr)}
+    print(json.dumps(delta))
+
+
+def print_yaml(prev, curr):
+    t0 = datetime.fromisoformat(prev["time"])
+    t1 = datetime.fromisoformat(curr["time"])
+    duration = (t1 - t0).total_seconds()
+    if duration <= 0:
+        return
+
+    delta = compute_delta(prev, curr)
+    print(f"- time: {curr['time']}")
+    for endpoint in ("host", "vm"):
+        d = delta[endpoint]
+        bps = d["bytes"] / duration
+        pps = int(d["packets"] / duration)
+        print(f"  {endpoint}:")
+        print(f"    transfer: {format_bytes(d['bytes'])}")
+        print(f"    bitrate: {format_bits_per_sec(bps)}")
+        print(f"    packets: {pps} pkt/sec")
+        print(f"    drops: {d['drops']}")
+
+
+def compute_delta(prev, curr):
+    delta = {}
+    for endpoint in ("host", "vm"):
+        delta[endpoint] = {
+            field: curr[endpoint][field] - prev[endpoint][field]
+            for field in COUNTER_FIELDS
+        }
+    return delta
+
+
+def format_bytes(n):
+    # Use 1024-based units with iperf3 labels (GBytes, not GiB).
+    if n >= GiB:
+        return f"{n / GiB:.2f} GBytes"
+    if n >= MiB:
+        return f"{n / MiB:.2f} MBytes"
+    if n >= KiB:
+        return f"{n / KiB:.2f} KBytes"
+    return f"{n} Bytes"
+
+
+def format_bits_per_sec(bps):
+    # Use 1000-based units following networking convention.
+    bits = bps * 8
+    if bits >= 1_000_000_000:
+        return f"{bits / 1_000_000_000:.2f} Gbits/sec"
+    if bits >= 1_000_000:
+        return f"{bits / 1_000_000:.2f} Mbits/sec"
+    if bits >= 1_000:
+        return f"{bits / 1_000:.2f} Kbits/sec"
+    return f"{bits:.0f} bits/sec"
+
+
+if __name__ == "__main__":
+    main()
