@@ -50,7 +50,9 @@ NET_IPV6_PREFIX_LEN = "net_ipv6_prefix_len"
 
 
 class Helper:
-    def __init__(self, args, fd=None, socket=None, generate_interface_id=True):
+    def __init__(
+        self, args, fd=None, socket=None, logfile=None, generate_interface_id=True
+    ):
         # Configuration
         self.fd = fd
         self.socket = socket
@@ -70,6 +72,7 @@ class Helper:
         # Running state.
         self.proc = None
         self.interface = None
+        self.logfile = logfile
 
     def start(self):
         """
@@ -90,11 +93,12 @@ class Helper:
             )
         cmd = self._build_command(interface_id)
 
-        vm_home = store.vm_path(self.vm_name)
-        os.makedirs(vm_home, exist_ok=True)
-        logfile = os.path.join(vm_home, "vmnet-helper.log")
+        if self.logfile is None:
+            vm_home = store.vm_path(self.vm_name)
+            os.makedirs(vm_home, exist_ok=True)
+            self.logfile = os.path.join(vm_home, "vmnet-helper.log")
 
-        with open(logfile, "w") as log:
+        with open(self.logfile, "w") as log:
             self.proc = subprocess.Popen(
                 cmd,
                 stdout=subprocess.PIPE,

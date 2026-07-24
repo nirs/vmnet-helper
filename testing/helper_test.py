@@ -82,27 +82,28 @@ class TestStart:
     Test that vmnet-helper starts correctly with various options
     """
 
-    def test_default_mode(self):
+    def test_default_mode(self, tmp_path):
         """
         Test starting helper without mode default to "shared".
         """
-        with run_helper() as (h, sock):
+        with run_helper(tmp_path=tmp_path) as (h, sock):
             self.check_interface(h.interface)
             # If network options are unset, vmnet selects the next available network.
 
-    def test_shared_mode(self):
+    def test_shared_mode(self, tmp_path):
         """
         Test starting helper with shared mode
         """
-        with run_helper(operation_mode="shared") as (h, sock):
+        with run_helper(operation_mode="shared", tmp_path=tmp_path) as (h, sock):
             self.check_interface(h.interface)
             # If network options are unset, vmnet selects the next available network.
 
-    def test_shared_mode_specific_network_16(self):
+    def test_shared_mode_specific_network_16(self, tmp_path):
         """
         Test starting helper with 192.168.0.0/16 network (RFC 1918).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="shared",
             start_address="192.168.200.1",
             end_address="192.168.200.254",
@@ -111,11 +112,12 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_shared_mode_specific_network_8(self):
+    def test_shared_mode_specific_network_8(self, tmp_path):
         """
         Test starting helper with 10.0.0.0/8 network (RFC 1918).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="shared",
             start_address="10.200.0.1",
             end_address="10.200.0.254",
@@ -124,11 +126,12 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_shared_mode_specific_network_12(self):
+    def test_shared_mode_specific_network_12(self, tmp_path):
         """
         Test starting helper with 172.16.0.0/12 network (RFC 1918).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="shared",
             start_address="172.16.200.1",
             end_address="172.16.200.254",
@@ -137,12 +140,13 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_shared_mode_specific_network_30(self):
+    def test_shared_mode_specific_network_30(self, tmp_path):
         """
         Test starting helper with /30 subnet (1 usable address).
         anylinuxfs uses this to isolate the VM from other VMs on the network.
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="shared",
             start_address="192.168.200.1",
             end_address="192.168.200.2",
@@ -151,11 +155,12 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_shared_mode_specific_network_30_last(self):
+    def test_shared_mode_specific_network_30_last(self, tmp_path):
         """
         Test starting helper with the last /30 subnet (1 usable address).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="shared",
             start_address="192.168.200.253",
             end_address="192.168.200.254",
@@ -164,31 +169,34 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_shared_mode_isolated(self):
+    def test_shared_mode_isolated(self, tmp_path):
         """
         Test starting helper in shared mode with isolation
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="shared",
             enable_isolation=True,
         ) as (h, sock):
             self.check_interface(h.interface)
 
-    def test_host_mode(self):
+    def test_host_mode(self, tmp_path):
         """
         Test starting helper in host mode
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="host",
         ) as (h, sock):
             self.check_interface(h.interface)
             # If network options are unset, vmnet selects the next available network.
 
-    def test_host_mode_specific_network_16(self):
+    def test_host_mode_specific_network_16(self, tmp_path):
         """
         Test starting helper with 192.168.0.0/16 network (RFC 1918).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="host",
             start_address="192.168.200.1",
             end_address="192.168.200.254",
@@ -197,11 +205,12 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_host_mode_specific_network_8(self):
+    def test_host_mode_specific_network_8(self, tmp_path):
         """
         Test starting helper with 10.0.0.0/8 network (RFC 1918).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="host",
             start_address="10.200.0.1",
             end_address="10.200.0.254",
@@ -210,11 +219,12 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_host_mode_specific_network_12(self):
+    def test_host_mode_specific_network_12(self, tmp_path):
         """
         Test starting helper with 172.16.0.0/12 network (RFC 1918).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="host",
             start_address="172.16.200.1",
             end_address="172.16.200.254",
@@ -223,11 +233,12 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_host_mode_specific_network_30(self):
+    def test_host_mode_specific_network_30(self, tmp_path):
         """
         Test starting helper with /30 subnet (1 usable address).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="host",
             start_address="192.168.200.1",
             end_address="192.168.200.2",
@@ -236,11 +247,12 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_host_mode_specific_network_30_last(self):
+    def test_host_mode_specific_network_30_last(self, tmp_path):
         """
         Test starting helper with the last /30 subnet (1 usable address).
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="host",
             start_address="192.168.200.253",
             end_address="192.168.200.254",
@@ -249,22 +261,23 @@ class TestStart:
             self.check_interface(h.interface)
             self.check_specific_network(h)
 
-    def test_host_mode_isolated(self):
+    def test_host_mode_isolated(self, tmp_path):
         """
         Test starting helper in host mode with isolation
         """
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="host",
             enable_isolation=True,
         ) as (h, sock):
             self.check_interface(h.interface)
 
-    def test_no_interface_id(self):
+    def test_no_interface_id(self, tmp_path):
         """
         Test starting helper without --interface-id. vmnet should assign
         a new interface identifier and MAC address.
         """
-        with run_helper(generate_interface_id=False) as (h, sock):
+        with run_helper(tmp_path=tmp_path, generate_interface_id=False) as (h, sock):
             assert VMNET_INTERFACE_ID in h.interface
             assert VMNET_MAC_ADDRESS in h.interface
             assert VMNET_MAX_PACKET_SIZE in h.interface
@@ -289,33 +302,33 @@ class TestConnectivity:
     Test network connectivity using scapy
     """
 
-    def test_arp_gateway(self):
+    def test_arp_gateway(self, tmp_path):
         """
         Test ARP resolution to gateway
         """
-        with run_helper(operation_mode="shared") as (h, sock):
+        with run_helper(operation_mode="shared", tmp_path=tmp_path) as (h, sock):
             gateway_mac = arp_resolve(h, sock)
             assert gateway_mac is not None
 
-    def test_ping_gateway(self):
+    def test_ping_gateway(self, tmp_path):
         """
         Test ICMP ping to gateway
         """
-        with run_helper(operation_mode="shared") as (h, sock):
+        with run_helper(operation_mode="shared", tmp_path=tmp_path) as (h, sock):
             gateway_mac = arp_resolve(h, sock)
             gateway_ip = find_gateway_ip(h.interface)
             ping(h, sock, gateway_mac, gateway_ip)
 
-    def test_ping_external_via_nat(self):
+    def test_ping_external_via_nat(self, tmp_path):
         """
         Test ICMP ping to external IP via NAT
         """
         external_ips = ["1.1.1.1", "8.8.8.8"]
-        with run_helper(operation_mode="shared") as (h, sock):
+        with run_helper(operation_mode="shared", tmp_path=tmp_path) as (h, sock):
             gateway_mac = arp_resolve(h, sock)
             retry(ping_any, h, sock, gateway_mac, external_ips)
 
-    def test_partial_dhcp_range(self):
+    def test_partial_dhcp_range(self, tmp_path):
         """
         Test that vmnet accepts a DHCP range smaller than the full subnet,
         and that both gateway and NAT traffic work. This allows reserving
@@ -323,6 +336,7 @@ class TestConnectivity:
         """
         external_ips = ["1.1.1.1", "8.8.8.8"]
         with run_helper(
+            tmp_path=tmp_path,
             operation_mode="shared",
             start_address="192.168.200.1",
             end_address="192.168.200.200",
@@ -344,18 +358,18 @@ if MACOS_26:
         Test starting helper with --network option (macOS 26 only)
         """
 
-        def test_shared_network(self):
+        def test_shared_network(self, tmp_path):
             """
             Test starting helper with shared network
             """
-            with run_helper(network_name="shared") as (h, sock):
+            with run_helper(network_name="shared", tmp_path=tmp_path) as (h, sock):
                 self.check_interface(h.interface)
 
-        def test_host_network(self):
+        def test_host_network(self, tmp_path):
             """
             Test starting helper with host network
             """
-            with run_helper(network_name="host") as (h, sock):
+            with run_helper(network_name="host", tmp_path=tmp_path) as (h, sock):
                 self.check_interface(h.interface)
 
         def check_interface(self, interface):
@@ -375,29 +389,29 @@ if MACOS_26:
         Test network connectivity with --network option (macOS 26 only)
         """
 
-        def test_arp_gateway(self):
+        def test_arp_gateway(self, tmp_path):
             """
             Test ARP resolution to gateway
             """
-            with run_helper(network_name="shared") as (h, sock):
+            with run_helper(network_name="shared", tmp_path=tmp_path) as (h, sock):
                 gateway_mac = arp_resolve(h, sock)
                 assert gateway_mac is not None
 
-        def test_ping_gateway(self):
+        def test_ping_gateway(self, tmp_path):
             """
             Test ICMP ping to gateway
             """
-            with run_helper(network_name="shared") as (h, sock):
+            with run_helper(network_name="shared", tmp_path=tmp_path) as (h, sock):
                 gateway_mac = arp_resolve(h, sock)
                 gateway_ip = find_gateway_ip(h.interface)
                 ping(h, sock, gateway_mac, gateway_ip)
 
-        def test_ping_external_via_nat(self):
+        def test_ping_external_via_nat(self, tmp_path):
             """
             Test ICMP ping to external IP via NAT
             """
             external_ips = ["1.1.1.1", "8.8.8.8"]
-            with run_helper(network_name="shared") as (h, sock):
+            with run_helper(network_name="shared", tmp_path=tmp_path) as (h, sock):
                 gateway_mac = arp_resolve(h, sock)
                 retry(ping_any, h, sock, gateway_mac, external_ips)
 
@@ -417,6 +431,7 @@ def run_helper(
     enable_isolation=False,
     enable_offloading=False,
     stats_interval=None,
+    tmp_path=None,
     generate_interface_id=True,
     verbose=True,
 ):
@@ -446,11 +461,14 @@ def run_helper(
         verbose=verbose,
     )
 
+    logfile = str(tmp_path / "vmnet-helper.log") if tmp_path else None
+
     host_sock, vm_sock = helper.socketpair()
     try:
         h = helper.Helper(
             args,
             fd=vm_sock.fileno(),
+            logfile=logfile,
             generate_interface_id=generate_interface_id,
         )
         h.start()
