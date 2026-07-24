@@ -29,9 +29,13 @@ SEND_BUFFER_SIZE = 65 * 1024
 
 # The receive buffer size determines how many packets can be queued by the peer.
 # Testing shows good performance with a 2 MiB receive buffer. We use a 4 MiB
-# buffer to make ENOBUFS errors less likely for the peer and allowing to queue
-# more packets when using the vmnet_enable_tso option.
+# buffer to make ENOBUFS errors less likely for the peer.
 RECV_BUFFER_SIZE = 4 * 1024 * 1024
+
+# Scale buffer for higher offloading throughput (~2.5x). A larger factor would
+# reduce ENOBUFS but adds latency from bufferbloat. With 8 MiB the buffer fills
+# in ~2 ms, similar to ~2.6 ms without offloading.
+RECV_BUFFER_SIZE_OFFLOAD = 8 * 1024 * 1024
 
 # Vmnet interface info keys
 # https://developer.apple.com/documentation/vmnet/interface_param_xpc_dictionary_keys?language=objc
@@ -196,11 +200,14 @@ def interface_id_from(name):
     return str(uuid.UUID(bytes=md[:16], version=4))
 
 
-def socketpair():
+def socketpair(offloading=False):
     pair = socket.socketpair(socket.AF_UNIX, socket.SOCK_DGRAM, 0)
+
+    recv_buffer_size = RECV_BUFFER_SIZE_OFFLOAD if offloading else RECV_BUFFER_SIZE
+
     for sock in pair:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, SEND_BUFFER_SIZE)
-        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, RECV_BUFFER_SIZE)
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, recv_buffer_size)
         os.set_inheritable(sock.fileno(), True)
     return pair
 

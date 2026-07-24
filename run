@@ -198,7 +198,7 @@ def run_with_fd(args):
     """
     # Create a socketpair for the child processes. The vm_sock will be used by
     # the vm, and the host_sock will be used by the helper.
-    vm_sock, helper_sock = testing.socketpair()
+    vm_sock, helper_sock = testing.socketpair(args.enable_offloading)
 
     # Start vmnet-helper first, since we need the MAC address before starting
     # the VM.
