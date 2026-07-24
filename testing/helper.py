@@ -62,6 +62,7 @@ class Helper:
         self.network_name = args.network_name
         self.enable_isolation = args.enable_isolation
         self.enable_offloading = args.enable_offloading
+        self.stats_interval = args.stats_interval
         self.verbose = args.verbose
         self.generate_interface_id = generate_interface_id
 
@@ -157,6 +158,9 @@ class Helper:
 
         if self.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
+
+        if self.stats_interval:
+            cmd.append(f"--stats-interval={self.stats_interval}")
 
         if self.verbose:
             cmd.append("--verbose")

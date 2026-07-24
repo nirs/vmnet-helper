@@ -29,6 +29,7 @@ struct client_options {
     char *subnet_mask;
     char *shared_interface;
     char *network_name;
+    char *stats_interval;
     bool enable_tso;
     bool enable_checksum_offload;
     bool enable_isolation;
@@ -69,6 +70,7 @@ enum {
     OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
     OPT_NETWORK,
+    OPT_STATS_INTERVAL,
     OPT_VERSION
 };
 
@@ -86,6 +88,7 @@ static struct option long_options[] = {
     {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
     {"network",                 required_argument,  0,  OPT_NETWORK},
+    {"stats-interval",          required_argument,  0,  OPT_STATS_INTERVAL},
     {"verbose",                 no_argument,        0,  'v'},
     // Client options.
     {"version",                 no_argument,        0,  OPT_VERSION},
@@ -104,6 +107,7 @@ static void usage(int code)
 "              [--subnet-mask MASK] [--shared-interface NAME]\n"
 "              [--enable-tso] [--enable-checksum-offload]\n"
 "              [--enable-isolation] [--network NAME]\n"
+"              [--stats-interval SECONDS]\n"
 "              [-v|--verbose] [--version] [-h|--help]\n"
 "              -- command ...\n"
 "\n"
@@ -212,6 +216,11 @@ static void build_helper_argv(void)
         append_helper_arg(options.network_name);
     }
 
+    if (options.stats_interval) {
+        append_helper_arg("--stats-interval");
+        append_helper_arg(options.stats_interval);
+    }
+
     if (verbose) {
         append_helper_arg("--verbose");
     }
@@ -313,6 +322,9 @@ static void parse_options(int argc, char **argv)
             break;
         case OPT_NETWORK:
             options.network_name = optarg;
+            break;
+        case OPT_STATS_INTERVAL:
+            options.stats_interval = optarg;
             break;
         case 'v':
             verbose = true;

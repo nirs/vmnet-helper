@@ -22,6 +22,7 @@ struct options {
     bool enable_checksum_offload;
     uid_t uid;
     gid_t gid;
+    int stats_interval;
 };
 
 void parse_options(struct options *opts, int argc, char **argv);

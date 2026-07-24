@@ -8,6 +8,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -35,7 +36,9 @@
 // Tesiting with iperf3 shows that there is no reason to use more than 128.
 #define MAX_PACKET_COUNT 128
 
-#define MICROSECOND 1000
+// Durations in nanoseconds.
+#define MICROSECOND 1000ULL
+#define MILLISECOND 1000000ULL
 
 // Testing show that one retry in enough in 72% of cases.  The following stats
 // are from 300 seconds iperf3 run at 7.85 Gbits/sec rate (679 kps).
@@ -54,6 +57,7 @@
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 static const uintptr_t SHUTDOWN_EVENT = 1;
+static const uintptr_t STATS_TIMER = 2;
 
 enum {
     STATUS_FAILURE = 1,
@@ -68,6 +72,12 @@ struct network {
     uint8_t prefix_len;
 };
 
+struct forward_stats {
+    uint64_t packets;   // packets forwarded
+    uint64_t bytes;     // bytes forwarded
+    uint64_t drops;     // packets dropped
+};
+
 struct endpoint {
     dispatch_queue_t queue;
     struct vmpktdesc *packets;
@@ -76,6 +86,7 @@ struct endpoint {
     unsigned char *buffers;
     int max_packet_count;
     const char *name;
+    struct forward_stats stats;
 };
 
 static inline const char *bool_str(bool b)
@@ -826,13 +837,16 @@ static inline void wait_for_buffer_space(void)
     nanosleep(&t, NULL);
 }
 
+// TODO: Refactor - this function is too long and the fast-path/slow-path
+// fallthrough with shared state is hard to review.
 static void write_to_vm(int count)
 {
     for (int i = 0; i < count; i++) {
         host.msgs[i].msg_len = host.packets[i].vm_pkt_size;
     }
 
-    int sent = 0;
+    int packets = 0;
+    size_t bytes = 0;
 
     // Fast path.
 
@@ -840,7 +854,7 @@ static void write_to_vm(int count)
         uint64_t retries = 0;
 
         while (1) {
-            ssize_t n = sendmsg_x(options.fd, &host.msgs[sent], count-sent, 0);
+            ssize_t n = sendmsg_x(options.fd, &host.msgs[packets], count-packets, 0);
             if (n == -1) {
                 if (errno == ENOBUFS) {
                     wait_for_buffer_space();
@@ -849,13 +863,18 @@ static void write_to_vm(int count)
                 }
 
                 ERRORF("[host->vm] sendmsg_x: %s", strerror(errno));
+                bytes = host_packets_size(packets);
                 break;
             }
 
-            sent += n;
-            if (sent == count) {
+            packets += n;
+            if (packets == count) {
+                bytes = host_packets_size(packets);
+                host.stats.packets += packets;
+                host.stats.bytes += bytes;
+
                 DEBUGF("[host->vm] forwarded %d packets %zu bytes %lld retries",
-                        count, host_packets_size(count), retries);
+                        packets, bytes, retries);
                 return;
             }
         }
@@ -863,10 +882,9 @@ static void write_to_vm(int count)
 
     // Slow path.
 
-    size_t size = host_packets_size(sent);
-    int dropped = 0;
+    int drops = 0;
 
-    for (int i = sent; i < count; i++) {
+    for (int i = packets; i < count; i++) {
         struct vmpktdesc *packet = &host.packets[i];
         ssize_t len;
         uint64_t retries = 0;
@@ -885,12 +903,12 @@ static void write_to_vm(int count)
         if (len < 0) {
             // TODO: like socket_vmnet we drop the packet and continue. Maybe trigger shutdown?
             ERRORF("[host->vm] write: %s", strerror(errno));
-            dropped++;
+            drops++;
             continue;
         }
 
-        sent++;
-        size += packet->vm_pkt_size;
+        packets++;
+        bytes += packet->vm_pkt_size;
         if (retries > 0) {
             DEBUGF("[host->vm] write completed after %lld retries", retries);
         }
@@ -899,8 +917,12 @@ static void write_to_vm(int count)
         assert((size_t)len == packet->vm_pkt_size);
     }
 
-    DEBUGF("[host->vm] forwarded %d packets %zu bytes %d dropped",
-            sent, size, dropped);
+    host.stats.packets += packets;
+    host.stats.bytes += bytes;
+    host.stats.drops += drops;
+
+    DEBUGF("[host->vm] forwarded %d packets %zu bytes %d drops",
+            packets, bytes, drops);
 }
 
 static void packets_available(xpc_object_t event)
@@ -1013,8 +1035,11 @@ static void forward_from_vm(void)
             break;
         }
 
-        DEBUGF("[vm->host] forwarded %d packets %zu bytes",
-                count, vm_msgs_size(count));
+        size_t bytes = vm_msgs_size(count);
+        vm.stats.packets += count;
+        vm.stats.bytes += bytes;
+
+        DEBUGF("[vm->host] forwarded %d packets %zu bytes", count, bytes);
     }
 
     INFO("[vm->host] stopped");
@@ -1031,9 +1056,77 @@ static void start_forwarding_from_vm(void)
     INFO("[main] started vm forwarding");
 }
 
-static void wait_for_termination(void)
+static void iso_8601_timestamp(char *buf, size_t len)
 {
-    INFO("[main] waiting for termination");
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+
+    struct tm tm;
+    localtime_r(&ts.tv_sec, &tm);
+
+    char date[24];
+    size_t r = strftime(date, sizeof(date), "%Y-%m-%dT%H:%M:%S", &tm);
+    assert(r > 0);
+
+    int milliseconds = ts.tv_nsec / MILLISECOND;
+    int tz_hours = (int)(tm.tm_gmtoff / 3600);
+    int tz_minutes = abs((int)(tm.tm_gmtoff % 3600)) / 60;
+
+    int n = snprintf(buf, len, "%s.%03d%+03d:%02d", date, milliseconds,
+                     tz_hours, tz_minutes);
+    assert((size_t)n < len);
+}
+
+static void report_stats(void) {
+    char timestamp[32];
+    iso_8601_timestamp(timestamp, sizeof(timestamp));
+
+    INFOF("[stats] {"
+            "\"time\": \"%s\", "
+            "\"host\": {"
+                "\"packets\": %llu, "
+                "\"bytes\": %llu, "
+                "\"drops\": %llu"
+            "}, "
+            "\"vm\": {"
+                "\"packets\": %llu, "
+                "\"bytes\": %llu, "
+                "\"drops\": %llu"
+            "}"
+        "}",
+        timestamp,
+        host.stats.packets,
+        host.stats.bytes,
+        host.stats.drops,
+        vm.stats.packets,
+        vm.stats.bytes,
+        vm.stats.drops);
+}
+
+static void start_stats_timer(void) {
+    if (options.stats_interval == 0) {
+        return;
+    }
+
+    struct kevent change = {
+        .ident = STATS_TIMER,
+        .filter = EVFILT_TIMER,
+        .flags = EV_ADD,
+        .fflags = NOTE_SECONDS,
+        .data = options.stats_interval,
+    };
+
+    if (kevent(kq, &change, 1, NULL, 0, NULL) != 0) {
+        ERRORF("[main] kevent: %s", strerror(errno));
+        exit(EXIT_FAILURE);
+    }
+
+    INFOF("[main] reporting stats every %d seconds", options.stats_interval);
+}
+
+static void run_until_termination(void)
+{
+    INFO("[main] running");
 
     struct kevent events[1];
 
@@ -1054,6 +1147,9 @@ static void wait_for_termination(void)
                 INFO("[main] received shutdown event");
                 status |= events[0].fflags;
                 break;
+            }
+            if (events[0].filter == EVFILT_TIMER) {
+                report_stats();
             }
         }
     }
@@ -1090,7 +1186,8 @@ int main(int argc, char **argv)
     setup_endpoints();
     start_forwarding_from_host();
     start_forwarding_from_vm();
-    wait_for_termination();
+    start_stats_timer();
+    run_until_termination();
 
     return (status == 0 || status & STATUS_STOPPED) ? EXIT_SUCCESS : EXIT_FAILURE;
 }

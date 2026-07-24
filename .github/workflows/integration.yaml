@@ -78,6 +78,7 @@ jobs:
           sudo --preserve-env HOME=$HOME .venv/bin/python3 ./run test \
               --driver ${{ matrix.driver }} \
               --connection ${{ matrix.connection }} \
+              --stats-interval 1 \
               --timeout 300 \
               --verbose &
           pid=$!
