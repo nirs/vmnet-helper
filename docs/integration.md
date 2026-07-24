@@ -345,6 +345,24 @@ signal and wait until child process terminates.
 The vmnet helper logs to stderr. You can read the logs and integrate
 them in your application logs or redirect them to a file.
 
+## Debugging performance
+
+The **--stats-interval SECONDS** option enables periodic logging of
+network counters (packets, bytes, drops) to stderr as JSON. This is
+useful for debugging performance issues without enabling verbose
+logging, which makes the helper about 2x slower.
+
+```console
+% $(brew --prefix vmnet-helper)/libexec/vmnet-helper \
+    --fd 3 \
+    --stats-interval 1
+```
+
+The stats are cumulative counters logged at each interval. Programs
+integrating vmnet-helper can expose this option to their users (e.g.
+`--vmnet-stats-interval`) to allow debugging on end-user machines
+without rebuilding or restarting with verbose logging.
+
 [native-vmnet]: /docs/architecture.md#native-vmnet-on-macos-26
 [socket_vmnet]: https://github.com/lima-vm/socket_vmnet
 [vmnet-broker]: https://github.com/nirs/vmnet-broker

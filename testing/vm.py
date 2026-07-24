@@ -289,6 +289,8 @@ class VM:
             cmd.append(f"--shared-interface={self.args.shared_interface}")
         if self.enable_offloading:
             cmd.extend(["--enable-tso", "--enable-checksum-offload"])
+        if self.args.stats_interval:
+            cmd.append(f"--stats-interval={self.args.stats_interval}")
         if self.verbose:
             cmd.append("--verbose")
         cmd.append("--")

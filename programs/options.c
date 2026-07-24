@@ -32,6 +32,7 @@ static void usage(int code)
 "                 [--start-address ADDR] [--end-address ADDR] [--subnet-mask MASK]\n"
 "                 [--enable-tso] [--enable-checksum-offload] [--enable-isolation]\n"
 "                 [--network NAME] [--list-shared-interfaces]\n"
+"                 [--stats-interval SECONDS]\n"
 "                 [-v|--verbose] [--version] [-h|--help]\n"
 "\n"
 "Modes:\n"
@@ -58,6 +59,7 @@ enum {
     OPT_ENABLE_ISOLATION,
     OPT_LIST_SHARED_INTERFACES,
     OPT_NETWORK,
+    OPT_STATS_INTERVAL,
     OPT_VERSION,
 };
 
@@ -77,6 +79,7 @@ static struct option long_options[] = {
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
     {"list-shared-interfaces",  no_argument,        0,  OPT_LIST_SHARED_INTERFACES},
     {"network",                 required_argument,  0,  OPT_NETWORK},
+    {"stats-interval",          required_argument,  0,  OPT_STATS_INTERVAL},
     {"verbose",                 no_argument,        0,  'v'},
     {"version",                 no_argument,        0,  OPT_VERSION},
     {"help",                    no_argument,        0,  'h'},
@@ -129,6 +132,18 @@ static void parse_id(const char *arg, const char *name, unsigned int *id)
         usage(1);
     }
     *id = value;
+}
+
+static void parse_stats_interval(const char *arg, int *interval)
+{
+    char *end;
+    errno = 0;
+    long value = strtol(arg, &end, 10);
+    if (errno != 0 || *end != 0 || value < 1 || value > INT_MAX) {
+        ERRORF("Invalid --stats value '%s': must be a positive integer", arg);
+        exit(EXIT_FAILURE);
+    }
+    *interval = value;
 }
 
 static void parse_interface_id(const char *arg, uuid_t uuid)
@@ -248,6 +263,9 @@ void parse_options(struct options *opts, int argc, char **argv)
         case OPT_NETWORK:
             opts->network_name = optarg;
             break;
+        case OPT_STATS_INTERVAL:
+            parse_stats_interval(optarg, &opts->stats_interval);
+            break;
         case 'v':
             verbose = true;
             break;
@@ -343,5 +361,4 @@ void parse_options(struct options *opts, int argc, char **argv)
             opts->gid = getgid();
         }
     }
-
 }

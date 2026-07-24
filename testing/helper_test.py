@@ -416,6 +416,7 @@ def run_helper(
     network_name=None,
     enable_isolation=False,
     enable_offloading=False,
+    stats_interval=None,
     generate_interface_id=True,
     verbose=True,
 ):
@@ -441,6 +442,7 @@ def run_helper(
         network_name=network_name,
         enable_isolation=enable_isolation,
         enable_offloading=enable_offloading,
+        stats_interval=stats_interval,
         verbose=verbose,
     )
 
