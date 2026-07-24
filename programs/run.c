@@ -396,7 +396,8 @@ static void set_socket_buffers(int fd)
         WARNF("[runner] setsockopt: %s", strerror(errno));
     }
 
-    const int rcvbuf_size = RECV_BUFFER_SIZE;
+    int rcvbuf_size = options.enable_tso ? RECV_BUFFER_SIZE_OFFLOAD : RECV_BUFFER_SIZE;
+
     if (setsockopt(fd, SOL_SOCKET, SO_RCVBUF, &rcvbuf_size, sizeof(rcvbuf_size)) < 0) {
         WARNF("[runner] setsockopt: %s", strerror(errno));
     }

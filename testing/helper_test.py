@@ -512,7 +512,7 @@ def run_helper(
 
     logfile = str(tmp_path / "vmnet-helper.log") if tmp_path else None
 
-    host_sock, vm_sock = helper.socketpair()
+    host_sock, vm_sock = helper.socketpair(enable_offloading)
     try:
         h = helper.Helper(
             args,
