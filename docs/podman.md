@@ -33,7 +33,9 @@ offloading delivers 2.3x to 30.2x faster networking compared to podman machine
 
 ```console
 brew tap nirs/vmnet-helper
+brew trust nirs/vmnet-helper
 brew tap libkrun/krun
+brew trust libkrun/krun
 brew install vmnet-helper vfkit krunkit cdrtools qemu
 ```
 

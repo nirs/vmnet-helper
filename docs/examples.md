@@ -14,6 +14,7 @@ To install the requirements for creating virtual machine using *vfkit*
 
 ```console
 brew tap libkrun/krun
+brew trust libkrun/krun
 brew install python3 vfkit krunkit qemu cdrtools
 python3 -m venv .venv
 source .venv/bin/activate

@@ -24,6 +24,7 @@ Install using [Homebrew](https://brew.sh/):
 
 ```console
 brew tap nirs/vmnet-helper
+brew trust nirs/vmnet-helper
 brew install vmnet-helper vfkit cdrtools qemu
 ```
 

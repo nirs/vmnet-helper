@@ -71,6 +71,7 @@ jobs:
         if: matrix.method == 'brew'
         run: |
           brew tap nirs/vmnet-helper
+          brew trust nirs/vmnet-helper
           brew install vmnet-helper
 
       - name: Install via script (local)
