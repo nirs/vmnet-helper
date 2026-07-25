@@ -34,6 +34,9 @@ jobs:
           - os: macos-26
             method: brew
             vmnet_helper: /opt/homebrew/opt/vmnet-helper/libexec/vmnet-helper
+          - os: macos-26-intel
+            method: brew
+            vmnet_helper: /usr/local/opt/vmnet-helper/libexec/vmnet-helper
           - os: macos-15
             method: install.sh
             vmnet_helper: /opt/vmnet-helper/bin/vmnet-helper
