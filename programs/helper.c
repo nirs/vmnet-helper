@@ -779,10 +779,9 @@ static void setup_socket(void)
     wait_for_client();
     connect_socket();
 
-    // Once a client connected, we cannot serve any other client, so it would
-    // be nice to remove the socket now. This breaks krunkit since libkrun does
-    // not connect to the socket and use sendto().
-    // https://github.com/containers/libkrun/blob/57a5a6bfbe5d2333d88fd88fcedb9c1d1fec9cc2/src/devices/src/virtio/net/gvproxy.rs#L113
+    // TODO: Once a client connected, we cannot serve any other client, so we
+    // should remove the socket now. This was fixed in libkrun PR #263.
+    // https://github.com/libkrun/libkrun/pull/263
 }
 
 static void setup_endpoints(void)
