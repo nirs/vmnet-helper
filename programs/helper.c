@@ -76,6 +76,8 @@ struct forward_stats {
     uint64_t packets;   // packets forwarded
     uint64_t bytes;     // bytes forwarded
     uint64_t drops;     // packets dropped
+    uint64_t fast;      // fast path calls (recvmsg_x, sendmsg_x)
+    uint64_t slow;      // slow path calls (read, write)
 };
 
 struct endpoint {
@@ -847,18 +849,17 @@ static void write_to_vm(int count)
 
     int packets = 0;
     size_t bytes = 0;
+    uint64_t fast = 0;
 
     // Fast path.
 
     if (use_bulk_forwarding) {
-        uint64_t retries = 0;
-
         while (1) {
+            fast++;
             ssize_t n = sendmsg_x(options.fd, &host.msgs[packets], count-packets, 0);
             if (n == -1) {
                 if (errno == ENOBUFS) {
                     wait_for_buffer_space();
-                    retries++;
                     continue;
                 }
 
@@ -872,9 +873,10 @@ static void write_to_vm(int count)
                 bytes = host_packets_size(packets);
                 host.stats.packets += packets;
                 host.stats.bytes += bytes;
+                host.stats.fast += fast;
 
-                DEBUGF("[host->vm] forwarded %d packets %zu bytes %lld retries",
-                        packets, bytes, retries);
+                DEBUGF("[host->vm] forwarded %d packets %zu bytes %llu fast",
+                        packets, bytes, fast);
                 return;
             }
         }
@@ -882,6 +884,7 @@ static void write_to_vm(int count)
 
     // Slow path.
 
+    uint64_t slow = 0;
     int drops = 0;
 
     for (int i = packets; i < count; i++) {
@@ -890,6 +893,7 @@ static void write_to_vm(int count)
         uint64_t retries = 0;
 
         while (1) {
+            slow++;
             len = write(options.fd, packet->vm_pkt_iov[0].iov_base,
                     packet->vm_pkt_size);
             if (len == -1 && errno == ENOBUFS) {
@@ -920,9 +924,11 @@ static void write_to_vm(int count)
     host.stats.packets += packets;
     host.stats.bytes += bytes;
     host.stats.drops += drops;
+    host.stats.fast += fast;
+    host.stats.slow += slow;
 
-    DEBUGF("[host->vm] forwarded %d packets %zu bytes %d drops",
-            packets, bytes, drops);
+    DEBUGF("[host->vm] forwarded %d packets %zu bytes %d drops %llu fast %llu slow",
+            packets, bytes, drops, fast, slow);
 }
 
 static void packets_available(xpc_object_t event)
@@ -971,6 +977,7 @@ static int read_from_vm(void)
             vm.iovs[i].iov_len = max_packet_size;
         }
 
+        vm.stats.fast++;
         int count = recvmsg_x(options.fd, vm.msgs, max_packets, 0);
         if (count != -1) {
             return count;
@@ -982,6 +989,7 @@ static int read_from_vm(void)
     // Slow path - read one packet.
 
     vm.iovs[0].iov_len = max_packet_size;
+    vm.stats.slow++;
     int len = read(options.fd, vm.iovs[0].iov_base, vm.iovs[0].iov_len);
     if (len == -1) {
         ERRORF("[vm->host] read: %s", strerror(errno));
@@ -1086,21 +1094,29 @@ static void report_stats(void) {
             "\"host\": {"
                 "\"packets\": %llu, "
                 "\"bytes\": %llu, "
-                "\"drops\": %llu"
+                "\"drops\": %llu, "
+                "\"fast\": %llu, "
+                "\"slow\": %llu"
             "}, "
             "\"vm\": {"
                 "\"packets\": %llu, "
                 "\"bytes\": %llu, "
-                "\"drops\": %llu"
+                "\"drops\": %llu, "
+                "\"fast\": %llu, "
+                "\"slow\": %llu"
             "}"
         "}",
         timestamp,
         host.stats.packets,
         host.stats.bytes,
         host.stats.drops,
+        host.stats.fast,
+        host.stats.slow,
         vm.stats.packets,
         vm.stats.bytes,
-        vm.stats.drops);
+        vm.stats.drops,
+        vm.stats.fast,
+        vm.stats.slow);
 }
 
 static void start_stats_timer(void) {
