@@ -54,6 +54,9 @@
 //       13      1  |
 #define VM_RETRY_DELAY (50 * MICROSECOND)
 
+// Maximum number of retries per batch, shared by fast and slow paths.
+#define VM_RETRY_MAX 10
+
 #define ARRAY_SIZE(a) (sizeof(a) / sizeof(a[0]))
 
 static const uintptr_t SHUTDOWN_EVENT = 1;
@@ -850,6 +853,7 @@ static void write_to_vm(int count)
     int packets = 0;
     size_t bytes = 0;
     uint64_t fast = 0;
+    int retries = 0;
 
     // Fast path.
 
@@ -858,12 +862,19 @@ static void write_to_vm(int count)
             fast++;
             ssize_t n = sendmsg_x(options.fd, &host.msgs[packets], count-packets, 0);
             if (n == -1) {
-                if (errno == ENOBUFS) {
+                if (errno == ENOBUFS && retries < VM_RETRY_MAX) {
+                    retries++;
                     wait_for_buffer_space();
                     continue;
                 }
 
-                ERRORF("[host->vm] sendmsg_x: %s", strerror(errno));
+                // ENOBUFS after retry budget exhausted, or another error.  Fall
+                // back to slow path for completing this batch.
+                if (errno == ENOBUFS) {
+                    DEBUGF("[host->vm] sendmsg_x: %s", strerror(errno));
+                } else {
+                    WARNF("[host->vm] sendmsg_x: %s", strerror(errno));
+                }
                 bytes = host_packets_size(packets);
                 break;
             }
@@ -890,32 +901,32 @@ static void write_to_vm(int count)
     for (int i = packets; i < count; i++) {
         struct vmpktdesc *packet = &host.packets[i];
         ssize_t len;
-        uint64_t retries = 0;
 
         while (1) {
             slow++;
             len = write(options.fd, packet->vm_pkt_iov[0].iov_base,
                     packet->vm_pkt_size);
-            if (len == -1 && errno == ENOBUFS) {
-                wait_for_buffer_space();
+            if (len == -1 && errno == ENOBUFS && retries < VM_RETRY_MAX) {
                 retries++;
+                wait_for_buffer_space();
                 continue;
             }
             break;
         }
 
         if (len < 0) {
-            // TODO: like socket_vmnet we drop the packet and continue. Maybe trigger shutdown?
-            ERRORF("[host->vm] write: %s", strerror(errno));
+            // ENOBUFS after retry budget exhausted, or another error.
+            if (errno == ENOBUFS) {
+                DEBUGF("[host->vm] write: %s", strerror(errno));
+            } else {
+                WARNF("[host->vm] write: %s", strerror(errno));
+            }
             drops++;
             continue;
         }
 
         packets++;
         bytes += packet->vm_pkt_size;
-        if (retries > 0) {
-            DEBUGF("[host->vm] write completed after %lld retries", retries);
-        }
 
         // Partial write should not be possible with datagram socket.
         assert((size_t)len == packet->vm_pkt_size);
