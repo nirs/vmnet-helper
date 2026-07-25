@@ -13,9 +13,9 @@ permissions:
 jobs:
   example:
     name: Example
-    # macos-26 (arm64) is using M1 cpu but nested virtualization require M3 or
-    # later.
-    runs-on: macos-15-intel
+    # macos-26 (arm64) uses M1 cpu but nested virtualization requires M3 or
+    # later. macos-26-intel supports nested virtualization.
+    runs-on: macos-26-intel
     strategy:
       fail-fast: false
       matrix:
