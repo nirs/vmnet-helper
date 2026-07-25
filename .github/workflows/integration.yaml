@@ -78,6 +78,9 @@ jobs:
           sudo --preserve-env HOME=$HOME .venv/bin/python3 ./run test \
               --driver ${{ matrix.driver }} \
               --connection ${{ matrix.connection }} \
+              --start-address 192.168.200.1 \
+              --end-address 192.168.200.127 \
+              --subnet-mask 255.255.255.0 \
               --stats-interval 1 \
               --timeout 300 \
               --verbose &
