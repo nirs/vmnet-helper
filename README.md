@@ -114,9 +114,9 @@ vmnet-helper is under the [Apache 2.0 license](/LICENSES/Apache-2.0.txt)
 [bux]: https://github.com/qntx/bux
 [ec1]: https://github.com/walteh/ec1
 [krun-api]: https://github.com/CGA1123/krun-api
-[krunkit]: https://github.com/containers/krunkit
+[krunkit]: https://github.com/libkrun/krunkit
 [libkrun-go]: https://github.com/mishushakov/libkrun-go
-[libkrun]: https://github.com/containers/libkrun
+[libkrun]: https://github.com/libkrun/libkrun
 [microvm.nix]: https://github.com/microvm-nix/microvm.nix
 [minikube]: https://github.com/kubernetes/minikube
 [native-perf]: docs/performance.md#native-vmnet-via-vmnet-broker
