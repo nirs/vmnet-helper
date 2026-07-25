@@ -26,6 +26,7 @@ built-in DHCP server.
 
 ```console
 brew tap nirs/vmnet-helper
+brew trust nirs/vmnet-helper
 brew install vmnet-helper cdrtools qemu
 ```
 
