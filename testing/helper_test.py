@@ -24,6 +24,7 @@ import os
 import platform
 import socket
 import time
+from datetime import datetime
 from types import SimpleNamespace
 
 import pytest
@@ -414,6 +415,53 @@ if MACOS_26:
             with run_helper(network_name="shared", tmp_path=tmp_path) as (h, sock):
                 gateway_mac = arp_resolve(h, sock)
                 retry(ping_any, h, sock, gateway_mac, external_ips)
+
+
+class TestStats:
+    """
+    Test stats reporting via --stats-interval.
+    """
+
+    def test_stats_logged(self, tmp_path):
+        """
+        Test that stats are logged in valid JSON format after sending traffic.
+        """
+        with run_helper(stats_interval=1, tmp_path=tmp_path) as (h, sock):
+            gateway_mac = arp_resolve(h, sock)
+            gateway_ip = find_gateway_ip(h.interface)
+            ping(h, sock, gateway_mac, gateway_ip)
+
+            # Wait for the stats timer to fire.
+            time.sleep(1.5)
+
+        stats = list(helper.parse_stats(h.logfile))
+        assert len(stats) > 0, "No stats found in log"
+        for s in stats:
+            log.debug("stats: %s", s)
+
+        entry = stats[0]
+        assert "time" in entry
+        datetime.fromisoformat(entry["time"])
+        for endpoint in ("host", "vm"):
+            for field in ("packets", "bytes", "drops"):
+                assert field in entry[endpoint]
+                assert isinstance(entry[endpoint][field], int)
+        assert entry["host"]["packets"] > 0
+        assert entry["host"]["bytes"] > 0
+
+    def test_no_stats_by_default(self, tmp_path):
+        """
+        Test that stats are not logged when --stats-interval is not set.
+        """
+        with run_helper(tmp_path=tmp_path) as (h, sock):
+            gateway_mac = arp_resolve(h, sock)
+            gateway_ip = find_gateway_ip(h.interface)
+            ping(h, sock, gateway_mac, gateway_ip)
+
+            time.sleep(1.5)
+
+        stats = list(helper.parse_stats(h.logfile))
+        assert len(stats) == 0, "Stats should not be logged by default"
 
 
 # --- Helper runner ---
