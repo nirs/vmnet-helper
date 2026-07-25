@@ -13,7 +13,7 @@ from datetime import datetime
 
 import testing
 
-COUNTER_FIELDS = ["packets", "bytes", "drops"]
+COUNTER_FIELDS = ["packets", "bytes", "drops", "fast", "slow"]
 
 KiB = 1024
 MiB = 1024 * KiB
@@ -62,13 +62,17 @@ def print_yaml(prev, curr):
     print(f"- time: {curr['time']}")
     for endpoint in ("host", "vm"):
         d = delta[endpoint]
-        bps = d["bytes"] / duration
-        pps = int(d["packets"] / duration)
+        bytes_ps = d["bytes"] / duration
+        packets_ps = int(d["packets"] / duration)
+        fast_ps = int(d["fast"] / duration)
+        slow_ps = int(d["slow"] / duration)
         print(f"  {endpoint}:")
         print(f"    transfer: {format_bytes(d['bytes'])}")
-        print(f"    bitrate: {format_bits_per_sec(bps)}")
-        print(f"    packets: {pps} pkt/sec")
+        print(f"    bitrate: {format_bits_per_sec(bytes_ps)}")
+        print(f"    packets: {packets_ps} pkt/sec")
         print(f"    drops: {d['drops']}")
+        print(f"    fast: {fast_ps} calls/sec")
+        print(f"    slow: {slow_ps} calls/sec")
 
 
 def compute_delta(prev, curr):
