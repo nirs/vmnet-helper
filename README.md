@@ -56,9 +56,9 @@ vmnet-helper is integrated and tested with the following VM drivers.
 
 | Driver    |       ★ | Description |
 |-----------|--------:|-------------|
-| [QEMU]    |  12,972 | Open-source machine emulator and virtualizer |
-| [vfkit]   |     350 | macOS VM manager wrapping Apple's Virtualization.framework |
-| [krunkit] |     266 | macOS wrapper for [libkrun] |
+| [QEMU]    |  13,469 | Open-source machine emulator and virtualizer |
+| [vfkit]   |     395 | macOS VM manager wrapping Apple's Virtualization.framework |
+| [krunkit] |     331 | macOS wrapper for [libkrun] |
 
 ## Projects using vmnet-helper
 
@@ -66,11 +66,11 @@ The following projects use vmnet-helper to connect VMs to the vmnet network.
 
 | Project          |       ★ | Description |
 |------------------|--------:|-------------|
-| [minikube]       |  31,668 | Local Kubernetes for development and CI |
-| [renode]         |   2,383 | Embedded systems simulator |
-| [anylinuxfs]     |   1,153 | Mounts Linux-supported filesystems on macOS via a microVM |
-| [vibe]           |     848 | Linux VM sandbox for LLM agents on macOS |
-| [nerdbox]        |     103 | containerd sandbox runtime for libkrun VMs on macOS |
+| [minikube]       |  31,984 | Local Kubernetes for development and CI |
+| [renode]         |   2,676 | Embedded systems simulator |
+| [anylinuxfs]     |   1,433 | Mounts Linux-supported filesystems on macOS via a microVM |
+| [vibe]           |     936 | Linux VM sandbox for LLM agents on macOS |
+| [nerdbox]        |     160 | containerd sandbox runtime for libkrun VMs on macOS |
 | [ec1]            |       5 | Go-based VM orchestration |
 
 ## Compatible projects
@@ -79,12 +79,12 @@ The following projects use libkrun's unixgram API and can work with vmnet-helper
 
 | Project       |      ★ | Description |
 |---------------|-------:|-------------|
-| [microvm.nix] |  2,457 | NixOS MicroVMs |
-| [libkrun]     |  1,793 | Library for running workloads in isolated VMs |
-| [boxlite]     |  1,730 | Embeddable sandboxes for AI agents using libkrun |
-| [libkrun-go]  |     47 | Go bindings for libkrun |
-| [Box]         |     36 | MicroVM runtime using libkrun |
-| [bux]         |      3 | Embedded micro-VM sandbox for AI agents using libkrun |
+| [microvm.nix] |  2,781 | NixOS MicroVMs |
+| [libkrun]     |  2,509 | Library for running workloads in isolated VMs |
+| [boxlite]     |  2,196 | Embeddable sandboxes for AI agents using libkrun |
+| [libkrun-go]  |     56 | Go bindings for libkrun |
+| [Box]         |      8 | MicroVM runtime using libkrun |
+| [bux]         |      8 | Embedded micro-VM sandbox for AI agents using libkrun |
 | [krun-api]    |      0 | Go wrapper for libkrun |
 
 ## Tutorials
