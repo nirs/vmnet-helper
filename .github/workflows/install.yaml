@@ -33,15 +33,14 @@ jobs:
         include:
           - os: macos-26
             method: brew
+            vmnet_helper: /opt/homebrew/opt/vmnet-helper/libexec/vmnet-helper
           - os: macos-15
             method: install.sh
+            vmnet_helper: /opt/vmnet-helper/bin/vmnet-helper
           - os: macos-14
             method: install.sh
+            vmnet_helper: /opt/vmnet-helper/bin/vmnet-helper
     runs-on: ${{ matrix.os }}
-    env:
-      # Homebrew installs to libexec, install script to /opt
-      VMNET_HELPER_BREW: /opt/homebrew/opt/vmnet-helper/libexec/vmnet-helper
-      VMNET_HELPER_INSTALL_SH: /opt/vmnet-helper/bin/vmnet-helper
     steps:
       - name: Host info
         run: |
@@ -90,12 +89,7 @@ jobs:
           EXPECTED_VERSION: ${{ steps.release.outputs.version }}
           EXPECTED_COMMIT: ${{ steps.release.outputs.commit }}
         run: |
-          if [[ "${{ matrix.method }}" == "brew" ]]; then
-            vmnet_helper="$VMNET_HELPER_BREW"
-          else
-            vmnet_helper="$VMNET_HELPER_INSTALL_SH"
-          fi
-
+          vmnet_helper="${{ matrix.vmnet_helper }}"
           echo "Checking $vmnet_helper"
           output=$("$vmnet_helper" --version)
           echo "$output"
