@@ -69,6 +69,7 @@ def do_create(args):
 
 def install_iperf3(vm):
     print(f"Installing iperf3 on {vm.name}")
+    vm.ssh("cloud-init", "status", "--wait")
     vm.ssh("sudo", "apt-get", "update", "-y")
     vm.ssh(
         "sudo", "DEBIAN_FRONTEND=noninteractive", "apt-get", "install", "-y", "iperf3"
