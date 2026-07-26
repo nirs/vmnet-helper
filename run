@@ -144,6 +144,14 @@ def main():
         help="Comma-separated DNS servers for the VM (8.8.8.8,1.1.1.1)",
     )
 
+    # Performance tuning
+
+    p.add_argument(
+        "--busy-poll",
+        action="store_true",
+        help="Enable busy polling in the VM for higher network throughput",
+    )
+
     # Debugging
 
     p.add_argument("-v", "--verbose", action="store_true", help="Be more verbose")

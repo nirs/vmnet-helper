@@ -204,6 +204,8 @@ class VM:
             cmd.append(f"--driver-command={self.driver['command']}")
         if self.driver.get("offloading", False):
             cmd.append("--enable-offloading")
+        cmd.append("--busy-poll")
+        cmd.append("--stats-interval=1")
 
         print(f"Starting process {cmd}")
         self.proc = subprocess.Popen(cmd)

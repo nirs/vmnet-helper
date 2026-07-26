@@ -43,6 +43,7 @@ class VM:
         self.memory = args.memory
         self.distro = args.distro
         self.dns_servers = args.dns_servers
+        self.busy_poll = args.busy_poll
         self.serial = store.vm_path(self.vm_name, "serial.log")
         self.enable_offloading = args.enable_offloading
 

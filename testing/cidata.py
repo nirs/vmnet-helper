@@ -12,6 +12,21 @@ import yaml
 
 from . import store
 
+# Enable busy polling for network sockets to reduce softirq overhead.
+# Without this, ksoftirqd saturates a single CPU core during high
+# throughput benchmarks, limiting performance to ~30 Gbps. With busy
+# polling, packet processing shifts to the application threads,
+# reaching ~37 Gbps. Requires CONFIG_NET_RX_BUSY_POLL=y in the guest
+# kernel (enabled by default in Ubuntu, Fedora, Debian, and Alpine).
+# This increases CPU usage when the VM is idle, so it is only
+# appropriate for benchmark VMs, not general purpose workloads.
+# Applied via bootcmd so it runs on every boot and is absent when
+# --busy-poll is not used.
+_BUSY_POLL_CMDS = [
+    "sysctl -w net.core.busy_poll=50",
+    "sysctl -w net.core.busy_read=50",
+]
+
 # Distro-specific cloud-init user-data configuration. Keys match
 # cloud-init module names so the dict can be merged directly into the
 # user-data.
@@ -122,6 +137,8 @@ def create_user_data(vm):
         "ssh_authorized_keys": public_keys(),
     }
     data.update(DISTROS[vm.distro])
+    if vm.busy_poll:
+        data.setdefault("bootcmd", []).extend(_BUSY_POLL_CMDS)
     return data
 
 
