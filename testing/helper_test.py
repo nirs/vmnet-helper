@@ -32,6 +32,7 @@ from scapy.all import ARP, ICMP, IP, Ether  # type: ignore[import-untyped]
 
 from . import helper
 from . import mac
+from . import stats
 from .helper import (
     NET_IPV4_MASK,
     NET_IPV4_SUBNET,
@@ -434,12 +435,12 @@ class TestStats:
             # Wait for the stats timer to fire.
             time.sleep(1.5)
 
-        stats = list(helper.parse_stats(h.logfile))
-        assert len(stats) > 0, "No stats found in log"
-        for s in stats:
+        entries = list(stats.parse(h.logfile))
+        assert len(entries) > 0, "No stats found in log"
+        for s in entries:
             log.debug("stats: %s", s)
 
-        entry = stats[0]
+        entry = entries[0]
         assert "time" in entry
         datetime.fromisoformat(entry["time"])
         for endpoint in ("host", "vm"):
@@ -460,8 +461,8 @@ class TestStats:
 
             time.sleep(1.5)
 
-        stats = list(helper.parse_stats(h.logfile))
-        assert len(stats) == 0, "Stats should not be logged by default"
+        entries = list(stats.parse(h.logfile))
+        assert len(entries) == 0, "Stats should not be logged by default"
 
 
 # --- Helper runner ---

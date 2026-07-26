@@ -11,9 +11,7 @@ import json
 import sys
 from datetime import datetime
 
-import testing
-
-COUNTER_FIELDS = ["packets", "bytes", "drops", "fast", "slow"]
+import testing.stats
 
 KiB = 1024
 MiB = 1024 * KiB
@@ -34,7 +32,7 @@ def main():
 
     prev = None
 
-    for curr in testing.helper.parse_stats(args.logfile):
+    for curr in testing.stats.parse(args.logfile):
         # Skip the first sample since we need two samples to compute
         # the interval duration for rate calculation.
         if prev is not None:
@@ -47,7 +45,7 @@ def main():
 
 
 def print_json(prev, curr):
-    delta = {"time": curr["time"], **compute_delta(prev, curr)}
+    delta = {"time": curr["time"], **testing.stats.compute_delta(prev, curr)}
     print(json.dumps(delta))
 
 
@@ -58,7 +56,7 @@ def print_yaml(prev, curr):
     if duration <= 0:
         return
 
-    delta = compute_delta(prev, curr)
+    delta = testing.stats.compute_delta(prev, curr)
     print(f"- time: {curr['time']}")
     for endpoint in ("host", "vm"):
         d = delta[endpoint]
@@ -73,16 +71,6 @@ def print_yaml(prev, curr):
         print(f"    drops: {d['drops']}")
         print(f"    fast: {fast_ps} calls/sec")
         print(f"    slow: {slow_ps} calls/sec")
-
-
-def compute_delta(prev, curr):
-    delta = {}
-    for endpoint in ("host", "vm"):
-        delta[endpoint] = {
-            field: curr[endpoint][field] - prev[endpoint][field]
-            for field in COUNTER_FIELDS
-        }
-    return delta
 
 
 def format_bytes(n):
