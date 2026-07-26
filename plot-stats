@@ -45,8 +45,8 @@ def main():
     parser.add_argument(
         "--threshold",
         type=float,
-        default=5.0,
-        help="Steady state threshold in Gbps (default: 5.0)",
+        default=1.0,
+        help="Steady state threshold in Gbps (default: 1.0)",
     )
     parser.add_argument("before", help="Before log file")
     parser.add_argument("after", help="After log file")
@@ -106,7 +106,7 @@ def steady_state(records, threshold=5.0):
 
 
 def plot_throughput(before, after, title, output_path):
-    n = min(len(before), len(after), 60)
+    n = min(len(before), len(after))
     before = before[:n]
     after = after[:n]
     t = list(range(1, n + 1))
@@ -138,9 +138,7 @@ def plot_throughput(before, after, title, output_path):
     )
 
     max_br = max(max(before_bitrate), max(after_bitrate))
-    min_br = min(min(before_bitrate), min(after_bitrate))
-    margin = (max_br - min_br) * 0.15 or 1
-    ax1.set_ylim(min_br - margin, max_br + margin)
+    ax1.set_ylim(0, max_br * 1.1)
 
     ax2 = ax1.twinx()
     ax2.set_ylabel("Host\u2192VM Drops", fontsize=12)
@@ -168,7 +166,7 @@ def plot_throughput(before, after, title, output_path):
     lines2, labels2 = ax2.get_legend_handles_labels()
     ax1.legend(lines1 + lines2, labels1 + labels2, loc="lower left", fontsize=10)
 
-    ax1.set_title(title, fontsize=14, fontweight="bold")
+    ax1.set_title(title + " (throughput)", fontsize=14, fontweight="bold")
     ax1.grid(True, alpha=0.3)
     fig.tight_layout()
     fig.savefig(output_path, dpi=150)
@@ -177,7 +175,7 @@ def plot_throughput(before, after, title, output_path):
 
 
 def plot_efficiency(before, after, title, output_path):
-    n = min(len(before), len(after), 60)
+    n = min(len(before), len(after))
     before = before[:n]
     after = after[:n]
     t = list(range(1, n + 1))
@@ -209,9 +207,7 @@ def plot_efficiency(before, after, title, output_path):
     )
 
     max_val = max(max(before_fast), max(after_fast))
-    min_val = min(min(before_fast), min(after_fast))
-    margin = (max_val - min_val) * 0.15 or 500
-    ax1.set_ylim(min_val - margin, max_val + margin)
+    ax1.set_ylim(0, max_val * 1.1)
 
     ax2 = ax1.twinx()
     ax2.set_ylabel("Slow calls/sec", fontsize=12)
