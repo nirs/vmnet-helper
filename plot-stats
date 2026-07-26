@@ -1,0 +1,251 @@
+#!/usr/bin/env python3
+# SPDX-FileCopyrightText: Contributors to the vmnet-helper project
+# SPDX-License-Identifier: Apache-2.0
+
+"""
+Generate benchmark comparison plots from vmnet-helper log files.
+
+Usage:
+    plot-stats [--title TITLE] [-o output-prefix] before.log after.log
+
+Output prefix defaults to the before log basename without extension.
+
+Generates two plots:
+    {output-prefix}-throughput.png  - bitrate and drops over time
+    {output-prefix}-efficiency.png  - fast and slow calls/sec over time
+
+Example:
+    % ./plot-stats --title "krunkit: iperf3 -c vm.local -P 4 -b 7G" \
+        krunkit-before/tx-p4-b7.log krunkit-after/tx-p4-b7.log
+    Saved: tx-p4-b7-throughput.png
+    Saved: tx-p4-b7-efficiency.png
+"""
+
+import argparse
+import os
+import sys
+from datetime import datetime
+
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+
+import testing.stats
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--title", help="Plot title (default: output prefix)")
+    parser.add_argument(
+        "-o",
+        "--output",
+        help="Output file prefix (default: before log basename without extension)",
+    )
+    parser.add_argument(
+        "--threshold",
+        type=float,
+        default=5.0,
+        help="Steady state threshold in Gbps (default: 5.0)",
+    )
+    parser.add_argument("before", help="Before log file")
+    parser.add_argument("after", help="After log file")
+    args = parser.parse_args()
+
+    output_prefix = args.output or os.path.splitext(os.path.basename(args.before))[0]
+    title = args.title or output_prefix
+
+    before = steady_state(compute_rates(args.before), args.threshold)
+    after = steady_state(compute_rates(args.after), args.threshold)
+
+    if not before:
+        print(f"No steady state data in {args.before}", file=sys.stderr)
+        sys.exit(1)
+    if not after:
+        print(f"No steady state data in {args.after}", file=sys.stderr)
+        sys.exit(1)
+
+    plot_throughput(before, after, title, f"{output_prefix}-throughput.png")
+    plot_efficiency(before, after, title, f"{output_prefix}-efficiency.png")
+
+
+def compute_rates(logfile):
+    """Compute per-second rates from a log file."""
+    records = []
+    prev = None
+
+    for curr in testing.stats.parse(logfile):
+        if prev is not None:
+            t0 = datetime.fromisoformat(prev["time"])
+            t1 = datetime.fromisoformat(curr["time"])
+            duration = (t1 - t0).total_seconds()
+            if duration <= 0:
+                prev = curr
+                continue
+
+            delta = testing.stats.compute_delta(prev, curr)
+            record = {}
+            for ep in ("host", "vm"):
+                d = delta[ep]
+                record[ep] = {
+                    "bitrate_gbps": d["bytes"] * 8 / duration / 1e9,
+                    "packets": int(d["packets"] / duration),
+                    "drops": d["drops"],
+                    "fast": int(d["fast"] / duration),
+                    "slow": int(d["slow"] / duration),
+                }
+            records.append(record)
+
+        prev = curr
+
+    return records
+
+
+def steady_state(records, threshold=5.0):
+    return [r for r in records if r["host"]["bitrate_gbps"] > threshold]
+
+
+def plot_throughput(before, after, title, output_path):
+    n = min(len(before), len(after), 60)
+    before = before[:n]
+    after = after[:n]
+    t = list(range(1, n + 1))
+
+    before_bitrate = [r["host"]["bitrate_gbps"] for r in before]
+    after_bitrate = [r["host"]["bitrate_gbps"] for r in after]
+    before_drops = [r["host"]["drops"] for r in before]
+    after_drops = [r["host"]["drops"] for r in after]
+
+    fig, ax1 = plt.subplots(figsize=(12, 5))
+
+    ax1.set_xlabel("Time (seconds)", fontsize=12)
+    ax1.set_ylabel("Host\u2192VM Bitrate (Gbits/sec)", fontsize=12)
+    ax1.plot(
+        t,
+        before_bitrate,
+        color="#2196F3",
+        linewidth=1.5,
+        label="Before - bitrate",
+        alpha=0.9,
+    )
+    ax1.plot(
+        t,
+        after_bitrate,
+        color="#FF9800",
+        linewidth=1.5,
+        label="After - bitrate",
+        alpha=0.9,
+    )
+
+    max_br = max(max(before_bitrate), max(after_bitrate))
+    min_br = min(min(before_bitrate), min(after_bitrate))
+    margin = (max_br - min_br) * 0.15 or 1
+    ax1.set_ylim(min_br - margin, max_br + margin)
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("Host\u2192VM Drops", fontsize=12)
+    ax2.bar(
+        [x - 0.15 for x in t],
+        before_drops,
+        width=0.3,
+        color="#90CAF9",
+        alpha=0.7,
+        label="Before - drops",
+    )
+    ax2.bar(
+        [x + 0.15 for x in t],
+        after_drops,
+        width=0.3,
+        color="#FFCC80",
+        alpha=0.7,
+        label="After - drops",
+    )
+
+    max_drops = max(max(before_drops), max(after_drops))
+    ax2.set_ylim(0, max(max_drops * 1.5, 1))
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="lower left", fontsize=10)
+
+    ax1.set_title(title, fontsize=14, fontweight="bold")
+    ax1.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+    print(f"Saved: {output_path}")
+
+
+def plot_efficiency(before, after, title, output_path):
+    n = min(len(before), len(after), 60)
+    before = before[:n]
+    after = after[:n]
+    t = list(range(1, n + 1))
+
+    before_fast = [r["host"]["fast"] for r in before]
+    after_fast = [r["host"]["fast"] for r in after]
+    before_slow = [r["host"]["slow"] for r in before]
+    after_slow = [r["host"]["slow"] for r in after]
+
+    fig, ax1 = plt.subplots(figsize=(12, 5))
+
+    ax1.set_xlabel("Time (seconds)", fontsize=12)
+    ax1.set_ylabel("Fast calls/sec", fontsize=12)
+    ax1.plot(
+        t,
+        before_fast,
+        color="#2196F3",
+        linewidth=1.5,
+        label="Before - fast calls",
+        alpha=0.9,
+    )
+    ax1.plot(
+        t,
+        after_fast,
+        color="#FF9800",
+        linewidth=1.5,
+        label="After - fast calls",
+        alpha=0.9,
+    )
+
+    max_val = max(max(before_fast), max(after_fast))
+    min_val = min(min(before_fast), min(after_fast))
+    margin = (max_val - min_val) * 0.15 or 500
+    ax1.set_ylim(min_val - margin, max_val + margin)
+
+    ax2 = ax1.twinx()
+    ax2.set_ylabel("Slow calls/sec", fontsize=12)
+    ax2.bar(
+        [x - 0.15 for x in t],
+        before_slow,
+        width=0.3,
+        color="#90CAF9",
+        alpha=0.7,
+        label="Before - slow calls",
+    )
+    ax2.bar(
+        [x + 0.15 for x in t],
+        after_slow,
+        width=0.3,
+        color="#FFCC80",
+        alpha=0.7,
+        label="After - slow calls",
+    )
+
+    max_slow = max(max(before_slow), max(after_slow))
+    ax2.set_ylim(0, max(max_slow * 1.5, 1))
+
+    lines1, labels1 = ax1.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax1.legend(lines1 + lines2, labels1 + labels2, loc="upper left", fontsize=10)
+
+    ax1.set_title(title + " (efficiency)", fontsize=14, fontweight="bold")
+    ax1.grid(True, alpha=0.3)
+    fig.tight_layout()
+    fig.savefig(output_path, dpi=150)
+    plt.close(fig)
+    print(f"Saved: {output_path}")
+
+
+if __name__ == "__main__":
+    main()
