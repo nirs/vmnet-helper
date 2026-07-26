@@ -143,6 +143,36 @@ The following example uses the qemu driver, and connects using vmnet-run:
 [  16.630] INFO VM is ready at test-vmnet-helper.local
 ```
 
+### Performance tuning
+
+By default, VMs use interrupt-driven packet processing. During high
+throughput TX benchmarks (host sending to the VM), `ksoftirqd` saturates
+a single CPU core in the guest, limiting throughput to ~30 Gbps. RX
+throughput (VM sending to the host) is not affected since the host does
+the heavy packet processing.
+
+The `--busy-poll` option enables busy polling in the VM, shifting packet
+processing from `ksoftirqd` to the application threads:
+
+```console
+% ./run test --busy-poll
+```
+
+With busy polling, TX throughput improves to ~37 Gbps. This works by
+configuring `net.core.busy_poll` and `net.core.busy_read` via
+cloud-init. When the application calls `recv()` or `poll()` and no data
+is ready, the kernel polls the virtio RX ring for up to 50 microseconds
+before falling back to interrupt-driven processing.
+
+Busy polling increases CPU usage when the VM is idle, so the default
+(without `--busy-poll`) represents the expected performance for general
+purpose workloads. Use `--busy-poll` for benchmarking to measure
+vmnet-helper TX throughput without guest-side bottlenecks.
+
+> [!NOTE]
+> Requires `CONFIG_NET_RX_BUSY_POLL=y` in the guest kernel. This is
+> enabled by default in Ubuntu, Fedora, Debian, and Alpine.
+
 ### Storage and debugging
 
 The script downloads cloud images to `~/.vmnet-helper/cache/images`, converts
