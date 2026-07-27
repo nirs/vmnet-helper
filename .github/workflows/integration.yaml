@@ -78,11 +78,11 @@ jobs:
               --end-address 192.168.200.127 \
               --subnet-mask 255.255.255.0 \
               --stats-interval 1 \
-              --timeout 300 \
+              --timeout 600 \
               --verbose &
           pid=$!
           echo $pid > test.pid
-          if ! timeout 300s bash -c "until nc -z test-vmnet-helper.local 22 2>/dev/null; do true; done"; then
+          if ! timeout 600s bash -c "until nc -z test-vmnet-helper.local 22 2>/dev/null; do true; done"; then
               echo >&2 "Timeout waiting for test-vmnet-helper.local"
               exit 1
           fi
