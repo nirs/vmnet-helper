@@ -143,6 +143,35 @@ The following example uses the qemu driver, and connects using vmnet-run:
 [  16.630] INFO VM is ready at test-vmnet-helper.local
 ```
 
+VMs use DHCP by default. To assign a static IP address, restrict the DHCP range,
+then select an address outside of that range:
+
+```console
+% ./run test \
+    --start-address 192.168.200.1 \
+    --end-address 192.168.200.127 \
+    --subnet-mask 255.255.255.0 \
+    --ip-address 192.168.200.128
+```
+
+> [!NOTE]
+> Setting `--ip-address` to a value inside the DHCP range may work, but may
+> cause conflicts.
+
+> [!NOTE]
+> `--ip-address` must be difrerent from `--start-address`, but in the same
+> subnet.
+
+When changing a VM's IP address or switching to DHCP, the instance ID and host
+key will be reset. Remove the old host key before you ssh again:
+
+```console
+% ssh-keygen -R test-vmnet-helper.local
+# Host test-vmnet-helper.local found: line 161
+/Users/user/.ssh/known_hosts updated.
+Original contents retained as /Users/user/.ssh/known_hosts.old
+```
+
 ### Performance tuning
 
 By default, VMs use interrupt-driven packet processing. During high
