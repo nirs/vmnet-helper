@@ -11,8 +11,9 @@ import socket
 import uuid
 
 from . import mac
-from . import store
+from . import privileges
 from . import process
+from . import store
 
 PREFIX = "/opt/vmnet-helper"
 HELPER = os.path.join(PREFIX, "bin/vmnet-helper")
@@ -98,11 +99,13 @@ class Helper:
         cmd = self._build_command(interface_id)
 
         if self.logfile is None:
-            vm_home = store.vm_path(self.vm_name)
-            os.makedirs(vm_home, exist_ok=True)
+            vm_home = store.ensure_vm_dir(self.vm_name)
             self.logfile = os.path.join(vm_home, "vmnet-helper.log")
 
+        uid, gid = privileges.creds()
         with open(self.logfile, "w") as log:
+            if uid and gid:
+                os.chown(self.logfile, uid, gid)
             self.proc = process.start(
                 *cmd,
                 stdout=process.PIPE,

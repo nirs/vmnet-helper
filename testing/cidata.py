@@ -5,12 +5,12 @@ import ipaddress
 import glob
 import logging
 import os
-import subprocess
 import uuid
 import tempfile
 
 import yaml
 
+from . import privileges
 from . import process
 from . import store
 
@@ -104,6 +104,11 @@ def create_iso(vm):
         with open(network_config_path, "w") as f:
             yaml.dump(network_config, f, sort_keys=False)
 
+        uid, gid = privileges.creds()
+        if uid and gid:
+            for path in tmp, meta_data_path, user_data_path, network_config_path:
+                os.chown(path, uid, gid)
+
         cmd = [
             "mkisofs",
             "-output",
@@ -118,8 +123,8 @@ def create_iso(vm):
         ]
         process.run(
             *cmd,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stdout=process.PIPE,
+            stderr=process.PIPE,
             cwd=tmp,
             check=True,
         )
@@ -204,7 +209,7 @@ def file_matches(data, iso_path, file_path):
         iso_path,
         "--to-stdout",
         file_path,
-        stdout=subprocess.PIPE,
+        stdout=process.PIPE,
         check=True,
     )
     file_data = yaml.safe_load(extract.stdout)

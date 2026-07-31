@@ -4,6 +4,7 @@
 import logging
 import os
 
+from . import privileges
 from . import store
 
 
@@ -27,3 +28,6 @@ Host {vm.vm_name}
     logging.info("Creating ssh config '%s'", path)
     with open(path, "w") as f:
         f.write(data)
+    uid, gid = privileges.creds()
+    if uid and gid:
+        os.chown(path, uid, gid)
