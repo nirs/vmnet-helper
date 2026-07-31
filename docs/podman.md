@@ -28,12 +28,12 @@ offloading delivers 2.3x to 30.2x faster networking compared to podman machine
 > [!NOTE]
 > - This tutorial requires macOS 26 or later. On older versions,
 >   vmnet-helper must be [installed manually][installing].
-> - If you have krunkit installed from the old `slp/krunkit` brew tap,
->   you need to [remove it first][old-tap].
+> - If you have krunkit installed from the old `slp/krunkit` or `slp/krun`
+>   brew tap, you need to [remove it first][old-tap].
 
 ```console
 brew tap nirs/vmnet-helper
-brew tap slp/krun
+brew tap libkrun/krun
 brew install vmnet-helper vfkit krunkit cdrtools qemu
 ```
 
@@ -506,10 +506,10 @@ launchctl stop local.podman-krunkit
 
 [xkcd]: https://xkcd.com/353/
 [cc-by-nc]: https://creativecommons.org/licenses/by-nc/2.5/
-[old-tap]: https://github.com/containers/krunkit#removing-the-old-homebrew-tap
+[old-tap]: https://github.com/libkrun/krunkit#removing-the-old-homebrew-tap
 [vfkit]: https://github.com/crc-org/vfkit
-[krunkit]: https://github.com/containers/krunkit
-[libkrun]: https://github.com/containers/libkrun
+[krunkit]: https://github.com/libkrun/krunkit
+[libkrun]: https://github.com/libkrun/libkrun
 [ramalama]: https://github.com/containers/ramalama
 [offloading]: /docs/performance.md#offloading
 [installing]: /README.md#installing
