@@ -5,11 +5,11 @@ import logging
 import os
 import platform
 import socket
-import subprocess
 import time
 
 from . import cidata
 from . import disks
+from . import process
 from . import ssh
 from . import store
 
@@ -91,8 +91,8 @@ class VM:
             elif self.fd is not None:
                 pass_fds = [self.fd]
             self.write_command(cmd)
-            self.proc = subprocess.Popen(
-                cmd,
+            self.proc = process.start(
+                *cmd,
                 stdout=stdout,
                 stderr=log,
                 pass_fds=pass_fds,
