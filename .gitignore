@@ -7,7 +7,6 @@
 
 # Editor files
 /.zed/
-/pyrightconfig.json
 
 # Python
 __pycache__

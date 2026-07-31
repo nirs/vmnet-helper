@@ -177,8 +177,10 @@ class Helper:
         return cmd
 
     def stop(self):
-        self.proc.terminate()
-        self.proc.wait()
+        if self.proc:
+            self.proc.terminate()
+            self.proc.wait()
+            self.proc = None
 
 
 def requires_root():
