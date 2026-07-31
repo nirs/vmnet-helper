@@ -57,11 +57,10 @@ class VM:
         """
         Starts a VM driver with fd or socket.
         """
-        vm_home = store.vm_path(self.vm_name)
-        os.makedirs(vm_home, exist_ok=True)
-
+        store.ensure_vm_dir(self.vm_name)
         self.disk = disks.create_disk(self)
         self.cidata = cidata.create_iso(self)
+
         if self.driver == "vfkit":
             cmd = self.vfkit_command()
         elif self.driver == "krunkit":
@@ -70,6 +69,7 @@ class VM:
             cmd = self.qemu_command()
         else:
             raise ValueError(f"Invalid driver '{self.driver}'")
+
         logging.info(
             "Starting '%s' virtual machine '%s' with mac address '%s'",
             self.driver,

@@ -85,8 +85,7 @@ def create_image(url, format=None, size=None):
     url_hash = hashlib.sha256(url.encode()).hexdigest()
     path = store.cache_path("images", url_hash, "data")
     if not os.path.exists(path):
-        image_dir = os.path.dirname(path)
-        os.makedirs(image_dir, exist_ok=True)
+        store.ensure_cache_dir("images", url_hash)
         tmp_path = path + ".tmp"
         try:
             download_image(url, tmp_path)
