@@ -99,8 +99,10 @@ class VM:
             )
 
     def stop(self):
-        self.proc.terminate()
-        self.proc.wait()
+        if self.proc:
+            self.proc.terminate()
+            self.proc.wait()
+            self.proc = None
 
     def write_command(self, cmd):
         """
@@ -153,12 +155,14 @@ class VM:
         logging.warning("Timeout waiting for vm to become reachable")
 
     def check_running(self):
-        if self.proc.poll() is not None:
-            raise RuntimeError(
-                f"Virtual machine terminated (exitcode {self.proc.returncode})"
-            )
+        if self.proc:
+            if self.proc.poll() is not None:
+                raise RuntimeError(
+                    f"Virtual machine terminated (exitcode {self.proc.returncode})"
+                )
 
     def vfkit_command(self):
+        assert self.disk
         efi_store = store.vm_path(self.vm_name, "efi-variable-store")
         cmd = [
             self.driver_command or "vfkit",
@@ -182,6 +186,7 @@ class VM:
         return cmd
 
     def krunkit_command(self):
+        assert self.disk
         log_level = "4" if self.verbose else "3"
         cmd = [
             self.driver_command or "krunkit",
@@ -210,6 +215,7 @@ class VM:
         return cmd
 
     def qemu_command(self):
+        assert self.disk
         if self.fd is not None:
             netdev = f"dgram,id=net1,local.type=fd,local.str={self.fd}"
         elif self.socket is not None:
