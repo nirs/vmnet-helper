@@ -18,7 +18,7 @@ offloading and connected to vmnet via vmnet-helper. The VM is managed by launchd
 and gets its own IP address on the local network. The Docker CLI connects to the
 VM via SSH. You only need the Docker CLI on the host — no Docker Desktop and no
 root required. Networking is snappy — a browser speed test to a container shows
-30 Gbits/sec download with 1 ms ping.
+30 Gbits/sec download, 11 Gbits/sec upload, with sub-millisecond ping.
 
 ## Requirements
 
@@ -243,25 +243,19 @@ docker run --rm hello
 Hello from vmnet!
 ```
 
-Run an interactive app — it is reachable from your Mac browser at the VM's
-hostname, with no localhost port forwarding:
+## Optimizing networking
+
+Enable busy polling to reduce latency and improve throughput:
 
 ```console
-docker run -d --name speedtest -p 80:3000 openspeedtest/latest
-open http://docker.local
+ssh root@docker.local "cat > /etc/sysctl.d/90-busy-poll.conf << 'EOF'
+net.core.busy_poll = 50
+net.core.busy_read = 50
+EOF
+sysctl -p /etc/sysctl.d/90-busy-poll.conf"
 ```
 
-Click **Start** to run a network speed test from your browser to the container.
-
-<picture><img src="/media/speedtest.png" alt="OpenSpeedTest results at docker.local" width="933"></picture>
-
-When you're done, remove the container:
-
-```console
-docker rm -f speedtest
-```
-
-## Speeding up Docker commands
+## Optimizing SSH access
 
 Docker CLI opens a new SSH connection for every command. SSH multiplexing keeps
 the connection open between commands:
@@ -277,6 +271,26 @@ Host docker.local
 EOF
 
 echo "Include ~/vms/docker/ssh.config" >> ~/.ssh/config
+```
+
+## Speed test
+
+Run a speed test container — it is reachable from your Mac browser at the VM's
+hostname, with no localhost port forwarding:
+
+```console
+docker run -d --name speedtest --network host openspeedtest/latest
+open http://docker.local:3000
+```
+
+Click **Start** to run a network speed test from your browser to the container.
+
+<picture><img src="/media/speedtest.png" alt="OpenSpeedTest results at docker.local" width="933"></picture>
+
+When you're done, remove the container:
+
+```console
+docker rm -f speedtest
 ```
 
 ## Managing the VM
