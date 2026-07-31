@@ -43,7 +43,6 @@ class VM:
         self.memory = args.memory
         self.distro = args.distro
         self.dns_servers = args.dns_servers
-        self.ip_address = args.ip_address
         self.busy_poll = args.busy_poll
         self.serial = store.vm_path(self.vm_name, "serial.log")
         self.enable_offloading = args.enable_offloading
@@ -285,6 +284,12 @@ class VM:
             cmd.append(f"--end-address={self.args.end_address}")
         if self.args.subnet_mask:
             cmd.append(f"--subnet-mask={self.args.subnet_mask}")
+        if self.args.network_id:
+            cmd.append(f"--network-id={self.args.network_id}")
+        if self.args.host_ip_address:
+            cmd.append(f"--host-ip-address={self.args.host_ip_address}")
+        if self.args.host_subnet_mask:
+            cmd.append(f"--host-subnet-mask={self.args.host_subnet_mask}")
         if self.args.enable_isolation:
             cmd.append("--enable-isolation")
         if self.args.shared_interface:

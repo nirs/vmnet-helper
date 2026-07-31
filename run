@@ -69,6 +69,31 @@ def main():
         help="The IPv4 subnet mask (string) to use on the interface.",
     )
     p.add_argument(
+        "--network-id",
+        type=testing.validate.network_id,
+        help=(
+            "The identifier (UUID) of the host network to use on the interface "
+            "(host operation-mode only)."
+        ),
+    )
+    p.add_argument(
+        "--host-ip-address",
+        type=testing.validate.private_ipv4_address,
+        help=(
+            "The IPv4 address (string) to assign to the host's interface. "
+            "The address must be in the private IP range (RFC 1918). "
+            "Requires --network-id and --host-subnet-mask."
+        ),
+    )
+    p.add_argument(
+        "--host-subnet-mask",
+        type=testing.validate.subnet_mask,
+        help=(
+            "The IPv4 subnet mask (string) to assign to the host's interface. "
+            "Requires --network-id and --host-ip-address."
+        ),
+    )
+    p.add_argument(
         "--shared-interface",
         choices=shared_interfaces,
         default=shared_interfaces[0],
@@ -174,6 +199,7 @@ def main():
     setup_logging(args.verbose)
 
     testing.validate.network_options(p, args)
+    testing.validate.ip_address_options(p, args)
     testing.validate.operation_mode(p, args)
 
     signal.signal(signal.SIGTERM, terminate)

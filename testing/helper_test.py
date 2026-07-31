@@ -25,6 +25,7 @@ import platform
 import socket
 import time
 from datetime import datetime
+import uuid
 from types import SimpleNamespace
 
 import pytest
@@ -274,6 +275,25 @@ class TestStart:
         ) as (h, sock):
             self.check_interface(h.interface)
 
+    def test_host_mode_network_id(self):
+        """
+        Test starting helper in host mode with network id
+        """
+        with run_helper(operation_mode="host", network_id=uuid.uuid4()) as (h, sock):
+            self.check_interface(h.interface)
+
+    def test_host_mode_network_id_with_host_address(self):
+        """
+        Test starting the helper in host mode with a host address set.
+        """
+        with run_helper(
+            operation_mode="host",
+            network_id=uuid.uuid4(),
+            host_ip_address="192.168.200.1",
+            host_subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            self.check_interface(h.interface)
+
     def test_no_interface_id(self, tmp_path):
         """
         Test starting helper without --interface-id. vmnet should assign
@@ -320,6 +340,30 @@ class TestConnectivity:
             gateway_mac = arp_resolve(h, sock)
             gateway_ip = find_gateway_ip(h.interface)
             ping(h, sock, gateway_mac, gateway_ip)
+
+    @pytest.mark.skipif(not MACOS_26, reason="host doesn't get an IP on macOS <26")
+    def test_ping_host_network_id(self):
+        """
+        Test ICMP ping to host when --network-id is set, but not host address is set.
+        """
+        with run_helper(operation_mode="host", network_id=uuid.uuid4()) as (h, sock):
+            host_mac = arp_resolve(h, sock)
+            host_ip = find_gateway_ip(h.interface)
+            ping(h, sock, host_mac, host_ip)
+
+    def test_ping_host_network_id_with_host_address(self):
+        """
+        Test ICMP ping to host when --network-id is set, and a host address is set.
+        """
+        with run_helper(
+            operation_mode="host",
+            network_id=uuid.uuid4(),
+            host_ip_address="192.168.200.1",
+            host_subnet_mask="255.255.255.0",
+        ) as (h, sock):
+            host_mac = arp_resolve(h, sock)
+            host_ip = find_gateway_ip(h.interface)
+            ping(h, sock, host_mac, host_ip)
 
     def test_ping_external_via_nat(self, tmp_path):
         """
@@ -475,6 +519,9 @@ def run_helper(
     start_address=None,
     end_address=None,
     subnet_mask=None,
+    network_id=None,
+    host_ip_address=None,
+    host_subnet_mask=None,
     shared_interface=None,
     network_name=None,
     enable_isolation=False,
@@ -502,6 +549,9 @@ def run_helper(
         start_address=start_address,
         end_address=end_address,
         subnet_mask=subnet_mask,
+        network_id=network_id,
+        host_ip_address=host_ip_address,
+        host_subnet_mask=host_subnet_mask,
         shared_interface=shared_interface,
         network_name=network_name,
         enable_isolation=enable_isolation,
