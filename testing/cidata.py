@@ -11,6 +11,7 @@ import tempfile
 
 import yaml
 
+from . import process
 from . import store
 
 # Enable busy polling for network sockets to reduce softirq overhead.
@@ -115,12 +116,12 @@ def create_iso(vm):
             "meta-data",
             "network-config",
         ]
-        subprocess.run(
-            cmd,
-            check=True,
+        process.run(
+            *cmd,
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             cwd=tmp,
+            check=True,
         )
 
     return cidata
@@ -197,10 +198,14 @@ def file_matches(data, iso_path, file_path):
 
     Returns True if they match, False otherwise.
     """
-    extract = subprocess.run(
-        ["bsdtar", "-xf", iso_path, "--to-stdout", file_path],
-        check=True,
+    extract = process.run(
+        "bsdtar",
+        "-xf",
+        iso_path,
+        "--to-stdout",
+        file_path,
         stdout=subprocess.PIPE,
+        check=True,
     )
     file_data = yaml.safe_load(extract.stdout)
     return data == file_data

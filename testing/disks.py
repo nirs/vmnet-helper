@@ -5,8 +5,8 @@ import hashlib
 import logging
 import os
 import platform
-import subprocess
 
+from . import process
 from . import store
 
 UBUNTU_RELEASE = "26.04"
@@ -106,7 +106,7 @@ def create_image(url, format=None, size=None):
 
 def download_image(image_url, path):
     logging.info("Downloading image '%s'", image_url)
-    cmd = [
+    process.run(
         "curl",
         "--fail",
         "--no-progress-meter",
@@ -114,21 +114,19 @@ def download_image(image_url, path):
         "--output",
         path,
         image_url,
-    ]
-    subprocess.run(cmd, check=True)
+    )
 
 
 def convert_image(src, target, format):
     logging.info("Converting image to '%s' format '%s'", format, target)
-    cmd = ["qemu-img", "convert", "-f", "qcow2", "-O", format, src, target]
-    subprocess.run(cmd, check=True)
+    process.run("qemu-img", "convert", "-f", "qcow2", "-O", format, src, target)
 
 
 def resize_image(path, size):
     logging.info("Resizing image to %s", size)
-    cmd = ["qemu-img", "resize", "-q", "-f", "raw", path, size]
-    subprocess.run(cmd, check=True)
+    process.run("qemu-img", "resize", "-q", "-f", "raw", path, size)
 
 
 def clone(src, dst):
-    subprocess.run(["cp", "-c", src, dst], check=True)
+    logging.info("Cloning image %s to %s", src, dst)
+    process.run("cp", "-c", src, dst)

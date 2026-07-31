@@ -8,11 +8,11 @@ import os
 import platform
 import re
 import socket
-import subprocess
 import uuid
 
 from . import mac
 from . import store
+from . import process
 
 PREFIX = "/opt/vmnet-helper"
 HELPER = os.path.join(PREFIX, "bin/vmnet-helper")
@@ -103,9 +103,9 @@ class Helper:
             self.logfile = os.path.join(vm_home, "vmnet-helper.log")
 
         with open(self.logfile, "w") as log:
-            self.proc = subprocess.Popen(
-                cmd,
-                stdout=subprocess.PIPE,
+            self.proc = process.start(
+                *cmd,
+                stdout=process.PIPE,
                 stderr=log,
                 pass_fds=[self.fd] if self.fd is not None else [],
             )
@@ -215,9 +215,9 @@ def socketpair(offloading=False):
 
 
 def shared_interfaces():
-    cp = subprocess.run(
-        ["/opt/vmnet-helper/bin/vmnet-helper", "--list-shared-interfaces"],
-        stdout=subprocess.PIPE,
-        check=True,
+    cp = process.run(
+        "/opt/vmnet-helper/bin/vmnet-helper",
+        "--list-shared-interfaces",
+        stdout=process.PIPE,
     )
     return cp.stdout.decode().splitlines()
