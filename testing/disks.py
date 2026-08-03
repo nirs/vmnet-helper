@@ -14,15 +14,15 @@ UBUNTU_RELEASE = "26.04"
 IMAGES = {
     "ubuntu": {
         "arm64": {
-            "image": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-arm64.img",
+            "image": f"https://cloud-images.ubuntu.com/minimal/releases/resolute/release/ubuntu-{UBUNTU_RELEASE}-minimal-cloudimg-arm64.img",
         },
         "x86_64": {
-            "image": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-amd64.img",
-            "kernel": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/unpacked/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-amd64-vmlinuz-generic",
+            "image": f"https://cloud-images.ubuntu.com/minimal/releases/resolute/release/ubuntu-{UBUNTU_RELEASE}-minimal-cloudimg-amd64v3.img",
+            "kernel": f"https://cloud-images.ubuntu.com/minimal/releases/resolute/release/unpacked/ubuntu-{UBUNTU_RELEASE}-minimal-cloudimg-amd64v3-vmlinuz-generic",
             # Based on the default kernel cmdline when not using kernel and initrd:
             # BOOT_IMAGE=/vmlinuz-6.11.0-14-generic root=LABEL=cloudimg-rootfs ro console=tty1 console=ttyS0
             "kernel_parameters": [
-                "root=LABEL=cloudimg-rootfs",
+                "root=/dev/vda1",
                 "ro",
                 "console=tty1",
                 "console=ttyS0",
@@ -32,7 +32,6 @@ IMAGES = {
                 # https://github.com/lima-vm/socket_vmnet/pull/56
                 "no_timer_check",
             ],
-            "initrd": f"https://cloud-images.ubuntu.com/releases/{UBUNTU_RELEASE}/release/unpacked/ubuntu-{UBUNTU_RELEASE}-server-cloudimg-amd64-initrd-generic",
         },
     },
     "alpine": {
