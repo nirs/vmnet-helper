@@ -31,6 +31,8 @@ IMAGES = {
                 # Based on socket_vmnet fix:
                 # https://github.com/lima-vm/socket_vmnet/pull/56
                 "no_timer_check",
+                # May block boot for 2 minutes waiting for all interfaces.
+                "systemd.mask=systemd-networkd-wait-online.service",
             ],
         },
     },

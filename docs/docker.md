@@ -90,6 +90,8 @@ users:
       - "$(cat ~/.ssh/id_ed25519.pub)"
 packages:
   - avahi-daemon
+bootcmd:
+  - systemctl mask systemd-networkd-wait-online.service
 EOF
 
 cat > ~/vms/$VM_NAME/meta-data << EOF
