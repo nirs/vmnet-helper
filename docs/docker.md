@@ -41,13 +41,13 @@ brew install docker vmnet-helper krunkit cdrtools qemu
 > Docker Desktop — you can keep both and switch between them using
 > `docker context use`.
 
-## Download an Ubuntu 26.04 cloud image
+## Download an Ubuntu 26.04 minimal cloud image
 
-Download an Ubuntu cloud image and convert to raw:
+Download an Ubuntu minimal cloud image and convert to raw:
 
 ```console
 curl --fail --location --output /tmp/ubuntu-26.04.qcow2 \
-    https://cloud-images.ubuntu.com/releases/26.04/release/ubuntu-26.04-server-cloudimg-arm64.img
+    https://cloud-images.ubuntu.com/minimal/releases/resolute/release/ubuntu-26.04-minimal-cloudimg-arm64.img
 mkdir -p ~/.cache/vm-images
 qemu-img convert -f qcow2 -O raw /tmp/ubuntu-26.04.qcow2 \
     ~/.cache/vm-images/ubuntu-26.04.img
