@@ -36,6 +36,12 @@ DISTROS = {
     # Ubuntu auto-enables and starts daemons on package install.
     "ubuntu": {
         "packages": ["avahi-daemon"],
+        # systemd-networkd-wait-online may block boot for 2 minutes waiting
+        # for all interfaces to be fully configured. We only need eth0
+        # (DHCP from vmnet) and don't care about the online target.
+        "bootcmd": [
+            "systemctl mask systemd-networkd-wait-online.service",
+        ],
     },
     "fedora": {
         "packages": ["avahi"],
