@@ -5,10 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Performance
 
-We benchmarked vmnet-helper with 3 VMs types (vfkit, krunkit, qemu) in
+We benchmarked vmnet-helper with 3 VM types (vfkit, krunkit, qemu) in
 all operation modes supported by the vmnet framework (shared, bridged,
-host), in 3 directions (host to vm, vm to host, vm to vm), on 2 machines
-(iMac M3, MacBook Pro M2 Max).
+host), in 3 directions (host to vm, vm to host, vm to vm), on 3 machines
+(iMac M3, MacBook Pro M2 Max, MacBook Pro M5).
 
 See the [performance](/performance) directory for full test results and
 the [development guide](/docs/development.md#benchmarking) for running
@@ -34,28 +34,24 @@ Performance depends on VM type and transfer direction.
 [vfkit](https://github.com/crc-org/vfkit) performs better in all tests.
 [qemu](https://www.qemu.org/) is up to *5 times slower* than vfkit.
 
-![vmnet-helper drivers - shared network](/performance/results/2026-02/M3/plot/drivers/shared.png)
-![vmnet-helper drivers - bridged network](/performance/results/2026-02/M3/plot/drivers/bridged.png)
+![vmnet-helper drivers - shared network](/performance/results/2026-08/M5/plot/drivers/shared.png)
+![vmnet-helper drivers - bridged network](/performance/results/2026-08/M5/plot/drivers/bridged.png)
 
-Tested on iMac M3 and macOS 26.3.0.
+Tested on MacBook Pro M5 and macOS 26.5.2.
 
 ## Offloading
 
-On macOS 26.2 and later, krunkit provides close to native performance
-when using offloading. On earlier macOS versions we see dramatically reduced
-performance in host-to-vm use case.
+With offloading enabled, krunkit provides close to native performance.
 
-Tested on iMac M3.
+Tested on MacBook Pro M5 and macOS 26.5.2.
 
-### macOS 26.3
+![vmnet-helper offloading - shared network](/performance/results/2026-08/M5/plot/offloading/shared.png)
+![vmnet-helper offloading - bridged network](/performance/results/2026-08/M5/plot/offloading/bridged.png)
 
-![vmnet-helper offloading - shared network](/performance/results/2026-02/M3/plot/offloading/shared.png)
-![vmnet-helper offloading - bridged network](/performance/results/2026-02/M3/plot/offloading/bridged.png)
-
-### macOS 15.6
-
-![vmnet-helper offloading - shared network](/performance/results/2025-08/M3/plot/offloading/shared.png)
-![vmnet-helper offloading - bridged network](/performance/results/2025-08/M3/plot/offloading/bridged.png)
+> [!IMPORTANT]
+> For best performance do not mix VMs using offloading and VMs not using
+> offloading on the same bridge. This disables TSO on the bridge, which
+> degrades TX performance to 1.5 Gbits/sec.
 
 ## Native vmnet via vmnet-broker
 
