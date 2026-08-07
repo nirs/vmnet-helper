@@ -183,22 +183,24 @@ def create_network_config(vm):
             },
         },
     }
-    dhcp_data = {
-        "dhcp-identifier": "mac",
-        "dhcp4-overrides": {
-            "use-dns": False,
-        },
-    }
     if vm.args.ip_address:
+        mask = vm.args.subnet_mask or vm.args.host_subnet_mask
         data["ethernets"]["eth0"]["addresses"] = [
-            ipaddress.IPv4Interface(
-                (vm.args.ip_address, vm.args.subnet_mask)
-            ).with_prefixlen
+            ipaddress.IPv4Interface((vm.args.ip_address, mask)).with_prefixlen
         ]
         data["ethernets"]["eth0"]["routes"] = [
-            {"to": "default", "via": str(vm.args.start_address)}
+            {
+                "to": "default",
+                "via": str(vm.args.start_address or vm.args.host_ip_address),
+            }
         ]
     else:
+        dhcp_data = {
+            "dhcp-identifier": "mac",
+            "dhcp4-overrides": {
+                "use-dns": False,
+            },
+        }
         data["ethernets"]["eth0"].update(dhcp_data)
     return data
 

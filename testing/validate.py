@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 import ipaddress
+import uuid
 
 
 def ip_list(s):
@@ -25,6 +26,16 @@ def subnet_mask(s):
     return s
 
 
+def network_id(s):
+    """
+    Raises ValueError if 's' is not a hexadecimal UUID.
+
+    Returns the unmodified string expected by vmnet-helper.
+    """
+    uuid.UUID(s)
+    return s
+
+
 def _one_dhcp_option_set(args):
     """
     Returns True if one or more DHCP option is set.
@@ -44,6 +55,30 @@ def _dhcp_options(p, args):
         p.error(
             "--start-address, --end-address, --subnet-mask must all be set or all omitted"
         )
+    if _all_dhcp_options_set(args):
+        # vmnet does not enforce the order of --start-address and --end-address.
+        network = ipaddress.IPv4Interface(
+            (args.start_address, args.subnet_mask)
+        ).network
+        if args.end_address not in network:
+            p.error("--start-address and --end-address must be in the same subnet")
+        # --ip-address inside the DHCP range may cause conflicts, but works.
+        if args.ip_address:
+            if args.ip_address not in network:
+                p.error(
+                    "--ip-address, --start-address and --end-address must be in the same subnet"
+                )
+            # Reserve --start-address, since it gets assigned to the host.
+            if args.ip_address == args.start_address:
+                p.error("--ip-address must be different from --start-address")
+
+
+def _one_host_ip_option_set(args):
+    return args.host_ip_address or args.host_subnet_mask
+
+
+def _all_host_ip_options_set(args):
+    return args.host_ip_address and args.host_subnet_mask and args.network_id
 
 
 def _bridged_mode(p, args):
@@ -51,14 +86,49 @@ def _bridged_mode(p, args):
         p.error("--shared-interface required for --operation-mode=bridged")
     if args.enable_isolation:
         p.error("--enable-isolation not compatible with --operation-mode=bridged")
+    if args.network_id:
+        p.error("--network-id is not compatible with --operation-mode=bridged")
+    if _one_host_ip_option_set(args):
+        p.error(
+            "--host-ip-address and --host-subnet-mask are not compatible with "
+            "--operation-mode=bridged"
+        )
 
 
 def _shared_mode(p, args):
     _dhcp_options(p, args)
+    if args.network_id:
+        p.error("--network-id is not compatible with --operation-mode=shared")
+    if _one_host_ip_option_set(args):
+        p.error(
+            "--host-ip-address and --host-subnet-mask are not compatible with "
+            "--operation-mode=shared"
+        )
 
 
 def _host_mode(p, args):
     _dhcp_options(p, args)
+    if _one_host_ip_option_set(args) and not args.network_id:
+        p.error("--host-ip-address and --host-subnet-mask require --network-id")
+    if args.network_id:
+        if _one_host_ip_option_set(args) and not _all_host_ip_options_set(args):
+            p.error(
+                "--host-ip-address and --host-subnet-mask must all be set, or all omitted"
+            )
+        if _one_dhcp_option_set(args):
+            p.error(
+                "--start-address, --end-address, --subnet-mask cannot be set with --network-id"
+            )
+        if _all_host_ip_options_set(args) and args.ip_address:
+            network = ipaddress.IPv4Interface(
+                (args.host_ip_address, args.host_subnet_mask)
+            ).network
+            # The host and guest addresses must be on the same subnet
+            if args.ip_address not in network:
+                p.error("--ip-address must be in the same subnet as --host-ip-address")
+            # The host and guest addresses must be different
+            if args.ip_address == args.host_ip_address:
+                p.error("--ip-address must be different from --host-ip-address")
 
 
 def operation_mode(p, args):
@@ -86,26 +156,21 @@ def network_options(p, args):
         if args.ip_address:
             p.error("--network cannot be used with --ip-address")
 
-    if args.ip_address and not _all_dhcp_options_set(args):
-        p.error("--ip-address requires --start-address, --end-address, --subnet-mask")
 
-    if _all_dhcp_options_set(args):
-        # vmnet does not enforce the order of --start-address and --end-address.
-        network = ipaddress.IPv4Interface(
-            (args.start_address, args.subnet_mask)
-        ).network
-        if args.end_address not in network:
-            p.error("--start-address and --end-address must be in the same subnet")
-        # --ip-address inside the DHCP range may cause conflicts, but works.
-        if args.ip_address:
-            if args.ip_address not in network:
-                p.error(
-                    "--ip-address, --start-address and --end-address "
-                    "must be in the same subnet",
-                )
-            # Only reserve --start-address, since it gets assigned to the host.
-            if args.ip_address == args.start_address:
-                p.error("--ip-address must be different from --start-address")
+def ip_address_options(p, args):
+    """
+    Raises an error if the arguments required by --ip-address are not set.
+
+    Without knowing the host interface subnet, we cannot validate --ip-address, and we
+    cannot determine the static address prefix length to pass to cloud-init.
+    """
+    if args.ip_address and not (
+        _all_dhcp_options_set(args) or _all_host_ip_options_set(args)
+    ):
+        p.error(
+            "--ip-address requires either --start-address, --end-address, --subnet-mask, or "
+            "--network-id, --host-ip-address, --host-subnet-mask."
+        )
 
 
 _RFC1918_NETWORKS = [

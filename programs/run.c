@@ -27,6 +27,9 @@ struct client_options {
     char *start_address;
     char *end_address;
     char *subnet_mask;
+    char *network_id;
+    char *host_ip_address;
+    char *host_subnet_mask;
     char *shared_interface;
     char *network_name;
     char *stats_interval;
@@ -66,6 +69,9 @@ enum {
     OPT_START_ADDRESS,
     OPT_END_ADDRESS,
     OPT_SUBNET_MASK,
+    OPT_NETWORK_ID,
+    OPT_HOST_IP_ADDRESS,
+    OPT_HOST_SUBNET_MASK,
     OPT_ENABLE_TSO,
     OPT_ENABLE_CHECKSUM_OFFLOAD,
     OPT_ENABLE_ISOLATION,
@@ -84,6 +90,9 @@ static struct option long_options[] = {
     {"start-address",           required_argument,  0,  OPT_START_ADDRESS},
     {"end-address",             required_argument,  0,  OPT_END_ADDRESS},
     {"subnet-mask",             required_argument,  0,  OPT_SUBNET_MASK},
+    {"network-id",              required_argument,  0,  OPT_NETWORK_ID},
+    {"host-ip-address",         required_argument,  0,  OPT_HOST_IP_ADDRESS},
+    {"host-subnet-mask",        required_argument,  0,  OPT_HOST_SUBNET_MASK},
     {"enable-tso",              no_argument,        0,  OPT_ENABLE_TSO},
     {"enable-checksum-offload", no_argument,        0,  OPT_ENABLE_CHECKSUM_OFFLOAD},
     {"enable-isolation",        no_argument,        0,  OPT_ENABLE_ISOLATION},
@@ -105,6 +114,8 @@ static void usage(int code)
 "    vmnet-run [--interface-id UUID] [--operation-mode shared|bridged|host]\n"
 "              [--start-address ADDR] [--end-address ADDR]\n"
 "              [--subnet-mask MASK] [--shared-interface NAME]\n"
+"              [--network-id UUID] [--host-ip-address ADDR]\n"
+"              [--host-subnet-mask MASK]\n"
 "              [--enable-tso] [--enable-checksum-offload]\n"
 "              [--enable-isolation] [--network NAME]\n"
 "              [--stats-interval SECONDS]\n"
@@ -116,7 +127,8 @@ static void usage(int code)
 "    With --network, vmnet-helper joins a network managed by vmnet-broker.\n"
 "\n"
 "    --network is mutually exclusive with: --operation-mode, --shared-interface,\n"
-"    --start-address, --end-address, --subnet-mask.\n"
+"    --start-address, --end-address, --subnet-mask, --network-id, --host-ip-address,\n"
+"    --host-subnet-mask."
 "\n"
 "    --network requires macOS 26 or later.\n"
 "\n";
@@ -194,6 +206,21 @@ static void build_helper_argv(void)
         append_helper_arg(options.subnet_mask);
     }
 
+    if (options.network_id) {
+        append_helper_arg("--network-id");
+        append_helper_arg(options.network_id);
+    }
+
+    if (options.host_ip_address) {
+        append_helper_arg("--host-ip-address");
+        append_helper_arg(options.host_ip_address);
+    }
+
+    if (options.host_subnet_mask) {
+        append_helper_arg("--host-subnet-mask");
+        append_helper_arg(options.host_subnet_mask);
+    }
+
     if (options.shared_interface) {
         append_helper_arg("--shared-interface");
         append_helper_arg(options.shared_interface);
@@ -246,6 +273,15 @@ static void validate_interface_id(const char *arg)
     uuid_t uuid;
     if (uuid_parse(arg, uuid) < 0) {
         ERRORF("[runner] invalid interface-id: \"%s\"", arg);
+        exit(EXIT_FAILURE);
+    }
+}
+
+static void validate_network_id(const char *arg)
+{
+    uuid_t uuid;
+    if (uuid_parse(arg, uuid) < 0) {
+        ERRORF("[runner] invalid network-id: \"%s\"", arg);
         exit(EXIT_FAILURE);
     }
 }
@@ -311,6 +347,18 @@ static void parse_options(int argc, char **argv)
             validate_address(optarg, optname);
             options.subnet_mask = optarg;
             break;
+        case OPT_NETWORK_ID:
+            validate_network_id(optarg);
+            options.network_id = optarg;
+            break;
+        case OPT_HOST_IP_ADDRESS:
+            validate_address(optarg, optname);
+            options.host_ip_address = optarg;
+            break;
+        case OPT_HOST_SUBNET_MASK:
+            validate_address(optarg, optname);
+            options.host_subnet_mask = optarg;
+            break;
         case OPT_ENABLE_TSO:
             options.enable_tso = true;
             break;
@@ -364,15 +412,52 @@ static void parse_options(int argc, char **argv)
             ERROR("[runner] conflicting arguments: --network cannot be used with --subnet-mask");
             exit(EXIT_FAILURE);
         }
+        if (options.network_id != NULL) {
+            ERROR("[runner] conflicting arguments: --network cannot be used with --network-id");
+            exit(EXIT_FAILURE);
+        }
+        if (options.host_ip_address != NULL) {
+            ERROR("[runner] conflicting arguments: --network cannot be used with --host-ip-address");
+            exit(EXIT_FAILURE);
+        }
+        if (options.host_subnet_mask != NULL) {
+            ERROR("[runner] conflicting arguments: --network cannot be used with --host-subnet-mask");
+            exit(EXIT_FAILURE);
+        }
     } else if (is_bridged(options.operation_mode)) {
         if (options.shared_interface == NULL) {
             ERROR("[runner] missing argument: shared-interface is required for operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
+        if (options.network_id != NULL) {
+            ERROR("[runner] conflicting arguments: --network-id cannot be used with operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
+        if (options.host_ip_address != NULL) {
+            ERROR("[runner] conflicting arguments: --host-ip-address cannot be used with operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
+        if (options.host_subnet_mask != NULL) {
+            ERROR("[runner] conflicting arguments: --host-subnet-mask cannot be used with operation-mode=bridged");
             exit(EXIT_FAILURE);
         }
 
         // TODO: Validate that isolation doesn't work with bridged mode.
         if (options.enable_isolation) {
             ERROR("[runner] conflicting arguments: enable-isolation not compatible with operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
+    } else if (is_shared(options.operation_mode)) {
+        if (options.network_id != NULL) {
+            ERROR("[runner] conflicting arguments: --network-id cannot be used with operation-mode=shared");
+            exit(EXIT_FAILURE);
+        }
+        if (options.host_ip_address != NULL) {
+            ERROR("[runner] conflicting arguments: --host-ip-address cannot be used with operation-mode=shared");
+            exit(EXIT_FAILURE);
+        }
+        if (options.host_subnet_mask != NULL) {
+            ERROR("[runner] conflicting arguments: --host-subnet-mask cannot be used with operation-mode=shared");
             exit(EXIT_FAILURE);
         }
     }
