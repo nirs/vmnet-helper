@@ -1,0 +1,16 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    app: iperf3
+  name: iperf3
+  namespace: default
+spec:
+  ports:
+  - nodePort: 30201
+    port: 5201
+    protocol: TCP
+  selector:
+    app: iperf3
+  type: NodePort
