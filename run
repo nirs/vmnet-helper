@@ -69,6 +69,32 @@ def main():
         help="The IPv4 subnet mask (string) to use on the interface.",
     )
     p.add_argument(
+        "--network-id",
+        type=testing.validate.network_id,
+        help=(
+            "The identifier (UUID) of the host network to use on the interface "
+            "(host operation-mode only). Conflicts with --start-address, --end-address, "
+            "--subnet-mask."
+        ),
+    )
+    p.add_argument(
+        "--host-ip-address",
+        type=testing.validate.private_ipv4_address,
+        help=(
+            "The IPv4 address (string) to assign to the host's interface. "
+            "The address must be in the private IP range (RFC 1918). "
+            "Requires --network-id and --host-subnet-mask."
+        ),
+    )
+    p.add_argument(
+        "--host-subnet-mask",
+        type=testing.validate.subnet_mask,
+        help=(
+            "The IPv4 subnet mask (string) to assign to the host's interface. "
+            "Requires --network-id and --host-ip-address."
+        ),
+    )
+    p.add_argument(
         "--shared-interface",
         choices=shared_interfaces,
         default=shared_interfaces[0],
@@ -152,9 +178,9 @@ def main():
         "--ip-address",
         type=testing.validate.private_ipv4_address,
         help=(
-            "The static IPv4 address to assign to the vm. Requires the --start-address, "
-            "--end-address, --subnet-mask options, and should be outside of the requested "
-            "DHCP range. When unset, the vm uses DHCP."
+            "The static IPv4 address to assign to the vm. The vm uses the subnet mask "
+            "from --subnet-mask or --host-subnet-mask if available, or 255.255.255.0 if "
+            "no subnet mask is set. When no IP address is set, the vm uses DHCP."
         ),
     )
 
