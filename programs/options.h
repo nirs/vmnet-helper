@@ -15,6 +15,9 @@ struct options {
     const char *start_address;
     const char *end_address;
     const char *subnet_mask;
+    uuid_t network_id;
+    const char *host_ip_address;
+    const char *host_subnet_mask;
     const char *shared_interface;
     const char *network_name;
     bool enable_isolation;

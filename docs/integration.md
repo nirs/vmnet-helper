@@ -180,7 +180,8 @@ Allows the vmnet interface to communicate with other vmnet interfaces
 that are in host mode and also with the native host.
 
 The network can be configured using the
-[network address options](#network-address-options).
+[network address options](#network-address-options) and the
+[network id options](#network-id-options).
 
 ### --operation-mode=shared
 
@@ -334,6 +335,48 @@ cases and much worse performance in other cases. See the
 > [!IMPORTANT]
 > You must use both **--enable-tso** and **--enable-checksum-offload** when
 > using krunkit **offloading=on** virtio-net option.
+
+## Network ID options
+
+In host mode, the **--network-id** can be set to a UUID. Any interfaces
+started with the same identifier can communicate with each other, but are
+isolated from other host mode interfaces. This also disables DHCP on the
+network.
+
+```console
+% vmnet-helper --socket ./test.sock --operation-mode host --network-id C6E763C8-F8E9-4CC4-9280-F2E40ABC5B73
+INFO  [main] running vmnet-helper v0.12.0-24-g4964378 on macOS 26.5.2
+INFO  [main] running as uid: 501 gid: 20
+INFO  [main] using bulk_forwarding: true
+{"vmnet_write_max_packets":256,"vmnet_read_max_packets":256,"vmnet_subnet_mask":"255.255.255.0","vmnet_mtu":1500,"vmnet_end_address":"192.168.128.254","vmnet_start_address":"192.168.128.1","vmnet_interface_id":"E496A990-DB40-453B-85E3-1F758908EE06","vmnet_max_packet_size":1514,"vmnet_mac_address":"1e:2a:95:42:af:9e"}
+INFO  [main] started vmnet interface
+INFO  [main] waiting for client on "./test.sock"
+```
+
+> [!NOTE]
+> On macOS 15 or earlier, no address is assigned to the host interface when
+> **--network-id** is set. **vmnet_start_address** will be **0.0.0.0**. If
+> you need a host address, see the host address options below.
+
+Since DHCP is disabled, the [network address options](#network-address-options)
+are not available. To control the address and subnet mask assigned to the host
+interface, use **--host-ip-address** and **--host-subnet-mask**. vmnet returns
+the host address as **vmnet_start_address**.
+
+```console
+% vmnet-helper \
+    --socket ./test.sock \
+    --operation-mode host \
+    --network-id C6E763C8-F8E9-4CC4-9280-F2E40ABC5B73 \
+    --host-ip-address 192.168.200.12 \
+    --host-subnet-mask 255.255.255.0
+INFO  [main] running vmnet-helper v0.12.0-24-g4964378 on macOS 26.5.2
+INFO  [main] running as uid: 501 gid: 20
+INFO  [main] using bulk_forwarding: true
+{"vmnet_write_max_packets":256,"vmnet_read_max_packets":256,"vmnet_subnet_mask":"255.255.255.0","vmnet_mtu":1500,"vmnet_end_address":"192.168.200.254","vmnet_start_address":"192.168.200.12","vmnet_interface_id":"345CD3A2-9327-4BBE-B0D8-4424B30A0F19","vmnet_max_packet_size":1514,"vmnet_mac_address":"be:82:e0:83:ab:59"}
+INFO  [main] started vmnet interface
+INFO  [main] waiting for client on "./test.sock"
+```
 
 ## Stopping the interface
 
