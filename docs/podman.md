@@ -202,7 +202,57 @@ podman system connection add podman-vfkit.local \
     ssh://root@podman-vfkit.local/run/podman/podman.sock
 ```
 
-Verify the connection:
+### Fixing SELinux
+
+Check the connection:
+
+```console
+podman -c podman-vfkit.local version
+```
+
+Example output:
+
+```
+Client:        Podman Engine
+Version:       6.1.0
+API Version:   6.1.0
+Go Version:    go1.26.5
+Built:         Wed Aug 12 20:04:26 2026
+Build Origin:  brew
+OS/Arch:       darwin/arm64
+Cannot connect to Podman. Please verify your connection to the Linux system
+using `podman system connection list`, or try `podman machine init` and
+`podman machine start` to manage a new Linux VM
+Error: unable to connect to Podman socket: Get "http://d/v6.1.0/libpod/_ping":
+ssh: rejected: connect failed (open failed)
+```
+
+SELinux is blocking SSH from the podman socket. Confirm:
+
+```console
+ssh root@podman-vfkit.local bash -ls << 'EOF'
+ausearch -if /var/log/audit/audit.log -m avc -c sshd-session
+EOF
+```
+
+Example output:
+
+```
+----
+time->Mon Aug 31 16:39:39 2026
+type=AVC msg=audit(1788194379.948:128): avc:  denied  { write } for  pid=873 comm="sshd-session" name="podman.sock" dev="tmpfs" ino=1473 scontext=system_u:system_r:sshd_session_t:s0-s0:c0.c1023 tcontext=system_u:object_r:var_run_t:s0 tclass=sock_file permissive=0
+```
+
+Allow the access:
+
+```console
+ssh root@podman-vfkit.local 'cat > /root/sshd-podman-sock.cil && semodule -i /root/sshd-podman-sock.cil' << 'EOF'
+(allow sshd_session_t var_run_t (sock_file (write)))
+(allow sshd_session_t container_runtime_t (unix_stream_socket (connectto)))
+EOF
+```
+
+Check the connection again:
 
 ```console
 podman -c podman-vfkit.local version
@@ -376,7 +426,57 @@ podman system connection add podman-krunkit.local \
     ssh://root@podman-krunkit.local/run/podman/podman.sock
 ```
 
-Verify the connection:
+### Fixing SELinux
+
+Check the connection:
+
+```console
+podman -c podman-krunkit.local version
+```
+
+Example output:
+
+```
+Client:        Podman Engine
+Version:       6.1.0
+API Version:   6.1.0
+Go Version:    go1.26.5
+Built:         Wed Aug 12 20:04:26 2026
+Build Origin:  brew
+OS/Arch:       darwin/arm64
+Cannot connect to Podman. Please verify your connection to the Linux system
+using `podman system connection list`, or try `podman machine init` and
+`podman machine start` to manage a new Linux VM
+Error: unable to connect to Podman socket: Get "http://d/v6.1.0/libpod/_ping":
+ssh: rejected: connect failed (open failed)
+```
+
+SELinux is blocking SSH from the podman socket. Confirm:
+
+```console
+ssh root@podman-krunkit.local bash -ls << 'EOF'
+ausearch -if /var/log/audit/audit.log -m avc -c sshd-session
+EOF
+```
+
+Example output:
+
+```
+----
+time->Mon Aug 31 16:39:39 2026
+type=AVC msg=audit(1788194379.948:128): avc:  denied  { write } for  pid=873 comm="sshd-session" name="podman.sock" dev="tmpfs" ino=1473 scontext=system_u:system_r:sshd_session_t:s0-s0:c0.c1023 tcontext=system_u:object_r:var_run_t:s0 tclass=sock_file permissive=0
+```
+
+Allow the access:
+
+```console
+ssh root@podman-krunkit.local 'cat > /root/sshd-podman-sock.cil && semodule -i /root/sshd-podman-sock.cil' << 'EOF'
+(allow sshd_session_t var_run_t (sock_file (write)))
+(allow sshd_session_t container_runtime_t (unix_stream_socket (connectto)))
+EOF
+```
+
+Check the connection again:
 
 ```console
 podman -c podman-krunkit.local version
