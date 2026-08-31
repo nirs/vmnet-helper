@@ -160,7 +160,7 @@ cat > ~/Library/LaunchAgents/local.$VM_NAME.plist << EOF
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>local.$VM_NAME</string>
+    <string>$VM_NAME.local</string>
     <key>ProgramArguments</key>
     <array>
         <string>$(brew --prefix vmnet-helper)/libexec/vmnet-run</string>
@@ -215,19 +215,19 @@ available options.
 Start the VM:
 
 ```console
-launchctl start local.$VM_NAME
+launchctl start $VM_NAME.local
 ```
 
 Stop the VM (cleanly terminates vmnet-helper and vfkit):
 
 ```console
-launchctl stop local.$VM_NAME
+launchctl stop $VM_NAME.local
 ```
 
 ### Checking status
 
 ```console
-launchctl print gui/$(id -u)/local.$VM_NAME | grep "^\tstate"
+launchctl print gui/$(id -u)/$VM_NAME.local | grep "^\tstate"
 ```
 
 When the VM is running:
@@ -285,8 +285,8 @@ ssh my-vm.local
 > This deletes all VM data including the disk image.
 
 ```console
-launchctl stop local.$VM_NAME
-launchctl bootout gui/$(id -u)/local.$VM_NAME
+launchctl stop $VM_NAME.local
+launchctl bootout gui/$(id -u)/$VM_NAME.local
 rm ~/Library/LaunchAgents/local.$VM_NAME.plist
 rm -r ~/vms/$VM_NAME
 ```
