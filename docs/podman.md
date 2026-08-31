@@ -133,7 +133,7 @@ cat > ~/Library/LaunchAgents/local.$VM_NAME.plist << EOF
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>local.$VM_NAME</string>
+    <string>$VM_NAME.local</string>
     <key>ProgramArguments</key>
     <array>
         <!-- On macOS 15, use /opt/vmnet-helper/bin/vmnet-run -->
@@ -171,7 +171,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.$VM_NAME.plist
 ### Start the podman VM
 
 ```console
-launchctl start local.podman-vfkit
+launchctl start podman-vfkit.local
 ```
 
 Wait for the VM to boot:
@@ -188,16 +188,16 @@ Update the VM and restart:
 
 ```console
 ssh root@podman-vfkit.local dnf update -y
-launchctl stop local.podman-vfkit
-until launchctl print gui/$(id -u)/local.podman-vfkit | grep -q 'state = not running'; do sleep 1; done
-launchctl start local.podman-vfkit
+launchctl stop podman-vfkit.local
+until launchctl print gui/$(id -u)/podman-vfkit.local | grep -q 'state = not running'; do sleep 1; done
+launchctl start podman-vfkit.local
 until nc -z podman-vfkit.local 22; do true; done
 ```
 
 ### Add a system connection
 
 ```console
-podman system connection add vmnet-vfkit \
+podman system connection add podman-vfkit.local \
     --identity ~/.ssh/id_ed25519 \
     ssh://root@podman-vfkit.local/run/podman/podman.sock
 ```
@@ -205,7 +205,7 @@ podman system connection add vmnet-vfkit \
 Verify the connection:
 
 ```console
-podman -c vmnet-vfkit version
+podman -c podman-vfkit.local version
 ```
 
 ### Cleanup
@@ -213,9 +213,9 @@ podman -c vmnet-vfkit version
 To remove the VM after you are done testing:
 
 ```console
-podman system connection remove vmnet-vfkit
-launchctl stop local.podman-vfkit
-launchctl bootout gui/$(id -u)/local.podman-vfkit
+podman system connection remove podman-vfkit.local
+launchctl stop podman-vfkit.local
+launchctl bootout gui/$(id -u)/podman-vfkit.local
 rm ~/Library/LaunchAgents/local.podman-vfkit.plist
 rm -r ~/vms/podman-vfkit
 ssh-keygen -R podman-vfkit.local
@@ -306,7 +306,7 @@ cat > ~/Library/LaunchAgents/local.$VM_NAME.plist << EOF
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>local.$VM_NAME</string>
+    <string>$VM_NAME.local</string>
     <key>ProgramArguments</key>
     <array>
         <string>$(brew --prefix vmnet-helper)/libexec/vmnet-run</string>
@@ -345,7 +345,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.$VM_NAME.plist
 ### Start the podman VM
 
 ```console
-launchctl start local.podman-krunkit
+launchctl start podman-krunkit.local
 ```
 
 Wait for the VM to boot:
@@ -362,16 +362,16 @@ Update the VM and restart:
 
 ```console
 ssh root@podman-krunkit.local dnf update -y
-launchctl stop local.podman-krunkit
-until launchctl print gui/$(id -u)/local.podman-krunkit | grep -q 'state = not running'; do sleep 1; done
-launchctl start local.podman-krunkit
+launchctl stop podman-krunkit.local
+until launchctl print gui/$(id -u)/podman-krunkit.local | grep -q 'state = not running'; do sleep 1; done
+launchctl start podman-krunkit.local
 until nc -z podman-krunkit.local 22; do true; done
 ```
 
 ### Add a system connection
 
 ```console
-podman system connection add vmnet-krunkit \
+podman system connection add podman-krunkit.local \
     --identity ~/.ssh/id_ed25519 \
     ssh://root@podman-krunkit.local/run/podman/podman.sock
 ```
@@ -379,7 +379,7 @@ podman system connection add vmnet-krunkit \
 Verify the connection:
 
 ```console
-podman -c vmnet-krunkit version
+podman -c podman-krunkit.local version
 ```
 
 ### Cleanup
@@ -387,9 +387,9 @@ podman -c vmnet-krunkit version
 To remove the VM after you are done testing:
 
 ```console
-podman system connection remove vmnet-krunkit
-launchctl stop local.podman-krunkit
-launchctl bootout gui/$(id -u)/local.podman-krunkit
+podman system connection remove podman-krunkit.local
+launchctl stop podman-krunkit.local
+launchctl bootout gui/$(id -u)/podman-krunkit.local
 rm ~/Library/LaunchAgents/local.podman-krunkit.plist
 rm -r ~/vms/podman-krunkit
 ssh-keygen -R podman-krunkit.local
@@ -408,8 +408,8 @@ mkdir -p out
 Create a machine for each provider:
 
 ```console
-for provider in applehv libkrun; do
-    CONTAINERS_MACHINE_PROVIDER=$provider podman machine init --rootful podman-$provider
+for machine in podman-applehv podman-libkrun; do
+    CONTAINERS_MACHINE_PROVIDER=${machine#podman-} podman machine init --rootful $machine
 done
 ```
 
@@ -417,16 +417,15 @@ We test rootful podman with port forwarding. Traffic goes through the
 gvproxy userspace network stack.
 
 ```console
-for provider in applehv libkrun; do
-    export CONTAINERS_MACHINE_PROVIDER=$provider
-    podman machine start podman-$provider
+for machine in podman-applehv podman-libkrun; do
+    CONTAINERS_MACHINE_PROVIDER=${machine#podman-} podman machine start $machine
 
-    podman -c podman-$provider-root run -d --name iperf3 -p 5201:5201 docker.io/networkstatic/iperf3 -s
-    iperf3 -c localhost --json --time 30 > out/podman-$provider-tx.json
-    iperf3 -c localhost --json --time 30 --reverse > out/podman-$provider-rx.json
-    podman -c podman-$provider-root rm -f iperf3
+    podman -c $machine-root run -d --name iperf3 -p 5201:5201 docker.io/networkstatic/iperf3 -s
+    iperf3 -c localhost --json --time 30 > out/$machine-root-tx.json
+    iperf3 -c localhost --json --time 30 --reverse > out/$machine-root-rx.json
+    podman -c $machine-root rm -f iperf3
 
-    podman machine stop podman-$provider
+    CONTAINERS_MACHINE_PROVIDER=${machine#podman-} podman machine stop $machine
 done
 ```
 
@@ -436,17 +435,17 @@ We use rootful podman with port forwarding, implemented by the kernel using
 nftables.
 
 ```console
-for vm in vfkit krunkit; do
-    launchctl start local.podman-$vm
-    until nc -z podman-$vm.local 22; do true; done
+for vm in podman-vfkit.local podman-krunkit.local; do
+    launchctl start $vm
+    until nc -z $vm 22; do true; done
 
-    podman -c vmnet-$vm run -d --name iperf3 -p 5201:5201 docker.io/networkstatic/iperf3 -s
-    iperf3 -c podman-$vm.local --json --time 30 > out/vmnet-$vm-port-forwarding-tx.json
-    iperf3 -c podman-$vm.local --json --time 30 --reverse > out/vmnet-$vm-port-forwarding-rx.json
-    podman -c vmnet-$vm rm -f iperf3
+    podman -c $vm run -d --name iperf3 -p 5201:5201 docker.io/networkstatic/iperf3 -s
+    iperf3 -c $vm --json --time 30 > out/$vm-port-forwarding-tx.json
+    iperf3 -c $vm --json --time 30 --reverse > out/$vm-port-forwarding-rx.json
+    podman -c $vm rm -f iperf3
 
-    launchctl stop local.podman-$vm
-    until launchctl print gui/$(id -u)/local.podman-$vm | grep -q 'state = not running'; do sleep 1; done
+    launchctl stop $vm
+    until launchctl print gui/$(id -u)/$vm | grep -q 'state = not running'; do sleep 1; done
 done
 ```
 
@@ -456,17 +455,17 @@ The container uses the host network directly, avoiding the port forwarding cost.
 If your service can bind to any port, this is the fastest option.
 
 ```console
-for vm in vfkit krunkit; do
-    launchctl start local.podman-$vm
-    until nc -z podman-$vm.local 22; do true; done
+for vm in podman-vfkit.local podman-krunkit.local; do
+    launchctl start $vm
+    until nc -z $vm 22; do true; done
 
-    podman -c vmnet-$vm run -d --name iperf3 --network host docker.io/networkstatic/iperf3 -s
-    iperf3 -c podman-$vm.local --json --time 30 > out/vmnet-$vm-host-network-tx.json
-    iperf3 -c podman-$vm.local --json --time 30 --reverse > out/vmnet-$vm-host-network-rx.json
-    podman -c vmnet-$vm rm -f iperf3
+    podman -c $vm run -d --name iperf3 --network host docker.io/networkstatic/iperf3 -s
+    iperf3 -c $vm --json --time 30 > out/$vm-host-network-tx.json
+    iperf3 -c $vm --json --time 30 --reverse > out/$vm-host-network-rx.json
+    podman -c $vm rm -f iperf3
 
-    launchctl stop local.podman-$vm
-    until launchctl print gui/$(id -u)/local.podman-$vm | grep -q 'state = not running'; do sleep 1; done
+    launchctl stop $vm
+    until launchctl print gui/$(id -u)/$vm | grep -q 'state = not running'; do sleep 1; done
 done
 ```
 
@@ -489,7 +488,7 @@ but almost none on RX, since nftables only rewrites incoming packets.
 > vmnet VM for everyday container use.
 
 ```console
-podman system connection default vmnet-krunkit
+podman system connection default podman-krunkit.local
 ```
 
 ## Managing the VM
@@ -497,13 +496,13 @@ podman system connection default vmnet-krunkit
 Start the VM:
 
 ```console
-launchctl start local.podman-krunkit
+launchctl start podman-krunkit.local
 ```
 
 Stop the VM:
 
 ```console
-launchctl stop local.podman-krunkit
+launchctl stop podman-krunkit.local
 ```
 
 [xkcd]: https://xkcd.com/353/

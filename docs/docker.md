@@ -127,7 +127,7 @@ cat > ~/Library/LaunchAgents/local.$VM_NAME.plist << EOF
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>local.$VM_NAME</string>
+    <string>$VM_NAME.local</string>
     <key>ProgramArguments</key>
     <array>
         <string>$(brew --prefix vmnet-helper)/libexec/vmnet-run</string>
@@ -166,7 +166,7 @@ launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/local.$VM_NAME.plist
 ## Start the Docker VM
 
 ```console
-launchctl start local.docker
+launchctl start docker.local
 ```
 
 Wait for the VM to boot:
@@ -195,29 +195,29 @@ EOF
 Restart the VM:
 
 ```console
-launchctl stop local.docker
-until launchctl print gui/$(id -u)/local.docker | grep -q 'state = not running'; do sleep 1; done
-launchctl start local.docker
+launchctl stop docker.local
+until launchctl print gui/$(id -u)/docker.local | grep -q 'state = not running'; do sleep 1; done
+launchctl start docker.local
 until nc -z docker.local 22; do true; done
 ```
 
 ## Add a Docker context
 
 ```console
-docker context create vmnet \
+docker context create docker.local \
     --docker "host=ssh://root@docker.local"
 ```
 
 Verify the connection:
 
 ```console
-docker --context vmnet version
+docker --context docker.local version
 ```
 
 ## Make it your default
 
 ```console
-docker context use vmnet
+docker context use docker.local
 ```
 
 > [!TIP]
@@ -300,14 +300,14 @@ docker rm -f speedtest
 Start the VM:
 
 ```console
-launchctl start local.docker
+launchctl start docker.local
 until nc -z docker.local 22; do true; done
 ```
 
 Stop the VM:
 
 ```console
-launchctl stop local.docker
+launchctl stop docker.local
 ```
 
 ## Cleanup
@@ -315,9 +315,9 @@ launchctl stop local.docker
 To remove the VM:
 
 ```console
-docker context rm vmnet
-launchctl stop local.docker
-launchctl bootout gui/$(id -u)/local.docker
+docker context rm docker.local
+launchctl stop docker.local
+launchctl bootout gui/$(id -u)/docker.local
 rm ~/Library/LaunchAgents/local.docker.plist
 rm -r ~/vms/docker
 ssh-keygen -R docker.local
