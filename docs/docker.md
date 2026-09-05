@@ -90,6 +90,24 @@ users:
       - "$(cat ~/.ssh/id_ed25519.pub)"
 packages:
   - avahi-daemon
+  - qemu-guest-agent
+write_files:
+  - path: /etc/systemd/system/qemu-guest-agent.service
+    content: |
+      [Unit]
+      Description=QEMU Guest Agent
+
+      [Service]
+      ExecStart=/usr/sbin/qemu-ga --method=vsock-listen --path=3:1234
+      Restart=always
+      RestartSec=0
+
+      [Install]
+      WantedBy=multi-user.target
+runcmd:
+  - systemctl daemon-reload
+  - systemctl disable qemu-guest-agent
+  - systemctl enable --now qemu-guest-agent
 bootcmd:
   - systemctl mask systemd-networkd-wait-online.service
 EOF
@@ -151,6 +169,8 @@ cat > ~/Library/LaunchAgents/local.$VM_NAME.plist << EOF
         <string>virtio-net,type=unixgram,fd=4,mac=$MAC_ADDRESS,offloading=on</string>
         <string>--device</string>
         <string>virtio-rng</string>
+        <string>--timesync</string>
+        <string>vsockPort=1234</string>
     </array>
     <key>RunAtLoad</key>
     <false/>
