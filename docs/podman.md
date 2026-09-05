@@ -338,7 +338,27 @@ users:
 packages:
   - avahi
   - podman
+write_files:
+  - path: /etc/systemd/system/qemu-guest-agent.service
+    content: |
+      [Unit]
+      Description=QEMU Guest Agent
+
+      [Service]
+      ExecStart=/usr/bin/qemu-ga --method=vsock-listen --path=3:1234
+      Restart=always
+      RestartSec=0
+
+      [Install]
+      WantedBy=multi-user.target
+  - path: /root/qemu-ga-vsock.cil
+    content: |
+      (allow virt_qemu_ga_t self (vsock_socket (bind create getattr listen accept read write)))
 runcmd:
+  - semodule -i /root/qemu-ga-vsock.cil
+  - systemctl daemon-reload
+  - systemctl disable qemu-guest-agent
+  - systemctl enable --now qemu-guest-agent
   - systemctl enable --now avahi-daemon
   - systemctl enable --now podman.socket
 EOF
@@ -400,6 +420,8 @@ cat > ~/Library/LaunchAgents/local.$VM_NAME.plist << EOF
         <string>virtio-net,type=unixgram,fd=4,mac=$MAC_ADDRESS,offloading=on</string>
         <string>--device</string>
         <string>virtio-rng</string>
+        <string>--timesync</string>
+        <string>vsockPort=1234</string>
     </array>
     <key>RunAtLoad</key>
     <false/>
