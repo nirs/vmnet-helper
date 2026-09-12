@@ -1,0 +1,12 @@
+---
+resources:
+- ../base
+- service.yaml
+patches:
+  - target:
+      kind: Deployment
+      name: iperf3
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/hostNetwork
+        value: false

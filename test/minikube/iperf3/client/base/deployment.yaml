@@ -1,0 +1,24 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: iperf3
+  name: iperf3
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: iperf3
+  template:
+    metadata:
+      labels:
+        app: iperf3
+    spec:
+      hostNetwork: HOST_NETWORK
+      containers:
+      - image: networkstatic/iperf3
+        imagePullPolicy: Always
+        name: iperf3
+        command: ["sh", "-c" , "trap 'exit 0' TERM; sleep 3600"]
