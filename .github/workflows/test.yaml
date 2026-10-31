@@ -91,7 +91,7 @@ jobs:
 
   reproducibility:
     name: Reproducibility
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -108,7 +108,7 @@ jobs:
 
   formatting:
     name: Formatting
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
@@ -122,7 +122,7 @@ jobs:
 
   spelling:
     name: Spelling
-    runs-on: macos-26
+    runs-on: xcode-27
     steps:
       - name: Checkout source
         uses: actions/checkout@v6
