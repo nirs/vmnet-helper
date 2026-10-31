@@ -40,9 +40,6 @@ jobs:
           - os: macos-15
             method: install.sh
             vmnet_helper: /opt/vmnet-helper/bin/vmnet-helper
-          - os: macos-14
-            method: install.sh
-            vmnet_helper: /opt/vmnet-helper/bin/vmnet-helper
     runs-on: ${{ matrix.os }}
     steps:
       - name: Host info
