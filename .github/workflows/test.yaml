@@ -24,6 +24,7 @@ jobs:
       fail-fast: false
       matrix:
         os:
+          - xcode-27
           - macos-26
           - macos-26-intel
           - macos-15

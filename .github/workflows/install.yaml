@@ -31,6 +31,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - os: xcode-27
+            method: brew
+            vmnet_helper: /opt/homebrew/opt/vmnet-helper/libexec/vmnet-helper
           - os: macos-26
             method: brew
             vmnet_helper: /opt/homebrew/opt/vmnet-helper/libexec/vmnet-helper
