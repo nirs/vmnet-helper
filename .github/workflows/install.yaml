@@ -83,6 +83,7 @@ jobs:
 
       - name: Install via script (release)
         if: matrix.method == 'install.sh' && github.event_name != 'pull_request'
+        shell: bash -e -o pipefail {0}
         run: |
           curl -fsSL https://github.com/nirs/vmnet-helper/releases/latest/download/install.sh \
             | VMNET_INTERACTIVE=0 bash
@@ -91,6 +92,7 @@ jobs:
         env:
           EXPECTED_VERSION: ${{ steps.release.outputs.version }}
           EXPECTED_COMMIT: ${{ steps.release.outputs.commit }}
+        shell: bash -e -o pipefail {0}
         run: |
           vmnet_helper="${{ matrix.vmnet_helper }}"
           echo "Checking $vmnet_helper"

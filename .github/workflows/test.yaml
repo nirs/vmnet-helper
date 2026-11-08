@@ -67,6 +67,7 @@ jobs:
         run: VMNET_INTERACTIVE=0 ./install.sh build/vmnet-helper.tar.gz
       - name: Install vmnet-broker
         if: startsWith(matrix.os, 'macos-26')
+        shell: bash -e -o pipefail {0}
         run: curl -fsSL https://github.com/nirs/vmnet-broker/releases/latest/download/install.sh | sudo bash
       - name: Create virtual env
         run: |
