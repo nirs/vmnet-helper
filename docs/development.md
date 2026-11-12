@@ -143,8 +143,15 @@ The following example uses the qemu driver, and connects using vmnet-run:
 [  16.630] INFO VM is ready at test-vmnet-helper.local
 ```
 
-VMs use DHCP by default. To assign a static IP address, restrict the DHCP range,
-then select an address outside of that range:
+### Static IP addressing
+
+VMs use DHCP by default. To assign a static IP address, the host interface
+subnet must be defined. This can be done in two ways:
+
+**In DHCP mode:**
+
+Set a specific DHCP range, then assign an address on the same subnet.
+**--start-address** and **--ip-address** must be different:
 
 ```console
 % ./run test \
@@ -158,9 +165,20 @@ then select an address outside of that range:
 > Setting `--ip-address` to a value inside the DHCP range may work, but may
 > cause conflicts.
 
-> [!NOTE]
-> `--ip-address` must be difrerent from `--start-address`, but in the same
-> subnet.
+**When --network-id is set:**
+
+In host mode only, **--network-id** disables DHCP. Assign a specific address
+and subnet to the host, then a different address in the same subnet to the
+guest:
+
+```console
+% ./run test \
+    --operation-mode=host \
+    --network-id=009D22BF-E40F-4251-A58F-DAC0B4E1250F \
+    --host-ip-address 192.168.200.1 \
+    --host-subnet-mask 255.255.255.0 \
+    --ip-address 192.168.200.2
+```
 
 When changing a VM's IP address or switching to DHCP, the instance ID and host
 key will be reset. Remove the old host key before you ssh again:
