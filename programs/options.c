@@ -205,6 +205,24 @@ static void validate_network_options(struct options *opts)
     }
 }
 
+// Bridged mode uses the DHCP server on the physical network, so the address
+// options have no effect. Reject them instead of ignoring them silently.
+static void validate_no_network_options(struct options *opts)
+{
+    if (opts->start_address != NULL) {
+        ERROR("Conflicting arguments: --start-address cannot be used with bridged mode");
+        exit(EXIT_FAILURE);
+    }
+    if (opts->end_address != NULL) {
+        ERROR("Conflicting arguments: --end-address cannot be used with bridged mode");
+        exit(EXIT_FAILURE);
+    }
+    if (opts->subnet_mask != NULL) {
+        ERROR("Conflicting arguments: --subnet-mask cannot be used with bridged mode");
+        exit(EXIT_FAILURE);
+    }
+}
+
 void parse_options(struct options *opts, int argc, char **argv)
 {
     const char *optname;
@@ -326,6 +344,8 @@ void parse_options(struct options *opts, int argc, char **argv)
                 ERROR("Conflicting arguments: enable-isolation cannot be used with bridged mode");
                 exit(EXIT_FAILURE);
             }
+
+            validate_no_network_options(opts);
             break;
         }
     }

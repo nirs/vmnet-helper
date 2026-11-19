@@ -23,6 +23,7 @@ import logging
 import os
 import platform
 import socket
+import subprocess
 import time
 from datetime import datetime
 from types import SimpleNamespace
@@ -297,6 +298,54 @@ class TestStart:
         assert h.interface[VMNET_START_ADDRESS] == h.start_address
         assert h.interface[VMNET_END_ADDRESS] == h.end_address
         assert h.interface[VMNET_SUBNET_MASK] == h.subnet_mask
+
+
+class TestInvalidOptions:
+    """
+    Test that invalid option combinations are rejected before starting the
+    interface. These tests do not need root.
+    """
+
+    @pytest.mark.parametrize(
+        "option",
+        [
+            "--start-address=192.168.105.1",
+            "--end-address=192.168.105.254",
+            "--subnet-mask=255.255.255.0",
+        ],
+    )
+    def test_bridged_mode_network_options(self, option):
+        cmd = [
+            helper.HELPER,
+            "--fd=3",
+            "--operation-mode=bridged",
+            "--shared-interface=en0",
+            option,
+        ]
+        cp = subprocess.run(cmd, capture_output=True, text=True)
+        assert cp.returncode != 0
+        assert "cannot be used with bridged mode" in cp.stderr
+
+    @pytest.mark.parametrize(
+        "option",
+        [
+            "--start-address=192.168.105.1",
+            "--end-address=192.168.105.254",
+            "--subnet-mask=255.255.255.0",
+        ],
+    )
+    def test_runner_bridged_mode_network_options(self, option):
+        cmd = [
+            helper.RUNNER,
+            "--operation-mode=bridged",
+            "--shared-interface=en0",
+            option,
+            "--",
+            "true",
+        ]
+        cp = subprocess.run(cmd, capture_output=True, text=True)
+        assert cp.returncode != 0
+        assert "not compatible with operation-mode=bridged" in cp.stderr
 
 
 class TestConnectivity:

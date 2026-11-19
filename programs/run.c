@@ -375,6 +375,18 @@ static void parse_options(int argc, char **argv)
             ERROR("[runner] conflicting arguments: enable-isolation not compatible with operation-mode=bridged");
             exit(EXIT_FAILURE);
         }
+        if (options.start_address != NULL) {
+            ERROR("[runner] conflicting arguments: start-address not compatible with operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
+        if (options.end_address != NULL) {
+            ERROR("[runner] conflicting arguments: end-address not compatible with operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
+        if (options.subnet_mask != NULL) {
+            ERROR("[runner] conflicting arguments: subnet-mask not compatible with operation-mode=bridged");
+            exit(EXIT_FAILURE);
+        }
     }
 
     // The rest of the arguments are the command arguments.
