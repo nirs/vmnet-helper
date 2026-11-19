@@ -201,6 +201,9 @@ using this mode you must specify the interface name using
 Required options:
 - **--shared-interface**: The name of the interface to use.
 
+The [network address options](#network-address-options) cannot be used
+in this mode, since addresses are assigned by the physical network.
+
 You can find the physical interfaces that can be used in bridged mode
 using the **--list-shared-interfaces** option.
 

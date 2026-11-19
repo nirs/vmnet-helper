@@ -51,6 +51,11 @@ def _bridged_mode(p, args):
         p.error("--shared-interface required for --operation-mode=bridged")
     if args.enable_isolation:
         p.error("--enable-isolation not compatible with --operation-mode=bridged")
+    if _one_dhcp_option_set(args):
+        p.error(
+            "--start-address, --end-address, --subnet-mask not compatible with "
+            "--operation-mode=bridged"
+        )
 
 
 def _shared_mode(p, args):
